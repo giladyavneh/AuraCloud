@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aura Service Crawler</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 24px;
+      line-height: 1.5;
+    }
+    .card {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 20px;
+      border: 1px solid #ccc;
+      border-radius: 12px;
+    }
+    h1 { margin: 0 0 8px; font-size: 1.5rem; }
+    .grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      margin-bottom: 12px;
+    }
+    label { display: block; font-size: 0.92rem; margin-bottom: 4px; }
+    input, select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 12px;
+      border: 1px solid #999;
+      border-radius: 8px;
+      font: inherit;
+      background: transparent;
+    }
+    button {
+      padding: 10px 14px;
+      border: 0;
+      border-radius: 8px;
+      background: #0b5fff;
+      color: white;
+      font: inherit;
+      cursor: pointer;
+      margin-right: 8px;
+      margin-top: 4px;
+    }
+    button.secondary { background: #5b6472; }
+    button:disabled { opacity: 0.65; cursor: not-allowed; }
+    .section {
+      padding-top: 8px;
+      border-top: 1px solid rgba(127, 127, 127, 0.25);
+      margin-top: 8px;
+    }
+    #result {
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      background: rgba(0, 0, 0, 0.03);
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 160px;
+    }
+    .hint { font-size: 0.9rem; opacity: 0.8; margin-top: 8px; }
+    .status { margin-top: 8px; font-size: 0.92rem; opacity: 0.9; }
+    .meta { opacity: 0.85; font-size: 0.92rem; }
+    .resource-list { margin-top: 10px; display: grid; gap: 8px; }
+    .resource-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 10px;
+      border: 1px solid #d0d0d0;
+      border-radius: 8px;
+    }
+    .resource-label { word-break: break-word; }
+    .resource-details { font-size: 0.86rem; opacity: 0.85; margin-top: 4px; }
+    .inspect-btn { background: #2b7a3d; margin: 0; }
+    .download-btn { background: #7a4a1f; margin: 0; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Aura Service Crawler</h1>
+    <div class="hint">
+      Enter credentials once, choose a service type, and discover top-level resources through the local proxy at
+      <code>http://localhost:3001</code>. Results are rendered flexibly for buckets, users, or queues.
+    </div>
+
+    <section class="section">
+      <h2>1. Credentials</h2>
+      <div class="grid">
+        <div>
+          <label for="accessKeyId">AWS Access Key ID</label>
+          <input id="accessKeyId" autocomplete="off" placeholder="AKIA..." required />
+        </div>
+        <div>
+          <label for="secretAccessKey">AWS Secret Access Key</label>
+          <input id="secretAccessKey" type="password" autocomplete="off" placeholder="••••••••••••" required />
+        </div>
+        <div>
+          <label for="sessionToken">AWS Session Token</label>
+          <input id="sessionToken" type="password" autocomplete="off" placeholder="Temporary credentials token" required />
+        </div>
+        <div>
+          <label for="region">AWS Region</label>
+          <input id="region" autocomplete="off" placeholder="us-east-1" required />
+        </div>
+        <div>
+          <label for="serviceType">Service Type</label>
+          <select id="serviceType">
+            <option value="S3">S3</option>
+            <option value="IAM">IAM</option>
+            <option value="SQS">SQS</option>
+          </select>
+        </div>
+      </div>
+      <button id="connectBtn" type="button">Connect</button>
+      <button id="resetBtn" type="button" class="secondary">Reset</button>
+      <div id="connectionStatus" class="status">Not connected.</div>
+    </section>
+
+    <section class="section">
+      <h2>2. Crawler Output</h2>
+      <div id="resourceSummary" class="meta">No resources loaded yet.</div>
+      <pre id="result">Choose a service type and click Connect to start crawling.</pre>
+      <div id="resourceList" class="resource-list"></div>
+    </section>
+
+    <section class="section">
+      <h2>3. Deep Dive Inspector</h2>
+      <div id="inspectStatus" class="meta">Choose a discovered resource and click Inspect.</div>
+      <pre id="inspectResult">No inspection performed yet.</pre>
+      <div id="inspectObjectList" class="resource-list"></div>
+    </section>
+  </main>
+
+  <script type="module">
+    const accessKeyIdEl = document.getElementById("accessKeyId");
+    const secretAccessKeyEl = document.getElementById("secretAccessKey");
+    const sessionTokenEl = document.getElementById("sessionToken");
+    const regionEl = document.getElementById("region");
+    const serviceTypeEl = document.getElementById("serviceType");
+    const connectBtn = document.getElementById("connectBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const result = document.getElementById("result");
+    const connectionStatus = document.getElementById("connectionStatus");
+    const resourceSummary = document.getElementById("resourceSummary");
+    const resourceList = document.getElementById("resourceList");
+    const inspectStatus = document.getElementById("inspectStatus");
+    const inspectResult = document.getElementById("inspectResult");
+    const inspectObjectList = document.getElementById("inspectObjectList");
+
+    const state = {
+      credentials: null,
+      serviceType: "S3",
+      resources: [],
+      connected: false,
+    };
+
+    const setResult = (message, isError = false) => {
+      result.textContent = message;
+      result.style.color = isError ? "#b00020" : "";
+    };
+
+    const setInspectResult = (message, isError = false) => {
+      inspectResult.textContent = message;
+      inspectResult.style.color = isError ? "#b00020" : "";
+    };
+
+    const setStatus = (el, message, isError = false) => {
+      el.textContent = message;
+      el.style.color = isError ? "#b00020" : "";
+    };
+
+    const formatError = (error) => {
+      const rawMessage = error instanceof Error
+        ? (error.message || `${error.name}`)
+        : String(error);
+
+      if (rawMessage.includes("Failed to fetch")) {
+        return `${rawMessage}\n\nPossible causes:\n- Aura-Server is not running on http://localhost:3001.\n- The page is opened with file:// instead of http://localhost.\n- CORS blocks the browser request to localhost:3001.`;
+      }
+
+      return rawMessage;
+    };
+
+    const getCredentials = () => ({
+      accessKeyId: accessKeyIdEl.value.trim(),
+      secretAccessKey: secretAccessKeyEl.value.trim(),
+      sessionToken: sessionTokenEl.value.trim(),
+      region: regionEl.value.trim(),
+    });
+
+    const normalizeResource = (resource) => {
+      if (typeof resource === "string") {
+        return { id: resource, label: resource, details: "" };
+      }
+
+      if (!resource || typeof resource !== "object") {
+        const label = String(resource);
+        return { id: label, label, details: "" };
+      }
+
+      const label = resource.name || resource.userName || resource.arn || resource.queueUrl || resource.id || "(unnamed resource)";
+      const id = resource.name || resource.userName || resource.queueUrl || resource.id || label;
+      const details = [
+        resource.arn ? `ARN: ${resource.arn}` : "",
+        resource.userId ? `UserId: ${resource.userId}` : "",
+        resource.creationDate ? `Created: ${resource.creationDate}` : "",
+        resource.createDate ? `Created: ${resource.createDate}` : "",
+        resource.queueUrl ? `QueueUrl: ${resource.queueUrl}` : "",
+      ].filter(Boolean).join(" | ");
+
+      return { id, label, details };
+    };
+
+    const renderResources = (serviceType, resources) => {
+      resourceList.innerHTML = "";
+
+      if (!resources.length) {
+        resourceSummary.textContent = `No ${serviceType} resources were returned.`;
+        setResult(`No ${serviceType} resources were returned.`, true);
+        return;
+      }
+
+      const lines = resources.map((resource, index) => {
+        const normalized = normalizeResource(resource);
+
+        const item = document.createElement("div");
+        item.className = "resource-item";
+
+        const textWrap = document.createElement("div");
+        const labelEl = document.createElement("div");
+        labelEl.className = "resource-label";
+        labelEl.textContent = `${index + 1}. ${normalized.label}`;
+        textWrap.appendChild(labelEl);
+
+        if (normalized.details) {
+          const detailsEl = document.createElement("div");
+          detailsEl.className = "resource-details";
+          detailsEl.textContent = normalized.details;
+          textWrap.appendChild(detailsEl);
+        }
+
+        const inspectBtn = document.createElement("button");
+        inspectBtn.type = "button";
+        inspectBtn.className = "inspect-btn";
+        inspectBtn.textContent = "Inspect";
+        inspectBtn.addEventListener("click", () => inspectResource(normalized.id));
+
+        item.appendChild(textWrap);
+        item.appendChild(inspectBtn);
+        resourceList.appendChild(item);
+
+        return normalized.details
+          ? `${index + 1}. ${normalized.label}\n   ${normalized.details}`
+          : `${index + 1}. ${normalized.label}`;
+      });
+
+      resourceSummary.textContent = `${resources.length} ${serviceType} resource(s) loaded.`;
+      setResult(lines.join("\n\n"));
+    };
+
+    async function fetchResourcesViaProxy(serviceType, resourceId = null, objectKey = null, download = false) {
+      const credentials = state.credentials ?? getCredentials();
+      const response = await fetch("http://localhost:3001/fetch-resources", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...credentials,
+          serviceType,
+          ...(resourceId ? { resourceId } : {}),
+          ...(objectKey ? { objectKey } : {}),
+          ...(download ? { download: true } : {}),
+        }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.ok) {
+        const errorName = payload?.error?.name || "ProxyError";
+        const errorMessage = payload?.error?.message || `Request failed with status ${response.status}`;
+        const dedupedMessage = errorMessage.startsWith(`${errorName}:`) ? errorMessage : `${errorName}: ${errorMessage}`;
+        const error = new Error(dedupedMessage);
+        error.name = errorName;
+        error.driftSeverity = payload?.error?.driftSeverity;
+        error.driftReason = payload?.error?.driftReason;
+        throw error;
+      }
+
+      return payload;
+    }
+
+    const setBusy = (busy) => {
+      connectBtn.disabled = busy;
+      resetBtn.disabled = busy;
+      serviceTypeEl.disabled = busy;
+    };
+
+    function renderS3ObjectsForDownload(bucketName, objects) {
+      inspectObjectList.innerHTML = "";
+
+      if (!objects.length) {
+        return;
+      }
+
+      objects.forEach((objectItem) => {
+        const row = document.createElement("div");
+        row.className = "resource-item";
+
+        const textWrap = document.createElement("div");
+        const labelEl = document.createElement("div");
+        labelEl.className = "resource-label";
+        labelEl.textContent = objectItem.key;
+        textWrap.appendChild(labelEl);
+
+        const detailsEl = document.createElement("div");
+        detailsEl.className = "resource-details";
+        detailsEl.textContent = `Size: ${objectItem.size} bytes${objectItem.lastModified ? ` | Last Modified: ${objectItem.lastModified}` : ""}`;
+        textWrap.appendChild(detailsEl);
+
+        const downloadBtn = document.createElement("button");
+        downloadBtn.type = "button";
+        downloadBtn.className = "download-btn";
+        downloadBtn.textContent = "Download";
+        downloadBtn.addEventListener("click", () => downloadS3Object(bucketName, objectItem.key));
+
+        row.appendChild(textWrap);
+        row.appendChild(downloadBtn);
+        inspectObjectList.appendChild(row);
+      });
+    }
+
+    async function downloadS3Object(bucketName, objectKey) {
+      setBusy(true);
+      setStatus(inspectStatus, `Downloading ${objectKey}...`);
+
+      try {
+        const response = await fetchResourcesViaProxy("S3", bucketName, objectKey, true);
+        const payload = response.result || {};
+        const dl = payload.download || {};
+
+        if (!dl.base64) {
+          setStatus(inspectStatus, "Download payload missing file data.", true);
+          setInspectResult("Download payload missing file data.", true);
+          return;
+        }
+
+        const binary = atob(dl.base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i += 1) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+
+        const blob = new Blob([bytes], { type: dl.contentType || "application/octet-stream" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = dl.fileName || objectKey;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+
+        setStatus(inspectStatus, `Downloaded ${objectKey} successfully.`);
+      } catch (error) {
+        const message = formatError(error);
+        setStatus(inspectStatus, message, true);
+        setInspectResult(message, true);
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function inspectResource(id) {
+      setBusy(true);
+      setStatus(inspectStatus, `Inspecting resource: ${id} ...`);
+      setInspectResult("Running Deep Dive through proxy...");
+      inspectObjectList.innerHTML = "";
+
+      try {
+        const response = await fetchResourcesViaProxy(state.serviceType, id);
+        const deepDive = response.result || {};
+
+        if (state.serviceType === "S3" && Array.isArray(deepDive.objects)) {
+          const objectCount = deepDive.objectCount ?? deepDive.objects.length;
+          setStatus(inspectStatus, `Deep Dive complete for ${id}. Found ${objectCount} object(s).`);
+          setInspectResult(JSON.stringify({
+            bucket: deepDive.bucket,
+            resolvedRegion: deepDive.resolvedRegion,
+            objectCount,
+          }, null, 2));
+          renderS3ObjectsForDownload(id, deepDive.objects);
+          return;
+        }
+
+        setStatus(inspectStatus, `Deep Dive complete for ${id}.`);
+        setInspectResult(JSON.stringify(deepDive, null, 2));
+      } catch (error) {
+        const message = formatError(error);
+        const isCriticalDrift = error?.driftSeverity === "critical" || message.includes("AccessDenied") || message.includes("403");
+
+        if (isCriticalDrift) {
+          setStatus(inspectStatus, "Critical Permission Drift", true);
+          setInspectResult(`Critical Permission Drift\n\n${error?.driftReason || message}`, true);
+        } else {
+          setStatus(inspectStatus, message, true);
+          setInspectResult(message, true);
+        }
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function connectAndDiscover() {
+      const credentials = getCredentials();
+      const serviceType = serviceTypeEl.value;
+      state.serviceType = serviceType;
+
+      if (!credentials.accessKeyId || !credentials.secretAccessKey || !credentials.sessionToken || !credentials.region) {
+        setResult("Please fill in access key, secret key, session token, and region first.", true);
+        setStatus(connectionStatus, "Missing credentials or region.", true);
+        return;
+      }
+
+      state.credentials = credentials;
+      setBusy(true);
+      setStatus(connectionStatus, `Connecting for ${serviceType}...`);
+      resourceSummary.textContent = "Loading resources...";
+      setResult("Loading resources through proxy...");
+
+      try {
+        const response = await fetchResourcesViaProxy(serviceType);
+        state.resources = response.resources || [];
+        state.connected = true;
+        setStatus(connectionStatus, `Connected. Loaded ${state.resources.length} ${serviceType} resource(s).`);
+        setStatus(inspectStatus, "Choose a discovered resource and click Inspect.");
+        setInspectResult("No inspection performed yet.");
+        renderResources(serviceType, state.resources);
+      } catch (error) {
+        state.connected = false;
+        state.resources = [];
+        const message = formatError(error);
+        setStatus(connectionStatus, message, true);
+        setResult(message, true);
+        resourceSummary.textContent = "No resources loaded.";
+        resourceList.innerHTML = "";
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    function resetApp() {
+      state.credentials = null;
+      state.serviceType = "S3";
+      state.resources = [];
+      state.connected = false;
+
+      accessKeyIdEl.value = "";
+      secretAccessKeyEl.value = "";
+      sessionTokenEl.value = "";
+      regionEl.value = "";
+      serviceTypeEl.value = "S3";
+
+      setStatus(connectionStatus, "Not connected.");
+      resourceSummary.textContent = "No resources loaded yet.";
+      setResult("Choose a service type and click Connect to start crawling.");
+      resourceList.innerHTML = "";
+      setStatus(inspectStatus, "Choose a discovered resource and click Inspect.");
+      setInspectResult("No inspection performed yet.");
+      inspectObjectList.innerHTML = "";
+      setBusy(false);
+    }
+
+    connectBtn.addEventListener("click", connectAndDiscover);
+    resetBtn.addEventListener("click", resetApp);
+
+    resetApp();
+  </script>
+</body>
+</html>
+
+

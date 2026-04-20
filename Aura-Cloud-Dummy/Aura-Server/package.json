@@ -1,0 +1,22 @@
+{
+  "name": "aura-server",
+  "version": "1.0.0",
+  "description": "Secure AWS proxy server for Aura frontend",
+  "type": "module",
+  "main": "webserver.js",
+  "scripts": {
+    "start": "node webserver.js",
+    "dev": "node --watch webserver.js",
+    "test": "node --check webserver.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@aws-sdk/client-iam": "^3.1032.0",
+    "@aws-sdk/client-s3": "^3.1032.0",
+    "@aws-sdk/client-sqs": "^3.1032.0",
+    "cors": "^2.8.6",
+    "express": "^5.2.1"
+  }
+}

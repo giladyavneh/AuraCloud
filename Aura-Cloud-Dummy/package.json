@@ -1,0 +1,11 @@
+{
+  "name": "Aura-Cloud-Dummy",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "start": "npm --prefix Aura-Server start",
+    "server": "npm --prefix Aura-Server start",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "private": true
+}

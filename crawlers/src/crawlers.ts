@@ -1,7 +1,7 @@
 import { IAMClient, ListRolesCommand, GetRolePolicyCommand, ListAttachedRolePoliciesCommand, GetPolicyVersionCommand, GetPolicyCommand } from "@aws-sdk/client-iam";
 import { S3Client, ListBucketsCommand, GetBucketPolicyCommand, GetBucketLocationCommand,  } from "@aws-sdk/client-s3";
 import { KMSClient, ListKeysCommand, GetKeyPolicyCommand } from "@aws-sdk/client-kms";
-import { BaseCrawler } from "./crawler.js";
+import { BaseCrawler } from "./crawlerBase.js";
 
 // 1. Identity Crawler (IAM)
 export class IdentityCrawler extends BaseCrawler {
@@ -21,8 +21,7 @@ export class ResourceCrawler extends BaseCrawler {
 
     return Promise.all(Buckets?.map(async (bucket) => {
       try {
-        console.log(`🔍 Discovering Region for: ${bucket.Name}`);
-        
+        const arn = bucket.BucketArn
         // 1. Ask where the bucket lives
         const locationResponse = await globalClient.send(
           new GetBucketLocationCommand({ Bucket: bucket.Name! })
@@ -33,13 +32,12 @@ export class ResourceCrawler extends BaseCrawler {
         
         // 2. Create a regional client for this specific bucket
         const regionalClient = new S3Client({ region: bucketRegion });
-        
-        console.log(`📡 Fetching Policy from ${bucketRegion}...`);
         const { Policy } = await regionalClient.send(
           new GetBucketPolicyCommand({ Bucket: bucket.Name! })
         );
 
-        return { 
+        return {
+          arn,
           name: bucket.Name, 
           region: bucketRegion, 
           policy: JSON.parse(Policy || "{}") 
@@ -53,7 +51,7 @@ export class ResourceCrawler extends BaseCrawler {
         }
         
         console.log(`⚠️ Failed to crawl ${bucket.Name}: ${err.message}`);
-        return { name: bucket.Name, error: err.message };
+        return { name: bucket.Name, arn: bucket.BucketArn, error: err.message };
       }
     }) || []);
   }

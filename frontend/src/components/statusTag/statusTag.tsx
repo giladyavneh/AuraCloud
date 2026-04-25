@@ -1,6 +1,5 @@
 import { styled } from '@mui/material/styles';
 import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
 import { useTranslation } from 'react-i18next';
 import type { StatusTagProps, StatusTagVariant } from '@/components/statusTag/types/statusTag.types';
 
@@ -34,8 +33,11 @@ const STATUS_STYLES: Record<
   },
 };
 
-const TagContainer = styled(Box)<{ variant: StatusTagVariant }>(({ variant }) => {
-  const styles = STATUS_STYLES[variant];
+// Use shouldForwardProp so 'tagVariant' never hits the DOM
+const TagContainer = styled(Box, {
+  shouldForwardProp: (prop) => prop !== 'tagVariant',
+})<{ tagVariant: StatusTagVariant }>(({ tagVariant }) => {
+  const styles = STATUS_STYLES[tagVariant];
   return {
     display: 'inline-flex',
     alignItems: 'center',
@@ -47,20 +49,25 @@ const TagContainer = styled(Box)<{ variant: StatusTagVariant }>(({ variant }) =>
   };
 });
 
-const Dot = styled(Box)<{ variant: StatusTagVariant }>(({ variant }) => ({
+const Dot = styled(Box, {
+  shouldForwardProp: (prop) => prop !== 'tagVariant',
+})<{ tagVariant: StatusTagVariant }>(({ tagVariant }) => ({
   width: 7,
   height: 7,
   borderRadius: '50%',
-  backgroundColor: STATUS_STYLES[variant].dotColor,
+  backgroundColor: STATUS_STYLES[tagVariant].dotColor,
   flexShrink: 0,
 }));
 
-const TagLabel = styled(Typography)<{ variant: StatusTagVariant }>(({ variant }) => ({
+const TagLabel = styled('span', {
+  shouldForwardProp: (prop) => prop !== 'tagVariant',
+})<{ tagVariant: StatusTagVariant }>(({ tagVariant }) => ({
   fontSize: '12px',
   fontWeight: 400,
   lineHeight: 1,
-  color: STATUS_STYLES[variant].textColor,
+  color: STATUS_STYLES[tagVariant].textColor,
   whiteSpace: 'nowrap',
+  fontFamily: '"Rubik", sans-serif',
 }));
 
 const DEFAULT_LABELS: Record<StatusTagVariant, string> = {
@@ -75,11 +82,9 @@ const StatusTag = ({ variant, label }: StatusTagProps) => {
   const resolvedLabel = label ?? t(DEFAULT_LABELS[variant]);
 
   return (
-    <TagContainer variant={variant}>
-      <Dot variant={variant} />
-      <TagLabel component="span" variant={variant}>
-        {resolvedLabel}
-      </TagLabel>
+    <TagContainer tagVariant={variant}>
+      <Dot tagVariant={variant} />
+      <TagLabel tagVariant={variant}>{resolvedLabel}</TagLabel>
     </TagContainer>
   );
 };

@@ -82,7 +82,7 @@ export const connectDB = async () => {
     const conn = await mongoose.connect(process.env.MONGO_URI as string);
     console.log(`MongoDB Connected: ${conn.connection.host}`);
 
-    // בדיקה אם קיים מידע, ואם לא - הזרקת ה-Mock
+    // Seed mock data if the collection is empty
     const statusesCount = await UserResourceWatchlistModel.countDocuments();
     if (statusesCount === 0) {
       await UserResourceWatchlistModel.create(mockUserResourceWatchlist);

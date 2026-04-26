@@ -8,7 +8,7 @@ import GlowCard from '@/components/glowCard/GlowCard';
 import ResourceCard from '@/components/resourceCard/ResourceCard';
 import { useUserResourceWatchlist } from '@/hooks/resources.hooks';
 import { inferServiceFromArn, inferTitleFromArn } from '@/pages/dashboard/helpers/dashboard.helpers';
-import { ResourceSectionHeader } from '@/pages/dashboard/dashboard.styled';
+import { ResourceSectionHeader } from '@/pages/dashboard/components/dashboard.styled';
 import type { StatusTagVariant } from '@/components/statusTag/types/statusTag.types';
 
 const STATUS_CYCLE: StatusTagVariant[] = ['blocked', 'stale', 'healthy'];

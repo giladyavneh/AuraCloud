@@ -1,8 +1,8 @@
 import React from 'react';
 import Typography from '@mui/material/Typography';
-import { Gear, SignOut } from '@phosphor-icons/react';
+import { GearIcon, SignOutIcon } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
-import { FooterRow, FooterLink } from '@/components/sideMenu/sideMenu.styled';
+import { FooterRow, FooterLink } from '@/components/sideMenu/components/sideMenu.styled';
 
 const SideMenuFooter: React.FC = () => {
   const { t } = useTranslation();
@@ -10,14 +10,14 @@ const SideMenuFooter: React.FC = () => {
   return (
     <FooterRow>
       <FooterLink>
-        <Gear size={20} />
+        <GearIcon size={20} />
         <Typography variant="body1" color="text.primary">
           {t('nav.settings')}
         </Typography>
       </FooterLink>
 
       <FooterLink>
-        <SignOut size={20} />
+        <SignOutIcon size={20} />
         <Typography variant="body1" color="text.primary">
           {t('nav.signOut')}
         </Typography>

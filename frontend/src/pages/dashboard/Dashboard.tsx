@@ -5,7 +5,7 @@ import StatCard from '@/components/statCard/StatCard';
 import { useUserResourceWatchlist } from '@/hooks/resources.hooks';
 import StatusSummary from '@/pages/dashboard/components/StatusSummary';
 import ResourceSection from '@/pages/dashboard/components/ResourceSection';
-import { PageRoot, StatsRow } from '@/pages/dashboard/dashboard.styled';
+import { PageRoot, StatsRow } from '@/pages/dashboard/components/dashboard.styled';
 
 const Dashboard: React.FC = () => {
   const { t } = useTranslation();

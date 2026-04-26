@@ -7,7 +7,7 @@ import SideMenuLogo from '@/components/sideMenu/components/SideMenuLogo';
 import SideMenuProfile from '@/components/sideMenu/components/SideMenuProfile';
 import SideMenuFooter from '@/components/sideMenu/components/SideMenuFooter';
 import { NAV_ITEMS } from '@/components/sideMenu/helpers/sideMenu.helpers';
-import { SidebarRoot, NavList, BottomContainer } from '@/components/sideMenu/sideMenu.styled';
+import { SidebarRoot, NavList, BottomContainer } from '@/components/sideMenu/components/sideMenu.styled';
 
 const SideMenu: React.FC = () => {
   const { t } = useTranslation();

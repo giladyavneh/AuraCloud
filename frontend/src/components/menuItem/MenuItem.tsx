@@ -1,5 +1,5 @@
 import React from 'react';
-import { ItemRoot, ActiveIndicator, ItemLabel } from '@/components/menuItem/menuItem.styled';
+import { ItemRoot, ActiveIndicator, ItemLabel } from '@/components/menuItem/components/menuItem.styled';
 import type { MenuItemProps } from '@/components/menuItem/types/menuItem.types';
 
 const MenuItem: React.FC<MenuItemProps> = ({ label, state = 'default', onClick }) => {

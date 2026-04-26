@@ -7,7 +7,7 @@ import {
   StatusSummaryRoot,
   StatusSummaryLeft,
   StatusSummaryRight,
-} from '@/pages/dashboard/dashboard.styled';
+} from '@/pages/dashboard/components/dashboard.styled';
 
 const StatusSummary: React.FC = () => {
   const { t } = useTranslation();

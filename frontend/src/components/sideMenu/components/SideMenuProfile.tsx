@@ -3,7 +3,7 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Avatar from '@mui/material/Avatar';
 import { useTranslation } from 'react-i18next';
-import { ProfileRow } from '@/components/sideMenu/sideMenu.styled';
+import { ProfileRow } from '@/components/sideMenu/components/sideMenu.styled';
 
 const SideMenuProfile: React.FC = () => {
   const { t } = useTranslation();

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { TagContainer, Dot, TagLabel } from '@/components/statusTag/statusTag.styled';
+import { TagContainer, Dot, TagLabel } from '@/components/statusTag/components/statusTag.styled';
 import { DEFAULT_LABELS } from '@/components/statusTag/helpers/statusTag.helpers';
 import type { StatusTagProps } from '@/components/statusTag/types/statusTag.types';
 

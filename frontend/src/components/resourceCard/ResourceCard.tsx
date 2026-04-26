@@ -15,7 +15,7 @@ import {
   ResourceItem,
   ResourceDot,
   ErrorBanner,
-} from '@/components/resourceCard/resourceCard.styled';
+} from '@/components/resourceCard/components/resourceCard.styled';
 import type { ResourceCardProps } from '@/components/resourceCard/types/resourceCard.types';
 
 const ResourceCard: React.FC<ResourceCardProps> = ({

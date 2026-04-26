@@ -1,9 +1,9 @@
 import React from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import { Triangle } from '@phosphor-icons/react';
+import { TriangleIcon } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
-import { LogoContainer, LogoIconBox } from '@/components/sideMenu/sideMenu.styled';
+import { LogoContainer, LogoIconBox } from '@/components/sideMenu/components/sideMenu.styled';
 
 const SideMenuLogo: React.FC = () => {
   const { t } = useTranslation();
@@ -11,7 +11,7 @@ const SideMenuLogo: React.FC = () => {
   return (
     <LogoContainer>
       <LogoIconBox>
-        <Triangle size={24} weight="fill" />
+        <TriangleIcon size={24} weight="fill" />
       </LogoIconBox>
 
       <Box>

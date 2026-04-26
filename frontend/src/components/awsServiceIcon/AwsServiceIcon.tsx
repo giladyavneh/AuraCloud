@@ -1,5 +1,5 @@
 import React from 'react';
-import { IconWrapper, ServiceLabel } from '@/components/awsServiceIcon/awsServiceIcon.styled';
+import { IconWrapper, ServiceLabel } from '@/components/awsServiceIcon/components/awsServiceIcon.styled';
 import { SERVICE_CONFIG } from '@/components/awsServiceIcon/helpers/awsServiceIcon.helpers';
 import type { AwsServiceIconProps } from '@/components/awsServiceIcon/types/awsServiceIcon.types';
 

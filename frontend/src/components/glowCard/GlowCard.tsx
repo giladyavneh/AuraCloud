@@ -1,9 +1,9 @@
 import React from 'react';
 import Typography from '@mui/material/Typography';
-import { Sparkle } from '@phosphor-icons/react';
+import { SparkleIcon } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@mui/material/styles';
-import { CardRoot, TextContent } from '@/components/glowCard/glowCard.styled';
+import { CardRoot, TextContent } from '@/components/glowCard/components/glowCard.styled';
 
 const GlowCard: React.FC = () => {
   const { t } = useTranslation();
@@ -11,7 +11,7 @@ const GlowCard: React.FC = () => {
 
   return (
     <CardRoot>
-      <Sparkle size={32} weight="fill" color={theme.palette.primary.main} />
+      <SparkleIcon size={32} weight="fill" color={theme.palette.primary.main} />
 
       <TextContent>
         <Typography variant="subtitle1" color="text.primary">

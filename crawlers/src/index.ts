@@ -3,10 +3,8 @@ import { RedisMemoryServer } from 'redis-memory-server';
 import { createClient } from 'redis';
 import { SsoCrawler } from './ssoCrawler.js';
 import { BasicIamCrawler } from './basicIamCrawler.js';
-
-function print(obj: any){
-    console.log(JSON.stringify(obj, null, 2));
-}
+import { print } from './utils.js';
+import { S3Crawler } from './s3Crawler.js';
 
 async function main() {
   const redis = await startRedis();
@@ -14,10 +12,12 @@ async function main() {
 
   const ssoCrawler = new SsoCrawler();
   const iamCrawler = new BasicIamCrawler();
+  const s3Crawler = new S3Crawler();
 
   // Run loops in parallel
   runCrawler(ssoCrawler, "SSO", redis);
   runCrawler(iamCrawler, "IAM", redis);
+  runCrawler(s3Crawler, "S3", redis);
 
   // Print all Redis data every 10 seconds
   printAllRedisData(redis);

@@ -12,14 +12,14 @@ Aura Cloud ("NoOps for Developers") is an automated AWS infrastructure monitorin
 | **Brain (Central Logic Server)** | Cross-references project requirements, user permissions, and cached cloud data | Not yet implemented |
 | **Results DB** | MongoDB Atlas — stores processed results per user | Active (seeded with mock data) |
 | **API Server** | Delivers processed data from Results DB to UI | Active (`api-server/`) |
-| **Frontend (Audit Dashboard)** | React dashboard showing health/freshness of AWS resources | Not yet started |
+| **Frontend (Audit Dashboard)** | React dashboard showing health/freshness of AWS resources | Active (`frontend/`) |
 
 ## Tech Stack
 - **Language:** TypeScript (strict, across the entire stack)
 - **Repo structure:** Monorepo
 - **Backend:** Node.js + Express (v5)
 - **Database:** MongoDB Atlas via Mongoose
-- **Frontend (planned):** React + Vite + MUI
+- **Frontend:** React + Vite + MUI + @phosphor-icons/react + react-i18next + @tanstack/react-query
 
 ## Current State of the Codebase
 
@@ -38,10 +38,20 @@ Aura Cloud ("NoOps for Developers") is an automated AWS infrastructure monitorin
 ### Mock Data
 Crawlers and Brain are not implemented yet. `connectDB()` seeds MongoDB with hardcoded mock data if collections are empty.
 
+## Frontend Structure (`frontend/src/`)
+- **`theme/`** — MUI theme with all Figma tokens; custom palette augmentation in `theme.augment.d.ts`
+- **`constants/queryKeys.ts`** — Centralised React Query keys (always add new keys here)
+- **`i18n/locales/en.json`** — All user-facing strings (no hardcoded text in components)
+- **`components/`** — `statusTag`, `menuItem`, `sideMenu`, `statCard`, `glowCard`, `awsServiceIcon`, `resourceCard`
+- **`layouts/pageWrapper/`** — Sidebar + scrollable content shell; used as React Router layout route
+- **`pages/dashboard/`** — Dashboard page with sub-components, helpers, and styled file
+- **`services/resources.service.ts`** — `GET /api/user-resource-watchlist` from `api-server`
+- **`hooks/resources.hooks.ts`** — `useUserResourceWatchlist()` via React Query
+
 ## Immediate Next Steps
 1. **User schema** — Add a proper `User` Mongoose model to manage user data instead of hardcoded user IDs
-2. **Shared types** — Implement a shared types strategy (`InferSchemaType` or a `shared-types` monorepo package) for strict type safety between API and future frontend
-3. **Frontend** — Initialize React app once API and user management are solid; display `UserResourceWatchlist` data on the Audit Dashboard
+2. **Shared types** — Implement a shared types strategy (`InferSchemaType` or a `shared-types` monorepo package) for strict type safety between API and frontend
+3. **Real status data** — Replace mock `STATUS_CYCLE` in `ResourceSection.tsx` with real status from the API once Brain is implemented
 
 ## Key Decisions & Constraints
 - `permissionsData` uses `Mixed` type intentionally — the real data shape from the Brain is not finalized yet

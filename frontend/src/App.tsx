@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import PageWrapper from '@/layouts/pageWrapper/pageWrapper';
-import Dashboard from '@/pages/dashboard/dashboard';
+import PageWrapper from '@/layouts/pageWrapper/PageWrapper';
+import Dashboard from '@/pages/dashboard/Dashboard';
 
 const App = () => (
   <Routes>

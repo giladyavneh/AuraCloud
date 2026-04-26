@@ -2,8 +2,10 @@
   "nav": {
     "dashboard": "Dashboard",
     "resourceWatchList": "Resource Watch List",
-    "settings": "settings",
-    "signOut": "sign out"
+    "settings": "Settings",
+    "signOut": "Sign Out",
+    "profileName": "Mike Wazowski",
+    "profileRole": "Scare Assistant"
   },
   "app": {
     "name": "Aura Cloud",
@@ -11,8 +13,8 @@
   },
   "dashboard": {
     "globalStatus": "Global Infrastructure Status",
+    "healthHeading": "Healthy with 1 active blocker",
     "refresh": "Refresh",
-    "systemOnline": "System Online",
     "resourceStatus": "Resource Status",
     "resourceStatusDescription": "Single source of truth for live infrastructure checks and blockers.",
     "focusCueLabel": "Focus cue:",

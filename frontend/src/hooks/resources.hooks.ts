@@ -8,8 +8,8 @@ export const useUserResourceWatchlist = () =>
     queryFn: fetchUserResourceWatchlist,
   });
 
-export const useUserPermissions = () =>
+export const useUserPermissions = (userId: string) =>
   useQuery({
-    queryKey: QUERY_KEYS.userPermissions,
-    queryFn: fetchUserPermissions,
+    queryKey: [...QUERY_KEYS.userPermissions, userId],
+    queryFn: () => fetchUserPermissions(userId),
   });

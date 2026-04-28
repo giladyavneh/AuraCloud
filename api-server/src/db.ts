@@ -24,6 +24,7 @@ export const UserResourceWatchlistModel = mongoose.model(
 
 const userPermissionsSchema = new mongoose.Schema({
   name: { type: String, required: true },
+  userId: { type: String, required: true },
   permissionsData: { type: mongoose.Schema.Types.Mixed },
 });
 
@@ -36,7 +37,7 @@ export const UserPermissionModel = mongoose.model(
 // 2. Mock Data
 // ==========================================
 const mockUserResourceWatchlist = {
-  name: "amit",
+  name: "shoham",
   userId: "123",
   resources: [
     { arn: "arn:aws:s3:::mybucket", actions: ["s3:GetObject", "s3:PutObject"] },
@@ -48,6 +49,7 @@ const mockUserResourceWatchlist = {
 
 const mockUserPermission = {
   name: "shoham",
+  userId: "123",
   permissionsData: {
     "arn:aws:s3:::mybucket": {
       getObject: {
@@ -90,6 +92,16 @@ export const connectDB = async () => {
       console.log("Mock Data Seeded Successfully!");
     } else {
       console.log("Data already exists, skipping seeding.");
+    }
+
+    // Migrate UserPermission documents that are missing the userId field
+    const permissionsWithUserId = await UserPermissionModel.countDocuments({
+      userId: { $exists: true },
+    });
+    if (permissionsWithUserId === 0) {
+      await UserPermissionModel.deleteMany({});
+      await UserPermissionModel.create(mockUserPermission);
+      console.log("UserPermission re-seeded with userId field.");
     }
   } catch (error) {
     console.error(`Error connecting to MongoDB: ${error}`);

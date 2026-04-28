@@ -25,10 +25,14 @@ app.get("/api/user-resource-watchlist", async (req, res) => {
   }
 });
 
-app.get("/api/user-permissions", async (req, res) => {
+app.get("/api/user-permissions/:userId", async (req, res) => {
   try {
-    const permissions = await UserPermissionModel.find();
-    res.json(permissions);
+    const permission = await UserPermissionModel.findOne({ userId: req.params.userId });
+    if (!permission) {
+      res.status(404).json({ message: "User permissions not found" });
+      return;
+    }
+    res.json(permission);
   } catch (error) {
     res.status(500).json({ message: "Server Error" });
   }

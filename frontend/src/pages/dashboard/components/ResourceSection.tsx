@@ -16,14 +16,13 @@ import {
   formatTimestamp,
 } from '@/pages/dashboard/helpers/dashboard.helpers';
 import { ResourceSectionHeader } from '@/pages/dashboard/components/dashboard.styled';
+import { MOCK_USER_ID } from '@/constants';
 
 const ResourceSection: React.FC = () => {
   const { t } = useTranslation();
-  const { data: permissions, isLoading, isError } = useUserPermissions();
+  const { data: permission, isLoading, isError } = useUserPermissions(MOCK_USER_ID);
 
-  const arnEntries = permissions?.flatMap((permission) =>
-    Object.entries(permission.permissionsData)
-  ) ?? [];
+  const arnEntries = permission ? Object.entries(permission.permissionsData) : [];
 
   return (
     <>

@@ -1,8 +1,8 @@
 import React from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import { TriangleIcon } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
+import AuraLogo from '@/components/auraLogo/AuraLogo';
 import { LogoContainer, LogoIconBox } from '@/components/sideMenu/components/sideMenu.styled';
 
 const SideMenuLogo: React.FC = () => {
@@ -11,7 +11,7 @@ const SideMenuLogo: React.FC = () => {
   return (
     <LogoContainer>
       <LogoIconBox>
-        <TriangleIcon size={24} weight="fill" />
+        <AuraLogo size={28} />
       </LogoIconBox>
 
       <Box>

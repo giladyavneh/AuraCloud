@@ -17,10 +17,10 @@ const SideMenuProfile: React.FC = () => {
       />
 
       <Box>
-        <Typography variant="body1" color="text.primary" noWrap>
+        <Typography variant="body1" color="textPrimary" noWrap>
           {t('nav.profileName')}
         </Typography>
-        <Typography variant="body2" color="text.disabled" noWrap>
+        <Typography variant="body2" color="textDisabled" noWrap>
           {t('nav.profileRole')}
         </Typography>
       </Box>

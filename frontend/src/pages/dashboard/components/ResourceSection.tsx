@@ -33,11 +33,11 @@ const ResourceSection: React.FC = () => {
   return (
     <>
       <ResourceSectionHeader>
-        <Typography variant="h5" color="text.primary">
+        <Typography variant="h5" color="textPrimary">
           {t("dashboard.resourceStatus")}
         </Typography>
 
-        <Typography variant="body2" color="text.disabled">
+        <Typography variant="body2" color="textDisabled">
           {t("dashboard.resourceStatusDescription")}
         </Typography>
       </ResourceSectionHeader>
@@ -51,7 +51,7 @@ const ResourceSection: React.FC = () => {
       )}
 
       {isError && (
-        <Typography variant="body2" color="error.main">
+        <Typography variant="body2" color="error">
           {t("resourceCard.errorPrefix")} Could not load user permissions.
         </Typography>
       )}

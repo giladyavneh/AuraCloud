@@ -15,10 +15,10 @@ const SideMenuLogo: React.FC = () => {
       </LogoIconBox>
 
       <Box>
-        <Typography variant="h5" color="text.primary" noWrap>
+        <Typography variant="h5" color="textPrimary" noWrap>
           {t('app.name')}
         </Typography>
-        <Typography variant="caption" color="text.disabled" noWrap>
+        <Typography variant="caption" color="textDisabled" noWrap>
           {t('app.subtitle')}
         </Typography>
       </Box>

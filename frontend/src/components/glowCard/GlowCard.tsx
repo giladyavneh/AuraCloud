@@ -14,10 +14,10 @@ const GlowCard: React.FC = () => {
       <SparkleIcon size={32} weight="fill" color={theme.palette.primary.main} />
 
       <TextContent>
-        <Typography variant="subtitle1" color="text.primary">
+        <Typography variant="subtitle1" color="textPrimary">
           {t('dashboard.focusCueLabel')}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" color="textSecondary">
           {t('dashboard.focusCueText')}
         </Typography>
       </TextContent>

@@ -1,22 +1,25 @@
-import React from 'react';
-import Typography from '@mui/material/Typography';
-import { useTranslation } from 'react-i18next';
-import { useTheme } from '@mui/material/styles';
-import StatusTag from '@/components/statusTag/StatusTag';
-import AwsServiceIcon from '@/components/awsServiceIcon/AwsServiceIcon';
-import { getResourceDotColor, MAX_VISIBLE_ACTIONS } from '@/components/resourceCard/helpers/resourceCard.helpers';
+import AwsServiceIcon from "@/components/awsServiceIcon/AwsServiceIcon";
 import {
-  CardRoot,
   CardBody,
   CardHeader,
+  CardRoot,
+  ResourceDot,
+  ResourceItem,
+  ResourceList,
   ServiceInfo,
   ServiceMeta,
-  ResourceList,
-  ResourceItem,
-  ResourceDot,
-  ErrorBanner,
-} from '@/components/resourceCard/components/resourceCard.styled';
-import type { ResourceCardProps } from '@/components/resourceCard/types/resourceCard.types';
+} from "@/components/resourceCard/components/resourceCard.styled";
+import {
+  getResourceDotColor,
+  MAX_VISIBLE_ACTIONS,
+} from "@/components/resourceCard/helpers/resourceCard.helpers";
+import type { ResourceCardProps } from "@/components/resourceCard/types/resourceCard.types";
+import StatusTag from "@/components/statusTag/StatusTag";
+import { Alert, Button } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import Typography from "@mui/material/Typography";
+import React from "react";
+import { useTranslation } from "react-i18next";
 
 const ResourceCard: React.FC<ResourceCardProps> = ({
   service,
@@ -41,10 +44,10 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
           <ServiceInfo>
             <AwsServiceIcon service={service} size={46} />
             <ServiceMeta>
-              <Typography variant="caption" color="text.disabled">
+              <Typography variant="caption" color="textDisabled">
                 {lastUpdated}
               </Typography>
-              <Typography variant="h5" color="text.primary">
+              <Typography variant="h5" color="textPrimary">
                 {title}
               </Typography>
             </ServiceMeta>
@@ -53,14 +56,14 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
         </CardHeader>
 
         <ResourceList>
-          <Typography variant="subtitle1" color="text.secondary">
-            {t('resourceCard.actions')}
+          <Typography variant="subtitle1" color="textSecondary">
+            {t("resourceCard.actions")}
           </Typography>
 
           {visibleActions.map((action) => (
             <ResourceItem key={action}>
               <ResourceDot dotColor={dotColor} />
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" color="textSecondary">
                 {action}
               </Typography>
             </ResourceItem>
@@ -69,30 +72,30 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
           {remainingCount > 0 && (
             <Typography
               variant="body2"
-              color="primary.main"
-              sx={{ cursor: 'pointer', '&:hover': { opacity: 0.8 } }}
+              color="primary"
+              sx={{ cursor: "pointer", "&:hover": { opacity: 0.8 } }}
             >
-              {t('resourceCard.moreActions', { count: remainingCount })}
+              {t("resourceCard.moreActions", { count: remainingCount })}
             </Typography>
           )}
         </ResourceList>
-      </CardBody>
 
-      {errorMessage && (
-        <ErrorBanner>
-          <Typography variant="body2" color="error.main">
-            {t('resourceCard.errorPrefix')} {errorMessage}
-          </Typography>
-          <Typography
-            variant="body2"
-            color="error.main"
-            sx={{ cursor: 'pointer', fontWeight: 500, '&:hover': { opacity: 0.8 } }}
+        {errorMessage && (
+          <Alert
+            severity="error"
+            action={
+              <Button size="small" variant="text" color="inherit">
+                {/* TODO: add functionality */}
+                {t("resourceCard.details")}
+              </Button>
+            }
           >
-            {t('resourceCard.details')}
-          </Typography>
-        </ErrorBanner>
-      )}
-
+            <Typography variant="body2">
+              {t("resourceCard.errorPrefix")} {errorMessage}
+            </Typography>
+          </Alert>
+        )}
+      </CardBody>
     </CardRoot>
   );
 };

@@ -10,7 +10,7 @@ import type { StatCardProps } from "@/components/statCard/types/statCard.types";
 const StatCard: React.FC<StatCardProps> = ({ title, value, valueColor }) => (
   <CardRoot>
     <CardInner>
-      <Typography variant="caption" color="text.disabled">
+      <Typography variant="caption" color="textDisabled">
         {title}
       </Typography>
 

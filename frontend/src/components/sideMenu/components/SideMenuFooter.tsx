@@ -11,14 +11,14 @@ const SideMenuFooter: React.FC = () => {
     <FooterRow>
       <FooterLink>
         <GearIcon size={20} />
-        <Typography variant="body1" color="text.primary">
+        <Typography variant="body1" color="textPrimary">
           {t('nav.settings')}
         </Typography>
       </FooterLink>
 
       <FooterLink>
         <SignOutIcon size={20} />
-        <Typography variant="body1" color="text.primary">
+        <Typography variant="body1" color="textPrimary">
           {t('nav.signOut')}
         </Typography>
       </FooterLink>

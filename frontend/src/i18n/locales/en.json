@@ -36,6 +36,7 @@
     "healthy": "Healthy",
     "blocked": "Blocked",
     "stale": "Stale",
+    "warning": "Warning",
     "online": "System Online"
   }
 }

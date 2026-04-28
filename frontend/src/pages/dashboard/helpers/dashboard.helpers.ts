@@ -51,7 +51,8 @@ export const getActionsFromArnData = (data: ArnPermissionData): string[] => {
 
 const toStatusTagVariant = (status: string): StatusTagVariant => {
   if (status === "error") return "blocked";
-  if (status === "stale" || status === "warning") return "stale";
+  if (status === "warning") return "warning";
+  if (status === "stale") return "stale";
   return "healthy";
 };
 
@@ -98,12 +99,29 @@ export const getTimestampFromArnData = (data: ArnPermissionData): string => {
   return firstAction?.timestamp ?? "";
 };
 
-/** Formats an ISO timestamp to a short locale date string (e.g. "Jun 1, 2024"). */
+/** Formats an ISO timestamp as a human-readable relative time string. */
 export const formatTimestamp = (isoTimestamp: string): string => {
   if (!isoTimestamp) return "Unknown";
-  return new Date(isoTimestamp).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+
+  const diffMs = Date.now() - new Date(isoTimestamp).getTime();
+  const totalMinutes = Math.floor(diffMs / 60_000);
+  const totalHours = Math.floor(totalMinutes / 60);
+  const totalDays = Math.floor(totalHours / 24);
+
+  if (totalMinutes < 1) return "< 1 min ago";
+  if (totalMinutes < 60) return `${totalMinutes} min ago`;
+
+  if (totalHours < 24) {
+    const remainingMinutes = totalMinutes % 60;
+    const hourLabel = totalHours === 1 ? "hour" : "hours";
+    return remainingMinutes > 0
+      ? `${totalHours} ${hourLabel}, ${remainingMinutes} min ago`
+      : `${totalHours} ${hourLabel} ago`;
+  }
+
+  const remainingHours = totalHours % 24;
+  const dayLabel = totalDays === 1 ? "day" : "days";
+  return remainingHours > 0
+    ? `${totalDays} ${dayLabel}, ${remainingHours} hour ago`
+    : `${totalDays} ${dayLabel} ago`;
 };

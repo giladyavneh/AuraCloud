@@ -39,5 +39,6 @@ app.get("/api/user-permissions/:userId", async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`API Server is running on http://localhost:${port}`);
+  const publicUrl = process.env.PUBLIC_URL ?? `http://localhost:${port}`;
+  console.log(`API Server is running on ${publicUrl}`);
 });

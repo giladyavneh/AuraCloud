@@ -38,7 +38,9 @@ const theme = createTheme({
     },
 
     warning: {
-      main: '#fbbf24', // color/text/warning
+      main: '#fbbf24',         // color/text/warning
+      dark: '#2d1c00',         // color/surface/warning
+      contrastText: '#92400e', // color/border/warning
     },
 
     divider: '#1f2937', // color/border/default  /  color/surface/selected

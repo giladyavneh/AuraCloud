@@ -6,16 +6,24 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useTranslation } from 'react-i18next';
 import GlowCard from '@/components/glowCard/GlowCard';
 import ResourceCard from '@/components/resourceCard/ResourceCard';
-import { useUserResourceWatchlist } from '@/hooks/resources.hooks';
-import { inferServiceFromArn, inferTitleFromArn } from '@/pages/dashboard/helpers/dashboard.helpers';
+import { useUserPermissions } from '@/hooks/resources.hooks';
+import {
+  inferServiceFromArn,
+  getActionsFromArnData,
+  deriveStatusFromArnData,
+  getErrorReasonFromArnData,
+  getTimestampFromArnData,
+  formatTimestamp,
+} from '@/pages/dashboard/helpers/dashboard.helpers';
 import { ResourceSectionHeader } from '@/pages/dashboard/components/dashboard.styled';
-import type { StatusTagVariant } from '@/components/statusTag/types/statusTag.types';
-
-const STATUS_CYCLE: StatusTagVariant[] = ['blocked', 'stale', 'healthy'];
 
 const ResourceSection: React.FC = () => {
   const { t } = useTranslation();
-  const { data: watchlist, isLoading, isError } = useUserResourceWatchlist();
+  const { data: permissions, isLoading, isError } = useUserPermissions();
+
+  const arnEntries = permissions?.flatMap((permission) =>
+    Object.entries(permission.permissionsData)
+  ) ?? [];
 
   return (
     <>
@@ -38,32 +46,29 @@ const ResourceSection: React.FC = () => {
 
       {isError && (
         <Typography variant="body2" color="error.main">
-          {t('resourceCard.errorPrefix')} Could not load resource watchlist.
+          {t('resourceCard.errorPrefix')} Could not load user permissions.
         </Typography>
       )}
 
-      {watchlist && (
+      {arnEntries.length > 0 && (
         <Grid container spacing={2}>
-          {watchlist.map((item, index) => {
-            const firstArn = item.resources[0]?.arn ?? '';
-            const service = inferServiceFromArn(firstArn);
-            const title = inferTitleFromArn(firstArn);
-            const resourceNames = item.resources.map((r) => r.arn.split(':::')[1] ?? r.arn);
-            const status = STATUS_CYCLE[index % STATUS_CYCLE.length] ?? 'healthy';
+          {arnEntries.map(([arn, arnData]) => {
+            const service = inferServiceFromArn(arn);
+            const resourceName = arn.split(':::')[1] ?? arn;
+            const actions = getActionsFromArnData(arnData);
+            const status = deriveStatusFromArnData(arnData);
+            const errorReason = getErrorReasonFromArnData(arnData);
+            const timestamp = getTimestampFromArnData(arnData);
 
             return (
-              <Grid key={item._id} size={{ xs: 12, md: 6 }}>
+              <Grid key={arn} size={{ xs: 12, md: 6 }}>
                 <ResourceCard
                   service={service}
-                  title={title}
-                  lastUpdated={`${index + 1} min ago`}
+                  title={resourceName}
+                  lastUpdated={formatTimestamp(timestamp)}
                   status={status}
-                  resources={resourceNames}
-                  errorMessage={
-                    status === 'blocked'
-                      ? "Missing permission 's3:PutObject'."
-                      : undefined
-                  }
+                  actions={actions}
+                  errorMessage={status === 'blocked' ? errorReason : undefined}
                 />
               </Grid>
             );

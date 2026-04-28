@@ -27,8 +27,8 @@
     }
   },
   "resourceCard": {
-    "resources": "Resources:",
-    "moreResources": "{{count}} more >",
+    "actions": "Actions:",
+    "moreActions": "{{count}} more >",
     "errorPrefix": "Error:",
     "details": "Details"
   },

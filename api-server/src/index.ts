@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { connectDB, UserResourceWatchlistModel } from "./db";
+import { connectDB, UserResourceWatchlistModel, UserPermissionModel } from "./db";
 
 dotenv.config();
 
@@ -20,6 +20,15 @@ app.get("/api/user-resource-watchlist", async (req, res) => {
   try {
     const statuses = await UserResourceWatchlistModel.find();
     res.json(statuses);
+  } catch (error) {
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+app.get("/api/user-permissions", async (req, res) => {
+  try {
+    const permissions = await UserPermissionModel.find();
+    res.json(permissions);
   } catch (error) {
     res.status(500).json({ message: "Server Error" });
   }

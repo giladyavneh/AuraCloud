@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@mui/material/styles';
 import StatusTag from '@/components/statusTag/StatusTag';
 import AwsServiceIcon from '@/components/awsServiceIcon/AwsServiceIcon';
-import { getResourceDotColor, MAX_VISIBLE_RESOURCES } from '@/components/resourceCard/helpers/resourceCard.helpers';
+import { getResourceDotColor, MAX_VISIBLE_ACTIONS } from '@/components/resourceCard/helpers/resourceCard.helpers';
 import {
   CardRoot,
   CardBody,
@@ -23,15 +23,15 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
   title,
   lastUpdated,
   status,
-  resources,
+  actions,
   errorMessage,
-  maxVisibleResources = MAX_VISIBLE_RESOURCES,
+  maxVisibleActions = MAX_VISIBLE_ACTIONS,
 }) => {
   const { t } = useTranslation();
   const theme = useTheme();
 
-  const visibleResources = resources.slice(0, maxVisibleResources);
-  const remainingCount = resources.length - maxVisibleResources;
+  const visibleActions = actions.slice(0, maxVisibleActions);
+  const remainingCount = actions.length - maxVisibleActions;
   const dotColor = getResourceDotColor(theme.palette, status);
 
   return (
@@ -54,14 +54,14 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
 
         <ResourceList>
           <Typography variant="subtitle1" color="text.secondary">
-            {t('resourceCard.resources')}
+            {t('resourceCard.actions')}
           </Typography>
 
-          {visibleResources.map((resource) => (
-            <ResourceItem key={resource}>
+          {visibleActions.map((action) => (
+            <ResourceItem key={action}>
               <ResourceDot dotColor={dotColor} />
               <Typography variant="body2" color="text.secondary">
-                {resource}
+                {action}
               </Typography>
             </ResourceItem>
           ))}
@@ -72,7 +72,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
               color="primary.main"
               sx={{ cursor: 'pointer', '&:hover': { opacity: 0.8 } }}
             >
-              {t('resourceCard.moreResources', { count: remainingCount })}
+              {t('resourceCard.moreActions', { count: remainingCount })}
             </Typography>
           )}
         </ResourceList>

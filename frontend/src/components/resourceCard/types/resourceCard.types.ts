@@ -6,7 +6,7 @@ export interface ResourceCardProps {
   title: string;
   lastUpdated: string;
   status: StatusTagVariant;
-  resources: string[];
+  actions: string[];
   errorMessage?: string;
-  maxVisibleResources?: number;
+  maxVisibleActions?: number;
 }

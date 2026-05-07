@@ -1,11 +1,6 @@
 import mongoose from "mongoose";
-import dotenv from "dotenv";
+import { connectMongo } from "utils";
 
-dotenv.config();
-
-// ==========================================
-// 1. set up Mongoose models
-// ==========================================
 const userResourceWatchlistSchema = new mongoose.Schema({
   name: { type: String, required: true },
   userId: { type: String, required: true },
@@ -32,9 +27,6 @@ export const UserPermissionModel = mongoose.model(
   userPermissionsSchema,
 );
 
-// ==========================================
-// 2. Mock Data
-// ==========================================
 const mockUserResourceWatchlist = {
   name: "amit",
   userId: "123",
@@ -74,15 +66,10 @@ const mockUserPermission = {
   },
 };
 
-// ==========================================
-// 3. Function for connecting to the database and seeding data
-// ==========================================
 export const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI as string);
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    await connectMongo();
 
-    // Seed mock data if the collection is empty
     const statusesCount = await UserResourceWatchlistModel.countDocuments();
     if (statusesCount === 0) {
       await UserResourceWatchlistModel.create(mockUserResourceWatchlist);

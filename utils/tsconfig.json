@@ -1,7 +1,7 @@
 {
   // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
-    // File Layout
+    "composite": true, // Required for references
     "rootDir": "./src",
     "outDir": "./dist",
 
@@ -41,12 +41,5 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
-    "paths": {
-      "utils": ["../utils/src/index.ts"] 
-    }
-  },
-  "include": ["src"], // REMOVE "../utils/src" from here
-  "references": [
-    { "path": "../utils" } // Point to the directory containing utils/tsconfig.json
-  ]
+  }
 }

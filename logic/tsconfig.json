@@ -43,7 +43,7 @@
     "skipLibCheck": true,
     "paths": {
       "utils": ["../utils/src/index.ts"] 
-    }
+    },
   },
   "include": ["src"], // REMOVE "../utils/src" from here
   "references": [

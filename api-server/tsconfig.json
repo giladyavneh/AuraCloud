@@ -1,15 +1,29 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "Node16",
-    "moduleResolution": "node16",
     "rootDir": "./src",
     "outDir": "./dist",
-    "strict": true,
+
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "target": "ES2022",
     "esModuleInterop": true,
+    "types": ["node"],
+
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+
+    "strict": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+
+    "paths": {
+      "utils": ["../utils/src/index.ts"]
+    }
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules"],
+  "references": [
+    { "path": "../utils" }
+  ]
 }

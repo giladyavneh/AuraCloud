@@ -19,6 +19,7 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
+    "utils": "*",
     "@aws-sdk/client-ec2": "^3.1032.0",
     "@aws-sdk/client-iam": "^3.1032.0",
     "@aws-sdk/client-identitystore": "^3.1035.0",

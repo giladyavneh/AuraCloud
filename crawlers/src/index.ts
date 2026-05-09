@@ -22,7 +22,7 @@ async function main() {
   runCrawler(s3Crawler, "S3", redis);
 
   // Print all Redis data every 10 seconds
-  printAllRedisData(redis);
+  printAllRedisData(redis, {excludeKeys: ["aura:sso:permission-sets"]}); // Exclude verbose SSO data
 }
 
 async function runCrawler(crawler: any, name: string, redis: any) {

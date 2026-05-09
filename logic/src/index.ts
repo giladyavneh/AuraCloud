@@ -1,18 +1,33 @@
 import 'dotenv/config';
-import { connectMongo, getRedisClient } from 'utils';
-import { getUsersFromMongo } from './utils.js';
+import { connectMongo, disconnectMongo, disconnectRedis, getRedisClient, print, printAllRedisData } from 'utils';
+import { evaluateUser, getUsersFromMongo } from './utils.js';
+
 
 async function main() {
-  const [mongo, redis] = await Promise.all([connectMongo(), getRedisClient()]);
-  const users = await getUsersFromMongo(mongo);
-  console.log(users);
+  const [, redis] = await Promise.all([connectMongo(), getRedisClient()]);
+  const users = await getUsersFromMongo();
   for (const user of users) {
-    // const report = await evaluateUser(user, redis);
-  //   await seedMongo(mongo, report);
+    print(await evaluateUser(user, redis as any));
   }
 }
 
-main().catch((err) => {
-  console.error('Logic module failed to start:', err);
-  process.exit(1);
-});
+async function shutdown(code = 0) {
+  try {
+    await disconnectRedis();
+    await disconnectMongo();
+  } catch (err) {
+    console.error('Error during shutdown:', err);
+  } finally {
+    process.exit(code);
+  }
+}
+
+process.on('SIGINT', () => void shutdown(0));
+process.on('SIGTERM', () => void shutdown(0));
+
+main()
+  .then(() => shutdown(0))
+  .catch((err) => {
+    console.error('Logic module failed to start:', err);
+    void shutdown(1);
+  });

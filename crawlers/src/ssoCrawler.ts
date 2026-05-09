@@ -1,4 +1,4 @@
-import { DescribePermissionSetCommand, ListAccountAssignmentsCommand, ListAccountAssignmentsForPrincipalCommand, ListInstancesCommand, ListPermissionSetsCommand, SSOAdminClient, type AccountAssignmentForPrincipal } from "@aws-sdk/client-sso-admin";
+import { ListAccountAssignmentsCommand, ListAccountAssignmentsForPrincipalCommand, ListInstancesCommand, SSOAdminClient, type AccountAssignmentForPrincipal } from "@aws-sdk/client-sso-admin";
 import { BaseCrawler } from "./crawlerBase.js";
 import { IdentitystoreClient, ListGroupMembershipsCommand, ListGroupMembershipsForMemberCommand, ListGroupsCommand, ListUsersCommand, type Group, type GroupMembership, type User } from "@aws-sdk/client-identitystore";
 
@@ -94,7 +94,7 @@ export class SsoCrawler extends BaseCrawler {
 
     async crawl() {
         const { Instances } = await this.callAndHandleThrotteling(() => this.ssoAdminClient.send(new ListInstancesCommand({})));
-        const data: any = {users:  [], groups: [], permissionSets: []};
+        const data: any = {users:  [], groups: []};
 
         for (const instance of Instances || []) {
             const identityStoreId = instance.IdentityStoreId!;
@@ -115,21 +115,6 @@ export class SsoCrawler extends BaseCrawler {
                 (group as any).PermissionSets = permissionSets || [];
             }
 
-            const instanceArn = instance.InstanceArn!;
-            const { PermissionSets } = await this.callAndHandleThrotteling(() => this.ssoAdminClient.send(new ListPermissionSetsCommand({
-                InstanceArn: instance.InstanceArn!
-            })));
-
-            if (PermissionSets) {
-                for (const psArn of PermissionSets) {
-                    const { PermissionSet: describedPermissions } = await this.callAndHandleThrotteling(() => this.ssoAdminClient.send(new DescribePermissionSetCommand({
-                        InstanceArn: instanceArn,
-                        PermissionSetArn: psArn
-                    })));  
-                    data.permissionSets.push(describedPermissions);
-                }
-            }
-
             data.users.push(...(Users || []));
             data.groups.push(...(Groups || []));
         }
@@ -139,7 +124,6 @@ export class SsoCrawler extends BaseCrawler {
     async save(redis: any, data: any) {
         for (const user of data.users) await redis.hSet("aura:sso:users", user.UserId, JSON.stringify(user));
         for (const group of data.groups) await redis.hSet("aura:sso:groups", group.GroupId, JSON.stringify(group));
-        for (const ps of data.permissionSets) await redis.hSet("aura:sso:permission-sets", ps.PermissionSetArn, JSON.stringify(ps));
         console.log(`💾 SSO Cache Updated: ${data.users.length} Users, ${data.groups.length} Groups`);
     }
 }

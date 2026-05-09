@@ -1,9 +1,11 @@
 import { GetBucketAclCommand, GetBucketCorsCommand, GetBucketLocationCommand, GetBucketPolicyCommand, ListBucketsCommand, S3Client } from "@aws-sdk/client-s3";
+import { GetCallerIdentityCommand, STSClient } from "@aws-sdk/client-sts";
 import { BaseCrawler } from "./crawlerBase.js";
 import extend from "extend";
 
 export class S3Crawler extends BaseCrawler {
     protected s3Client = new S3Client({ region: this.region });
+    protected stsClient = new STSClient({ region: this.region });
     protected intervalMs = 1000;
 
     private async callAwsAndExtract<T, K extends keyof T>(fn: () => Promise<T>, key: K): Promise<T[K]|null> {
@@ -29,16 +31,18 @@ export class S3Crawler extends BaseCrawler {
     async crawl() {
         const bucketsResponse = await this.callAndHandleThrotteling(() => this.s3Client.send(new ListBucketsCommand({})));
         const buckets = bucketsResponse.Buckets || [];
-        for (const bucket of buckets) { 
+        const { Account } = await this.callAndHandleThrotteling(() =>
+          this.stsClient.send(new GetCallerIdentityCommand({}))
+        );
+        for (const bucket of buckets) {
             await this.enrichBucket(bucket);
+            extend(bucket, { accountId: Account ?? undefined });
         }
         return buckets
     }
     
     async save(redis: any, data: any) {
-        for (const bucket of data) await redis.hSet("aura:resource:s3buckets", bucket.Name, JSON.stringify(bucket));
+        for (const bucket of data) await redis.hSet("aura:resource:s3buckets", bucket.BucketArn, JSON.stringify(bucket));
         console.log(`💾 S3 Cache Updated: ${data.length} Buckets`);
     }
 }
-
-new S3Crawler().crawl();

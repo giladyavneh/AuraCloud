@@ -1,17 +1,15 @@
 import 'dotenv/config';
 import { connectMongo, getRedisClient } from 'utils';
+import { getUsersFromMongo } from './utils.js';
 
 async function main() {
-  const [, redis] = await Promise.all([connectMongo(), getRedisClient()]);
-  console.log('🧠 AuraCloud Logic Module ready');
-
-  process.on('SIGINT', async () => {
-    console.log('Shutting down logic module...');
-    try {
-      await redis.quit();
-    } catch {}
-    process.exit(0);
-  });
+  const [mongo, redis] = await Promise.all([connectMongo(), getRedisClient()]);
+  const users = await getUsersFromMongo(mongo);
+  console.log(users);
+  for (const user of users) {
+    // const report = await evaluateUser(user, redis);
+  //   await seedMongo(mongo, report);
+  }
 }
 
 main().catch((err) => {

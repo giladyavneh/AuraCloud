@@ -1,6 +1,10 @@
 import { createClient } from 'redis';
 import { RedisMemoryServer } from 'redis-memory-server';
 import mongoose from 'mongoose';
+import dotenv from "dotenv";
+
+dotenv.config();
+
 
 let redisServer = new RedisMemoryServer();
 let host: string;
@@ -23,5 +27,21 @@ export async function connectMongo() {
     console.log(`🚀 Mongo Live at ${mongoose.connection.host}`);
     return mongoose;
 }
+
+const userResourceWatchlistSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  userId: { type: String, required: true },
+  resources: [
+    {
+      arn: { type: String, required: true },
+      actions: [{ type: String }],
+    },
+  ],
+});
+
+export const UserResourceWatchlistModel = mongoose.model(
+  "UserResourceWatchlist",
+  userResourceWatchlistSchema,
+);
 
 export { mongoose };

@@ -7,7 +7,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "dev": "tsc --watch --preserveWatchOutput"
+    "dev": "tsc --watch --preserveWatchOutput",
+    "redis:up": "docker compose up -d",
+    "redis:down": "docker compose down",
+    "redis:logs": "docker compose logs -f redis"
   },
   "keywords": [],
   "author": "",

@@ -138,6 +138,17 @@ export const UserPermissionModel =
   (mongoose.models.UserPermission as mongoose.Model<UserPermission>) ??
   mongoose.model<UserPermission>('UserPermission', userPermissionSchema);
 
+const userSchema = new mongoose.Schema({
+  name:       { type: String, required: true },
+  source:     { type: String, enum: ['IAM', 'SSO'], required: true },
+  externalId: { type: String, required: true },  // IAM UserId (AIDA…) or SSO UserId (UUID)
+  arn:        { type: String, default: null },   // null for SSO
+  lastSeenAt: { type: Date,   required: true },
+});
+userSchema.index({ source: 1, externalId: 1 }, { unique: true });
+
+export const UserModel = mongoose.model('User', userSchema);
+
 export { mongoose };
 export type { RedisClientType } from 'redis';
 export * from './utils.js';

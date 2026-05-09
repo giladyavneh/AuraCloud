@@ -5,6 +5,7 @@ import { startUserSyncWorker } from './userSync/worker.js';
 
 async function main() {
   const [mongo, redis] = await Promise.all([connectMongo(), getRedisClient()]);
+
   // Run worker, the worker's internal while-loop keeps the event loop alive.
   startUserSyncWorker(redis);
 

@@ -15,6 +15,7 @@
     "start:utils": "npm run dev -w utils",
     "start:logic": "npm run dev -w logic",
     "start:crawlers": "npm run dev -w crawlers",
-    "start:api-server": "npm run dev -w api-server"
+    "start:api-server": "npm run dev -w api-server",
+    "redis:up": "npm run redis:up -w utils"
   }
 }

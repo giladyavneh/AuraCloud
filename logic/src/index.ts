@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { connectMongo, disconnectMongo, disconnectRedis, getRedisClient, print, printAllRedisData } from 'utils';
-import { evaluateUser, getUsersFromMongo } from './utils.js';
+import { getUsersFromMongo } from './dataAccess.js';
+import { evaluateUser } from './userEvaluation.js';
 import { startUserSyncWorker } from './userSync/worker.js';
 
 

@@ -1,30 +1,50 @@
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
-import { connectDB, UserResourceWatchlistModel } from "./db";
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { connectDB, disconnectMongo, UserResourceWatchlistModel } from './db.js';
 
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = Number(process.env.PORT) || 3000;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// connect to the database and seed data
-connectDB();
-
-// example route to fetch resource statuses for the frontend
-app.get("/api/user-resource-watchlist", async (req, res) => {
+app.get('/api/user-resource-watchlist', async (_req, res) => {
   try {
-    const statuses = await UserResourceWatchlistModel.find();
+    const statuses = await UserResourceWatchlistModel.find().lean().exec();
     res.json(statuses);
-  } catch (error) {
-    res.status(500).json({ message: "Server Error" });
+  } catch (err) {
+    console.error('GET /api/user-resource-watchlist failed:', err);
+    res.status(500).json({ message: 'Server Error' });
   }
 });
 
-app.listen(port, () => {
-  console.log(`API Server is running on http://localhost:${port}`);
+async function start() {
+  await connectDB();
+  const server = app.listen(port, () => {
+    console.log(`API Server is running on http://localhost:${port}`);
+  });
+
+  const shutdown = async (signal: string) => {
+    console.log(`${signal} received, shutting down...`);
+    server.close(async () => {
+      try {
+        await disconnectMongo();
+      } catch (err) {
+        console.error('Error closing Mongo:', err);
+      }
+      process.exit(0);
+    });
+    setTimeout(() => process.exit(1), 10_000).unref();
+  };
+
+  process.on('SIGINT', () => void shutdown('SIGINT'));
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+}
+
+start().catch((err) => {
+  console.error('API Server failed to start:', err);
+  process.exit(1);
 });

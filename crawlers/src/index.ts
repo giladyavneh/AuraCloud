@@ -1,13 +1,12 @@
 import 'dotenv/config';
-import { RedisMemoryServer } from 'redis-memory-server';
-import { createClient } from 'redis';
 import { SsoCrawler } from './ssoCrawler.js';
 import { BasicIamCrawler } from './basicIamCrawler.js';
 import { print } from './utils.js';
 import { S3Crawler } from './s3Crawler.js';
+import { getRedisClient } from 'utils';
 
 async function main() {
-  const redis = await startRedis();
+  const redis = await getRedisClient();
   console.log("🚀 AuraCloud: Identity Sync Initiated");
 
   const ssoCrawler = new SsoCrawler();
@@ -67,16 +66,6 @@ async function runCrawler(crawler: any, name: string, redis: any) {
     const sleep = Math.max(crawler.intervalMs - (Date.now() - start), 0);
     await new Promise(r => setTimeout(r, sleep));
   }
-}
-
-async function startRedis() {
-  const redisServer = new RedisMemoryServer();
-  const host = await redisServer.getHost();
-  const port = await redisServer.getPort();
-  const client = createClient({ url: `redis://${host}:${port}` });
-  await client.connect();
-  console.log(`🚀 Redis Live at ${host}:${port}`);
-  return client;
 }
 
 main().catch(console.error);

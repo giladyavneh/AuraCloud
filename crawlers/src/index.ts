@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { SsoCrawler } from './ssoCrawler.js';
+import { PermissionSetsCrawler } from './permissionSetsCrawler.js';
 import { BasicIamCrawler } from './basicIamCrawler.js';
 import { printAllRedisData } from './utils.js';
 import { S3Crawler } from './s3Crawler.js';
@@ -10,11 +11,13 @@ async function main() {
   console.log("🚀 AuraCloud: Identity Sync Initiated");
 
   const ssoCrawler = new SsoCrawler();
+  const permissionSetsCrawler = new PermissionSetsCrawler();
   const iamCrawler = new BasicIamCrawler();
   const s3Crawler = new S3Crawler();
 
   // Run loops in parallel
   runCrawler(ssoCrawler, "SSO", redis);
+  runCrawler(permissionSetsCrawler, "PermissionSets", redis);
   runCrawler(iamCrawler, "IAM", redis);
   runCrawler(s3Crawler, "S3", redis);
 

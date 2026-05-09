@@ -1,10 +1,13 @@
 import 'dotenv/config';
 import { connectMongo, disconnectMongo, disconnectRedis, getRedisClient, print, printAllRedisData } from 'utils';
 import { evaluateUser, getUsersFromMongo } from './utils.js';
+import { startUserSyncWorker } from './userSync/worker.js';
 
 
 async function main() {
   const [, redis] = await Promise.all([connectMongo(), getRedisClient()]);
+  startUserSyncWorker(redis);
+
   const users = await getUsersFromMongo();
   for (const user of users) {
     print(await evaluateUser(user, redis as any));

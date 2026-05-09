@@ -30,7 +30,7 @@ export function print(obj: any) {
     console.log(JSON.stringify(cleaned, null, 2));
 }
 
-export async function printAllRedisData(redis: any) {
+export async function printAllRedisData(redis: any, options?: { intervalMs?: number, excludeKeys?: string[] }) {
   while (true) {
     try {
       const keys = await redis.keys('*');

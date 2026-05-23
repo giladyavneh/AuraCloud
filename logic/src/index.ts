@@ -9,64 +9,80 @@ async function main() {
   const [, redis] = await Promise.all([connectMongo(), getRedisClient()]);
   startUserSyncWorker(redis);
 
-  const users = await getUsersFromMongo();
-  for (const user of users) {
-    const findings = await evaluateUser(user, redis as any);
+  const intervalMs = 10000; // Run every 10 seconds
 
-    const permissionsData: Record<string, any> = {};
-    const timestamp = new Date().toISOString();
+  while (true) {
+    const start = Date.now();
+    console.log(`[${new Date().toLocaleTimeString()}] 🚀 Initiating logic evaluation cycle...`);
 
-    for (const resEntry of findings.resources) {
-      const arn = Object.keys(resEntry)[0];
-      if (!arn) continue;
-      const actionResults = resEntry[arn];
-      if (!actionResults) continue;
+    try {
+      const users = await getUsersFromMongo();
+      for (const user of users) {
+        const findings = await evaluateUser(user, redis as any);
+        print(findings);
 
-      permissionsData[arn] = {};
-      for (const actionObj of actionResults) {
-        const actionName = Object.keys(actionObj)[0];
-        if (!actionName) continue;
-        const result = actionObj[actionName];
+        const permissionsData: Record<string, any> = {};
+        const timestamp = new Date().toISOString();
 
-        let actionStatus;
-        if (result === 'stale') {
-          actionStatus = {
-            status: 'stale',
-            reason: 'identity data missing from AWS cache',
-            timestamp,
-          };
-        } else {
-          const isAllowed = result === true;
-          actionStatus = {
-            status: isAllowed ? 'valid' : 'error',
-            reason: isAllowed ? null : 'policy mismatch',
-            timestamp,
-          };
+        for (const resEntry of findings.resources) {
+          const arn = Object.keys(resEntry)[0];
+          if (!arn) continue;
+          const actionResults = resEntry[arn];
+          if (!actionResults) continue;
+
+          permissionsData[arn] = {};
+          for (const actionObj of actionResults) {
+            const actionName = Object.keys(actionObj)[0];
+            if (!actionName) continue;
+            const result = actionObj[actionName];
+
+            let actionStatus;
+            if (result === 'stale') {
+              actionStatus = {
+                status: 'stale',
+                reason: 'identity data missing from AWS cache',
+                timestamp,
+              };
+            } else {
+              const isAllowed = result === true;
+              actionStatus = {
+                status: isAllowed ? 'valid' : 'error',
+                reason: isAllowed ? null : 'policy mismatch',
+                timestamp,
+              };
+            }
+
+            permissionsData[arn][actionName] = actionStatus;
+
+            // Strip the service prefix and camelCase (e.g. s3:GetObject -> getObject) for frontend compatibility
+            const camelCaseAction = actionName.split(':').pop()!;
+            const camelCaseName = camelCaseAction.charAt(0).toLowerCase() + camelCaseAction.slice(1);
+            if (camelCaseName !== actionName) {
+              permissionsData[arn][camelCaseName] = actionStatus;
+            }
+          }
         }
 
-        permissionsData[arn][actionName] = actionStatus;
-
-        // Strip the service prefix and camelCase (e.g. s3:GetObject -> getObject) for frontend compatibility
-        const camelCaseAction = actionName.split(':').pop()!;
-        const camelCaseName = camelCaseAction.charAt(0).toLowerCase() + camelCaseAction.slice(1);
-        if (camelCaseName !== actionName) {
-          permissionsData[arn][camelCaseName] = actionStatus;
-        }
+        await UserPermissionModel.findOneAndUpdate(
+          { userId: user.userId },
+          {
+            $set: {
+              name: user.name,
+              userId: user.userId,
+              permissionsData,
+            },
+          },
+          { upsert: true, new: true }
+        );
+        console.log(`Saved evaluation results for user: ${user.name} (${user.userId})`);
       }
+      console.log(`[${new Date().toLocaleTimeString()}] ✅ Logic Evaluation Cycle Complete`);
+    } catch (err: any) {
+      console.error(`❌ Logic evaluation cycle error:`, err.message || err);
     }
 
-    await UserPermissionModel.findOneAndUpdate(
-      { userId: user.userId },
-      {
-        $set: {
-          name: user.name,
-          userId: user.userId,
-          permissionsData,
-        },
-      },
-      { upsert: true, new: true }
-    );
-    console.log(`Saved evaluation results for user: ${user.name} (${user.userId})`);
+    const sleep = Math.max(intervalMs - (Date.now() - start), 0);
+    await new Promise(r => setTimeout(r, sleep));
   }
 }
 

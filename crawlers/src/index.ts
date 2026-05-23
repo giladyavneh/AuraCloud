@@ -19,6 +19,13 @@ async function main() {
     return;
   }
 
+  // TODO: credentials are captured here at startup and never refreshed. If a
+  // customer rotates their access key, flips status to 'disconnected', or
+  // onboards while crawlers are already running, the changes are not picked up
+  // until this process restarts. Fix by moving the customer fetch into the
+  // per-tick path inside runCrawler (re-query Mongo each cycle, rebuild the
+  // crawler instance when accessKeyId changes or status !== 'connected').
+  // Mongo cost is negligible at MVP scale.
   for (const customer of customers) {
     const creds = customer.awsCredentials;
     if (!creds || !creds.accessKeyId || !creds.secretAccessKey) {

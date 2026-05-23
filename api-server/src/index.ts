@@ -34,7 +34,14 @@ app.get("/api/user-permissions/:userId", async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  const publicUrl = process.env.PUBLIC_URL ?? `http://localhost:${port}`;
-  console.log(`API Server is running on ${publicUrl}`);
-});
+connectDB()
+  .then(() => {
+    app.listen(port, () => {
+      const publicUrl = process.env.PUBLIC_URL ?? `http://localhost:${port}`;
+      console.log(`API Server is running on ${publicUrl}`);
+    });
+  })
+  .catch((err) => {
+    console.error('Failed to connect to database:', err);
+    process.exit(1);
+  });

@@ -1,47 +1,17 @@
-import {
-  connectMongo,
-  disconnectMongo,
-  UserResourceWatchlistModel,
-  UserPermissionModel,
-  type UserResourceWatchlist,
-  type UserPermission,
-} from 'utils';
+import dotenv from 'dotenv';
+import { connectMongo, UserResourceWatchlistModel, UserPermissionModel } from 'utils';
 
 dotenv.config();
 
+// Re-export models so other modules can import from this file
+export { UserResourceWatchlistModel, UserPermissionModel };
+
 // ==========================================
-// 1. set up Mongoose models
+// Mock seed data
 // ==========================================
-const userResourceWatchlistSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  userId: { type: String, required: true },
-  resources: [
-    {
-      arn: { type: String, required: true },
-      actions: [{ type: String }],
-    },
-  ],
-});
-
-export const UserResourceWatchlistModel = mongoose.model(
-  "UserResourceWatchlist",
-  userResourceWatchlistSchema,
-);
-
-const userPermissionsSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  userId: { type: String, required: true },
-  permissionsData: { type: mongoose.Schema.Types.Mixed },
-});
-
-export const UserPermissionModel = mongoose.model(
-  "UserPermission",
-  userPermissionsSchema,
-);
-
 const mockUserResourceWatchlist = {
-  name: "shoham",
-  userId: "123",
+  name: 'shoham',
+  userId: '123',
   resources: [
     { arn: 'arn:aws:s3:::mybucket', actions: ['s3:GetObject', 's3:PutObject'] },
     { arn: 'arn:aws:s3:::mybuckety', actions: ['s3:GetObject'] },
@@ -51,8 +21,7 @@ const mockUserResourceWatchlist = {
 };
 
 const mockUserPermission = {
-  name: "shoham",
-  userId: "123",
+  name: 'shoham',
   permissionsData: {
     'arn:aws:s3:::mybucket': {
       getObject: { status: 'valid', reason: null, timestamp: '2024-06-01T12:00:00Z' },
@@ -72,44 +41,17 @@ const mockUserPermission = {
 };
 
 // ==========================================
-// 3. Function for connecting to the database and seeding data
+// Connect to MongoDB and seed if empty
 // ==========================================
-export const connectDB = async () => {
-  try {
-    const conn = await mongoose.connect(process.env.MONGO_URI as string);
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
-
-    // Seed mock data if the collection is empty
-    const statusesCount = await UserResourceWatchlistModel.countDocuments();
-    if (statusesCount === 0) {
-      await UserResourceWatchlistModel.create(mockUserResourceWatchlist);
-      await UserPermissionModel.create(mockUserPermission);
-      console.log("Mock Data Seeded Successfully!");
-    } else {
-      console.log("Data already exists, skipping seeding.");
-    }
-
-    // Migrate UserPermission documents that are missing the userId field
-    const permissionsWithUserId = await UserPermissionModel.countDocuments({
-      userId: { $exists: true },
-    });
-    if (permissionsWithUserId === 0) {
-      await UserPermissionModel.deleteMany({});
-      await UserPermissionModel.create(mockUserPermission);
-      console.log("UserPermission re-seeded with userId field.");
-    }
-  } catch (error) {
-    console.error(`Error connecting to MongoDB: ${error}`);
-    process.exit(1);
-  }
-  await Promise.all([
-    UserResourceWatchlistModel.create(mockUserResourceWatchlist),
-    UserPermissionModel.create(mockUserPermission),
-  ]);
-  console.log('Mock Data Seeded Successfully!');
-}
-
-export async function connectDB(): Promise<void> {
+export const connectDB = async (): Promise<void> => {
   await connectMongo();
-  await seedMockDataIfEmpty();
-}
+
+  const count = await UserResourceWatchlistModel.countDocuments();
+  if (count === 0) {
+    await UserResourceWatchlistModel.create(mockUserResourceWatchlist);
+    await UserPermissionModel.create(mockUserPermission);
+    console.log('Mock Data Seeded Successfully!');
+  } else {
+    console.log('Data already exists, skipping seeding.');
+  }
+};

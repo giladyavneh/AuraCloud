@@ -59,11 +59,32 @@ export async function evaluateUser(user: UserResourceWatchlist, redis: RedisClie
     accountFromResourceArn ||
     '';
 
+  // Reconstruct real assumed role unique ID if possible
+  let assumedRoleId = '';
+  if (userData.resolvedPermissionSets?.length) {
+    const psName = userData.resolvedPermissionSets[0]?.Name;
+    if (psName) {
+      const allRoles = await redis.hGetAll('aura:iam:roles');
+      for (const [roleName, roleDataStr] of Object.entries(allRoles)) {
+        if (roleName.startsWith(`AWSReservedSSO_${psName}_`)) {
+          try {
+            const roleObj = JSON.parse(roleDataStr);
+            if (roleObj.RoleId) {
+              assumedRoleId = roleObj.RoleId;
+              break;
+            }
+          } catch {}
+        }
+      }
+    }
+  }
+
   const evalUser = {
     ...userData,
     policies: psPolicies,
     accessibleAwsAccountIds,
     accountId: fallbackAccount,
+    awsUserId: assumedRoleId && userData.UserName ? `${assumedRoleId}:${userData.UserName}` : undefined,
     arn:
       (userData as { arn?: string }).arn ??
       userData.UserName ??

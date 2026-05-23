@@ -38,13 +38,22 @@ export function evaluate(resource: unknown, action: string, user: Record<string,
     const scpStatus = evaluateScp([], action, res);
     if (scpStatus === 'DENY') return false;
 
+    // Build context for policy condition matching
+    const groupNames = (user.resolvedGroups as Array<{ DisplayName?: string }> || []).map(g => g.DisplayName).filter(Boolean);
+    const context: Record<string, unknown> = {
+      'aws:userid': user.awsUserId || user.UserId || user.externalId || '',
+      'aws:username': user.UserName || user.name || '',
+      'aws:principalaccount': resourceAccountId || identityAccountPool[0] || '',
+      'aws:principaltag/department': groupNames[0] || '',
+    };
+
     const policies = user.policies as unknown[] | undefined;
-    const idStatus = checkIdentityPolicy(policies, action);
+    const idStatus = checkIdentityPolicy(policies, action, context);
     if (idStatus === 'DENY') return false;
     if (idStatus === 'ALLOW') identityAllowed = true;   
     
     const userArn = typeof user.arn === 'string' ? user.arn : '';
-    const resStatus = checkResourcePolicy(res.bucketPolicies, action, userArn);
+    const resStatus = checkResourcePolicy(res.bucketPolicies, action, userArn, context);
     if (resStatus === 'DENY') return false;
     if (resStatus === 'ALLOW') resourceAllowed = true;  
     if (!treatAsSameAccount) {
@@ -69,7 +78,63 @@ function matchesAny(patterns: string | string[], actual: string): boolean {
   return arr.some((p) => isMatch(p, actual));
 }
 
-export function checkIdentityPolicy(policies: unknown[] | undefined, action: string): EvalResult {
+export function matchesCondition(condition: unknown, context: Record<string, unknown>): boolean {
+  if (!condition || typeof condition !== 'object') return true;
+
+  const condObj = condition as Record<string, Record<string, string | string[]>>;
+
+  for (const [operator, keyValues] of Object.entries(condObj)) {
+    const opLower = operator.toLowerCase();
+    const isStringLike = opLower === 'stringlike';
+    const isStringEquals = opLower === 'stringequals';
+    const isStringNotEquals = opLower === 'stringnotequals';
+    const isStringNotLike = opLower === 'stringnotlike';
+    const isArnEquals = opLower === 'arnequals';
+    const isArnLike = opLower === 'arnlike';
+    const isArnNotEquals = opLower === 'arnnotequals';
+    const isArnNotLike = opLower === 'arnnotlike';
+    const isNull = opLower === 'null';
+
+    const isValidOperator = isStringLike || isStringEquals || isStringNotEquals || isStringNotLike ||
+                            isArnEquals || isArnLike || isArnNotEquals || isArnNotLike || isNull;
+    if (!isValidOperator) {
+      continue;
+    }
+
+    for (const [key, expectedRaw] of Object.entries(keyValues)) {
+      const actualVal = context[key.toLowerCase()];
+      const expectedArray = Array.isArray(expectedRaw) ? expectedRaw : [expectedRaw];
+
+      if (isNull) {
+        const expectsNull = expectedArray.some(v => String(v).toLowerCase() === 'true');
+        const isCurrentlyNull = actualVal === undefined || actualVal === null || actualVal === '';
+        if (expectsNull !== isCurrentlyNull) return false;
+        continue;
+      }
+
+      if (actualVal === undefined || actualVal === null) {
+        if (isStringNotEquals || isStringNotLike || isArnNotEquals || isArnNotLike) continue;
+        return false;
+      }
+
+      const actualStr = String(actualVal);
+
+      if (isStringEquals || isArnEquals) {
+        if (!expectedArray.some(expected => expected === actualStr)) return false;
+      } else if (isStringLike || isArnLike) {
+        if (!expectedArray.some(expected => isMatch(String(expected), actualStr))) return false;
+      } else if (isStringNotEquals || isArnNotEquals) {
+        if (expectedArray.some(expected => expected === actualStr)) return false;
+      } else if (isStringNotLike || isArnNotLike) {
+        if (expectedArray.some(expected => isMatch(String(expected), actualStr))) return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+export function checkIdentityPolicy(policies: unknown[] | undefined, action: string, context: Record<string, unknown>): EvalResult {
     let hasAllow = false;
     if (!policies?.length) return 'IMPLICIT_DENY';
 
@@ -79,8 +144,9 @@ export function checkIdentityPolicy(policies: unknown[] | undefined, action: str
         const statements = Array.isArray(p.Statement) ? p.Statement : [p.Statement];
         for (const stmt of statements) {
             if (!stmt || typeof stmt !== 'object') continue;
-            const s = stmt as { Action?: unknown; Effect?: unknown };
+            const s = stmt as { Action?: unknown; Effect?: unknown; Condition?: unknown };
             if (matchesAny((s.Action as string | string[]) ?? '', action)) {
+                if (s.Condition && !matchesCondition(s.Condition, context)) continue;
                 if (s.Effect === 'Deny') return 'DENY';
                 if (s.Effect === 'Allow') hasAllow = true;
             }
@@ -90,7 +156,7 @@ export function checkIdentityPolicy(policies: unknown[] | undefined, action: str
     return hasAllow ? 'ALLOW' : 'IMPLICIT_DENY';
 }
 
-export function checkResourcePolicy(policy: unknown, action: string, userArn: string): EvalResult {
+export function checkResourcePolicy(policy: unknown, action: string, userArn: string, context: Record<string, unknown>): EvalResult {
   if (!policy) return 'IMPLICIT_DENY';
 
   let hasAllow = false;
@@ -102,9 +168,10 @@ export function checkResourcePolicy(policy: unknown, action: string, userArn: st
 
     for (const stmt of statements) {
       if (!stmt || typeof stmt !== 'object') continue;
-      const s = stmt as { Principal?: unknown; Action?: unknown; Effect?: unknown };
+      const s = stmt as { Principal?: unknown; Action?: unknown; Effect?: unknown; Condition?: unknown };
       if (!principalMatches(s.Principal, userArn)) continue;
       if (matchesAny((s.Action as string | string[]) ?? '', action)) {
+        if (s.Condition && !matchesCondition(s.Condition, context)) continue;
         if (s.Effect === 'Deny') return 'DENY';
         if (s.Effect === 'Allow') hasAllow = true;
       }

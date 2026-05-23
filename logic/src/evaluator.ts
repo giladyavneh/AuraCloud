@@ -24,7 +24,25 @@ function resolveIdentityAwsAccountPool(user: Record<string, unknown>): string[] 
     return [];
 }
 
-export function evaluate(resource: unknown, action: string, user: Record<string, unknown>) {
+export interface PolicyCheckResult {
+  status: EvalResult;
+  matchedStatement?: any;
+  reason?: string;
+}
+
+export interface EvaluationResult {
+  allowed: boolean;
+  reason: string;
+  context: Record<string, unknown>;
+  steps: {
+    scp: PolicyCheckResult;
+    identity: PolicyCheckResult;
+    resource: PolicyCheckResult;
+    accountCheck: { treatAsSameAccount: boolean; isSameAccount: boolean };
+  };
+}
+
+export function evaluate(resource: unknown, action: string, user: Record<string, unknown>): EvaluationResult {
     const res = (resource && typeof resource === 'object' ? resource : {}) as Record<string, unknown>;
     const resourceAccountId = resolveResourceAwsAccountId(res); 
     const identityAccountPool = resolveIdentityAwsAccountPool(user);
@@ -32,12 +50,7 @@ export function evaluate(resource: unknown, action: string, user: Record<string,
     const isSameAccount = hasResourceAccount && identityAccountPool.some((id) => id === resourceAccountId);
     const singleIdentityContext = !hasResourceAccount && identityAccountPool.length === 1;
     const treatAsSameAccount = isSameAccount || singleIdentityContext;  
-    let identityAllowed = false;
-    let resourceAllowed = false;    
     
-    const scpStatus = evaluateScp([], action, res);
-    if (scpStatus === 'DENY') return false;
-
     // Build context for policy condition matching
     const groupNames = (user.resolvedGroups as Array<{ DisplayName?: string }> || []).map(g => g.DisplayName).filter(Boolean);
     const context: Record<string, unknown> = {
@@ -47,19 +60,51 @@ export function evaluate(resource: unknown, action: string, user: Record<string,
       'aws:principaltag/department': groupNames[0] || '',
     };
 
+    const scpResult: PolicyCheckResult = { status: 'ALLOW' }; // Fallback
+
     const policies = user.policies as unknown[] | undefined;
-    const idStatus = checkIdentityPolicy(policies, action, context);
-    if (idStatus === 'DENY') return false;
-    if (idStatus === 'ALLOW') identityAllowed = true;   
+    const idResult = checkIdentityPolicy(policies, action, context);
     
     const userArn = typeof user.arn === 'string' ? user.arn : '';
-    const resStatus = checkResourcePolicy(res.bucketPolicies, action, userArn, context);
-    if (resStatus === 'DENY') return false;
-    if (resStatus === 'ALLOW') resourceAllowed = true;  
-    if (!treatAsSameAccount) {
-        return identityAllowed && resourceAllowed;
+    const resResult = checkResourcePolicy(res.bucketPolicies || res.policy, action, userArn, context);
+
+    let allowed = false;
+    let reason = '';
+
+    if (idResult.status === 'DENY') {
+      allowed = false;
+      reason = idResult.reason || 'Explicit Deny in Identity Policy';
+    } else if (resResult.status === 'DENY') {
+      allowed = false;
+      reason = resResult.reason || 'Explicit Deny in Resource Policy';
+    } else {
+      const identityAllowed = idResult.status === 'ALLOW';
+      const resourceAllowed = resResult.status === 'ALLOW';
+
+      if (!treatAsSameAccount) {
+        allowed = identityAllowed && resourceAllowed;
+        reason = allowed 
+          ? 'Allowed by both Identity Policy and Resource Policy (Cross-Account)' 
+          : `Denied (Cross-Account): Identity Allowed: ${identityAllowed}, Resource Allowed: ${resourceAllowed}`;
+      } else {
+        allowed = identityAllowed || resourceAllowed;
+        reason = allowed 
+          ? `Allowed (Same-Account): Identity Allowed: ${identityAllowed}, Resource Allowed: ${resourceAllowed}`
+          : 'Denied: No matching Allow statement found in either Identity or Resource policies';
+      }
     }
-    return identityAllowed || resourceAllowed;
+
+    return {
+      allowed,
+      reason,
+      context,
+      steps: {
+        scp: scpResult,
+        identity: idResult,
+        resource: resResult,
+        accountCheck: { treatAsSameAccount, isSameAccount }
+      }
+    };
 }
 
 function evaluateScp(_scps: unknown[], _action: string, _resource: unknown): EvalResult {
@@ -134,53 +179,95 @@ export function matchesCondition(condition: unknown, context: Record<string, unk
   return true;
 }
 
-export function checkIdentityPolicy(policies: unknown[] | undefined, action: string, context: Record<string, unknown>): EvalResult {
+export function checkIdentityPolicy(
+  policies: unknown[] | undefined,
+  action: string,
+  context: Record<string, unknown>
+): PolicyCheckResult {
     let hasAllow = false;
-    if (!policies?.length) return 'IMPLICIT_DENY';
+    let allowedStatement: any = null;
+    if (!policies?.length) {
+      return { status: 'IMPLICIT_DENY', reason: 'No identity policies attached' };
+    }
 
     for (const policy of policies) {
         if (!policy || typeof policy !== 'object') continue;
-        const p = policy as { Statement?: unknown };
+        const p = policy as { Statement?: unknown; Name?: string; PolicyName?: string };
+        const policyName = p.PolicyName || p.Name || 'InlinePolicy';
         const statements = Array.isArray(p.Statement) ? p.Statement : [p.Statement];
         for (const stmt of statements) {
             if (!stmt || typeof stmt !== 'object') continue;
-            const s = stmt as { Action?: unknown; Effect?: unknown; Condition?: unknown };
+            const s = stmt as { Action?: unknown; Effect?: unknown; Condition?: unknown; Sid?: string };
             if (matchesAny((s.Action as string | string[]) ?? '', action)) {
                 if (s.Condition && !matchesCondition(s.Condition, context)) continue;
-                if (s.Effect === 'Deny') return 'DENY';
-                if (s.Effect === 'Allow') hasAllow = true;
+                if (s.Effect === 'Deny') {
+                    return { 
+                      status: 'DENY', 
+                      matchedStatement: s, 
+                      reason: `Explicit Deny in identity policy "${policyName}" (Sid: ${s.Sid || 'Unnamed'})` 
+                    };
+                }
+                if (s.Effect === 'Allow') {
+                    hasAllow = true;
+                    allowedStatement = s;
+                }
             }
         }
     }
 
-    return hasAllow ? 'ALLOW' : 'IMPLICIT_DENY';
+    if (hasAllow) {
+        return { status: 'ALLOW', matchedStatement: allowedStatement };
+    }
+    return { status: 'IMPLICIT_DENY', reason: 'No matching Allow statement in identity policies' };
 }
 
-export function checkResourcePolicy(policy: unknown, action: string, userArn: string, context: Record<string, unknown>): EvalResult {
-  if (!policy) return 'IMPLICIT_DENY';
+export function checkResourcePolicy(
+  policy: unknown,
+  action: string,
+  userArn: string,
+  context: Record<string, unknown>
+): PolicyCheckResult {
+  if (!policy) {
+    return { status: 'IMPLICIT_DENY', reason: 'No resource policy (bucket policy) exists' };
+  }
 
   let hasAllow = false;
+  let allowedStatement: any = null;
   try {
     const parsed = typeof policy === 'string' ? JSON.parse(policy) : policy;
-    if (!parsed || typeof parsed !== 'object') return 'IMPLICIT_DENY';
+    if (!parsed || typeof parsed !== 'object') {
+      return { status: 'IMPLICIT_DENY', reason: 'Failed to parse resource policy' };
+    }
     const pObj = parsed as { Statement?: unknown };
     const statements = Array.isArray(pObj.Statement) ? pObj.Statement : [pObj.Statement];
 
     for (const stmt of statements) {
       if (!stmt || typeof stmt !== 'object') continue;
-      const s = stmt as { Principal?: unknown; Action?: unknown; Effect?: unknown; Condition?: unknown };
+      const s = stmt as { Principal?: unknown; Action?: unknown; Effect?: unknown; Condition?: unknown; Sid?: string };
       if (!principalMatches(s.Principal, userArn)) continue;
       if (matchesAny((s.Action as string | string[]) ?? '', action)) {
         if (s.Condition && !matchesCondition(s.Condition, context)) continue;
-        if (s.Effect === 'Deny') return 'DENY';
-        if (s.Effect === 'Allow') hasAllow = true;
+        if (s.Effect === 'Deny') {
+          return {
+            status: 'DENY',
+            matchedStatement: s,
+            reason: `Explicit Deny in resource policy (Sid: ${s.Sid || 'Unnamed'})`
+          };
+        }
+        if (s.Effect === 'Allow') {
+          hasAllow = true;
+          allowedStatement = s;
+        }
       }
     }
   } catch {
-    return 'IMPLICIT_DENY';
+    return { status: 'IMPLICIT_DENY', reason: 'Resource policy parsing threw an exception' };
   }
 
-  return hasAllow ? 'ALLOW' : 'IMPLICIT_DENY';
+  if (hasAllow) {
+    return { status: 'ALLOW', matchedStatement: allowedStatement };
+  }
+  return { status: 'IMPLICIT_DENY', reason: 'No matching Allow statement in resource policy' };
 }
 
 function principalMatches(principal: unknown, userArn: string): boolean {

@@ -34,50 +34,40 @@ export function policiesFromResolvedPermissionSets(resolved: Record<string, unkn
   return policies;
 }
 
+async function getAssumedRoleIdForPermissionSets(permissionSets: { Name?: string }[], redis: RedisClientType): Promise<string | undefined> {
+  const psName = permissionSets[0]?.Name;
+  if (psName) {
+    const allRoles = await redis.hGetAll('aura:iam:roles');
+    for (const [roleName, roleDataStr] of Object.entries(allRoles)) {
+      if (roleName.startsWith(`AWSReservedSSO_${psName}_`)) {
+        try {
+          const roleObj = JSON.parse(roleDataStr);
+          if (roleObj.RoleId) {
+            return roleObj.RoleId;
+          }
+        } catch {}
+      }
+    }
+  }
+}
+
 export async function evaluateUser(user: UserResourceWatchlist, redis: RedisClientType) {
   const userData = await getSsoUser(redis, user.userId);
   if (!userData) {
     console.warn(`User data not found in Redis for user ${user.userId}. Actions will be marked as 'stale'.`);
-    const resources = user.resources.map(async (resource) => {
-      const actionResults = resource.actions.map((action) => ({
-        [action]: 'stale',
-      }));
-      return { [resource.arn]: actionResults };
-    });
-    return { userId: user.userId, resources: await Promise.all(resources) };
+    return;
   }
 
   const psPolicies = policiesFromResolvedPermissionSets(userData.resolvedPermissionSets ?? []);
   const accessibleAwsAccountIds = collectAccessibleAwsAccountIds(userData);
 
   const primaryEvaluationAccountId = accessibleAwsAccountIds[0] ?? '';
-
   const accountFromResourceArn = user.resources.map((r) => r.arn.split(':')[4]).find(Boolean) ?? '';
-  const fallbackAccount =
-    (userData as { accountId?: string }).accountId?.trim() ||
-    primaryEvaluationAccountId ||
-    accountFromResourceArn ||
-    '';
+  
+  const fallbackAccount = userData.accountId?.trim() || primaryEvaluationAccountId || accountFromResourceArn || '';
 
   // Reconstruct real assumed role unique ID if possible
-  let assumedRoleId = '';
-  if (userData.resolvedPermissionSets?.length) {
-    const psName = userData.resolvedPermissionSets[0]?.Name;
-    if (psName) {
-      const allRoles = await redis.hGetAll('aura:iam:roles');
-      for (const [roleName, roleDataStr] of Object.entries(allRoles)) {
-        if (roleName.startsWith(`AWSReservedSSO_${psName}_`)) {
-          try {
-            const roleObj = JSON.parse(roleDataStr);
-            if (roleObj.RoleId) {
-              assumedRoleId = roleObj.RoleId;
-              break;
-            }
-          } catch {}
-        }
-      }
-    }
-  }
+  const assumedRoleId = await getAssumedRoleIdForPermissionSets(userData.PermissionSets ?? [], redis);
 
   const evalUser = {
     ...userData,

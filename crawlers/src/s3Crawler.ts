@@ -34,12 +34,8 @@ export class S3Crawler extends BaseCrawler {
     private async enrichBucket(bucket: any) {
         const locationClient = this.getRegionalClient(GLOBAL_S3_REGION);
         const bucketLocation = await this.callAwsAndExtract(
-            () => locationClient.send(new GetBucketLocationCommand({ Bucket: bucket.Name! })),
-            "LocationConstraint"
-        ).catch((err) => {
-            console.error(`[S3 CRAWLER] GetBucketLocation error for ${bucket.Name}:`, err.message || err);
-            return null;
-        });
+            () => locationClient.send(new GetBucketLocationCommand({ Bucket: bucket.Name! })), "LocationConstraint"
+        ).catch((err) => { console.error(`[S3 CRAWLER] GetBucketLocation error for ${bucket.Name}:`, err.message || err); });
 
         const region = bucketLocation || GLOBAL_S3_REGION;
         const regionalClient = this.getRegionalClient(region);

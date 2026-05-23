@@ -67,7 +67,7 @@ export async function evaluateUser(user: UserResourceWatchlist, redis: RedisClie
   const fallbackAccount = userData.accountId?.trim() || primaryEvaluationAccountId || accountFromResourceArn || '';
 
   // Reconstruct real assumed role unique ID if possible
-  const assumedRoleId = await getAssumedRoleIdForPermissionSets(userData.PermissionSets ?? [], redis);
+  const assumedRoleId = await getAssumedRoleIdForPermissionSets(userData.resolvedPermissionSets ?? [], redis);
 
   const evalUser = {
     ...userData,

@@ -120,6 +120,7 @@ const userResourceWatchlistSchema = new mongoose.Schema(
 const userPermissionSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, index: true },
+    userId: { type: String, required: true, index: true },
     permissionsData: { type: mongoose.Schema.Types.Mixed },
   },
   { timestamps: true, minimize: false },

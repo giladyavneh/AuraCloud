@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { connectDB, UserResourceWatchlistModel, UserPermissionModel } from "./db";
+import { connectDB, UserResourceWatchlistModel, UserPermissionModel } from "./db.js";
 
 dotenv.config();
 
@@ -41,7 +41,7 @@ connectDB()
       console.log(`API Server is running on ${publicUrl}`);
     });
   })
-  .catch((err) => {
+  .catch((err: any) => {
     console.error('Failed to connect to database:', err);
     process.exit(1);
   });

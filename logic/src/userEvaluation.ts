@@ -37,8 +37,14 @@ export function policiesFromResolvedPermissionSets(resolved: Record<string, unkn
 export async function evaluateUser(user: UserResourceWatchlist, redis: RedisClientType) {
   const userData = await getSsoUser(redis, user.userId);
   if (!userData) {
-    console.error(`Cannot evaluate user ${user.userId} - user data not found`);
-    return { userId: user.userId, resources: [] };
+    console.warn(`User data not found in Redis for user ${user.userId}. Actions will be marked as 'stale'.`);
+    const resources = user.resources.map(async (resource) => {
+      const actionResults = resource.actions.map((action) => ({
+        [action]: 'stale',
+      }));
+      return { [resource.arn]: actionResults };
+    });
+    return { userId: user.userId, resources: await Promise.all(resources) };
   }
 
   const psPolicies = policiesFromResolvedPermissionSets(userData.resolvedPermissionSets ?? []);

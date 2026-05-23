@@ -2,7 +2,6 @@ import 'dotenv/config';
 import { SsoCrawler } from './ssoCrawler.js';
 import { PermissionSetsCrawler } from './permissionSetsCrawler.js';
 import { BasicIamCrawler } from './basicIamCrawler.js';
-import { printAllRedisData } from './utils.js';
 import { S3Crawler } from './s3Crawler.js';
 import { getRedisClient } from 'utils';
 
@@ -20,9 +19,6 @@ async function main() {
   runCrawler(permissionSetsCrawler, "PermissionSets", redis);
   runCrawler(iamCrawler, "IAM", redis);
   runCrawler(s3Crawler, "S3", redis);
-
-  // Print all Redis data every 10 seconds
-  printAllRedisData(redis, {excludeKeys: ["aura:sso:permission-sets"]}); // Exclude verbose SSO data
 }
 
 async function runCrawler(crawler: any, name: string, redis: any) {

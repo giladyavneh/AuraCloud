@@ -4,6 +4,7 @@ import Box from "@mui/material/Box";
 export const CardRoot = styled(Box)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
+  height: "stretch",
   backgroundColor: theme.palette.background.paper,
   border: `1px solid ${theme.palette.divider}`,
   borderRadius: theme.shape.borderRadius,
@@ -55,4 +56,13 @@ export const ResourceDot = styled(Box, {
   borderRadius: "50%",
   backgroundColor: dotColor,
   flexShrink: 0,
+}));
+
+export const MoreActionsPopoverContent = styled(Box)(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  gap: theme.spacing(2),
+  padding: theme.spacing(4),
+  minWidth: 200,
+  maxWidth: 320,
 }));

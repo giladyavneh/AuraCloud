@@ -67,7 +67,7 @@ const ResourceSection: React.FC = () => {
             const timestamp = getTimestampFromArnData(arnData);
 
             return (
-              <Grid key={arn} size={{ xs: 12, md: 6 }}>
+              <Grid key={arn} size={{ xs: 12, md: 6, lg: 4 }}>
                 <ResourceCard
                   service={service}
                   title={resourceName}

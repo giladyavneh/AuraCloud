@@ -1,5 +1,11 @@
-import mongoose from "mongoose";
-import dotenv from "dotenv";
+import {
+  connectMongo,
+  disconnectMongo,
+  UserResourceWatchlistModel,
+  UserPermissionModel,
+  type UserResourceWatchlist,
+  type UserPermission,
+} from 'utils';
 
 dotenv.config();
 
@@ -33,17 +39,14 @@ export const UserPermissionModel = mongoose.model(
   userPermissionsSchema,
 );
 
-// ==========================================
-// 2. Mock Data
-// ==========================================
 const mockUserResourceWatchlist = {
   name: "shoham",
   userId: "123",
   resources: [
-    { arn: "arn:aws:s3:::mybucket", actions: ["s3:GetObject", "s3:PutObject"] },
-    { arn: "arn:aws:s3:::mybuckety", actions: ["s3:GetObject"] },
-    { arn: "arn:aws:s3:::mybucketu", actions: ["s3:GetObject"] },
-    { arn: "arn:aws:s3:::mybucketttt", actions: ["s3:GetObject"] },
+    { arn: 'arn:aws:s3:::mybucket', actions: ['s3:GetObject', 's3:PutObject'] },
+    { arn: 'arn:aws:s3:::mybuckety', actions: ['s3:GetObject'] },
+    { arn: 'arn:aws:s3:::mybucketu', actions: ['s3:GetObject'] },
+    { arn: 'arn:aws:s3:::mybucketttt', actions: ['s3:GetObject'] },
   ],
 };
 
@@ -51,27 +54,19 @@ const mockUserPermission = {
   name: "shoham",
   userId: "123",
   permissionsData: {
-    "arn:aws:s3:::mybucket": {
-      getObject: {
-        status: "valid",
-        reason: null,
-        timestamp: "2024-06-01T12:00:00Z",
-      },
-      putObject: {
-        status: "error",
-        reason: "policy mismatch",
-        timestamp: "2024-06-01T12:00:00Z",
-      },
+    'arn:aws:s3:::mybucket': {
+      getObject: { status: 'valid', reason: null, timestamp: '2024-06-01T12:00:00Z' },
+      putObject: { status: 'error', reason: 'policy mismatch', timestamp: '2024-06-01T12:00:00Z' },
     },
-    "arn:aws:s3:::mybuckety": {
-      status: "stale",
-      reason: "policy mismatch",
-      timestamp: "2024-06-01T12:00:00Z",
+    'arn:aws:s3:::mybuckety': {
+      status: 'stale',
+      reason: 'policy mismatch',
+      timestamp: '2024-06-01T12:00:00Z',
     },
-    "arn:aws:s3:::mybucketu": {
-      status: "warning",
-      reason: "connect to vpn",
-      timestamp: "2024-06-01T12:00:00Z",
+    'arn:aws:s3:::mybucketu': {
+      status: 'warning',
+      reason: 'connect to vpn',
+      timestamp: '2024-06-01T12:00:00Z',
     },
   },
 };
@@ -107,4 +102,14 @@ export const connectDB = async () => {
     console.error(`Error connecting to MongoDB: ${error}`);
     process.exit(1);
   }
-};
+  await Promise.all([
+    UserResourceWatchlistModel.create(mockUserResourceWatchlist),
+    UserPermissionModel.create(mockUserPermission),
+  ]);
+  console.log('Mock Data Seeded Successfully!');
+}
+
+export async function connectDB(): Promise<void> {
+  await connectMongo();
+  await seedMockDataIfEmpty();
+}

@@ -1,0 +1,21 @@
+{
+  "name": "auracloud-monorepo",
+  "private": true,
+  "workspaces": [
+    "utils",
+    "logic",
+    "crawlers",
+    "api-server"
+  ],
+  "scripts": {
+    "start": "sh -c 'if [ -z \"$1\" ]; then echo \"Usage: npm start <workspace>\"; exit 1; fi; npm run dev -w \"$1\"' --",
+    "build": "sh -c 'if [ -z \"$1\" ]; then echo \"Usage: npm run build <workspace>\"; exit 1; fi; npm run build -w \"$1\"' --",
+    "build:all": "npm run build -w utils && npm run build --workspaces --if-present",
+    "clean": "rm -rf */dist */tsconfig.tsbuildinfo",
+    "start:utils": "npm run dev -w utils",
+    "start:logic": "npm run dev -w logic",
+    "start:crawlers": "npm run dev -w crawlers",
+    "start:api-server": "npm run dev -w api-server",
+    "redis:up": "npm run redis:up -w utils"
+  }
+}

@@ -33,9 +33,9 @@ function customerManagedPolicyArn(accountId: string, ref: CustomerManagedPolicyR
 export class PermissionSetsCrawler extends BaseCrawler {
   protected region = "eu-central-1";
   protected intervalMs = 5000;
-  protected ssoAdmin = new SSOAdminClient({ region: this.region });
-  protected iam = new IAMClient({ region: this.region });
-  protected sts = new STSClient({ region: this.region });
+  protected ssoAdmin = new SSOAdminClient({ region: this.region, credentials: this.credentials });
+  protected iam = new IAMClient({ region: this.region, credentials: this.credentials });
+  protected sts = new STSClient({ region: this.region, credentials: this.credentials });
 
   private async fetchPolicyDocument(policyArn: string): Promise<Record<string, unknown> | undefined> {
   if (policyArn === "arn:aws:iam::aws:policy/AdministratorAccess") {
@@ -205,6 +205,3 @@ export class PermissionSetsCrawler extends BaseCrawler {
     console.log(`💾 Permission Sets Cache Updated: ${data.length} permission sets`);
   }
 }
-
-
-new PermissionSetsCrawler().crawl().catch((err) => console.error("Crawler failed:", err));

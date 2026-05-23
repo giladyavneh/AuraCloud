@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { connectDB, UserResourceWatchlistModel, UserPermissionModel } from "./db.js";
+import { connectDB, UserResourceWatchlistModel, UserPermissionModel, CustomerModel } from "./db.js";
 
 dotenv.config();
 
@@ -31,6 +31,58 @@ app.get("/api/user-permissions/:userId", async (req, res) => {
     res.json(permission);
   } catch (error) {
     res.status(500).json({ message: "Server Error" });
+  }
+});
+
+app.post('/api/aws/onboard-credentials', async (req, res) => {
+  try {
+    const { customerId, accessKeyId, secretAccessKey } = req.body ?? {};
+
+    if (
+      typeof customerId !== 'string' || !customerId.trim() ||
+      typeof accessKeyId !== 'string' || !accessKeyId.trim() ||
+      typeof secretAccessKey !== 'string' || !secretAccessKey.trim()
+    ) {
+      res.status(400).json({ message: 'Missing required fields' });
+      return;
+    }
+
+    const updated = await CustomerModel.findByIdAndUpdate(
+      customerId,
+      {
+        $set: {
+          // TODO: encrypt secretAccessKey before saving (use KMS/libsodium/etc).
+          awsCredentials: {
+            accessKeyId,
+            secretAccessKey,
+            status: 'connected',
+            connectedAt: new Date(),
+          },
+        },
+      },
+      { new: true },
+    ).lean();
+
+    if (!updated) {
+      res.status(404).json({ message: 'Customer not found' });
+      return;
+    }
+
+    const sanitized = {
+      ...updated,
+      awsCredentials: updated.awsCredentials
+        ? {
+            accessKeyId: updated.awsCredentials.accessKeyId,
+            status: updated.awsCredentials.status,
+            connectedAt: updated.awsCredentials.connectedAt,
+          }
+        : undefined,
+    };
+
+    res.json(sanitized);
+  } catch (err) {
+    console.error('POST /api/aws/onboard-credentials failed:', err);
+    res.status(500).json({ message: 'Server Error' });
   }
 });
 

@@ -112,7 +112,6 @@ export class S3Crawler extends BaseCrawler {
     
     async save(redis: any, data: any) {
         for (const bucket of data) await redis.hSet("aura:resource:s3buckets", bucket.BucketArn, JSON.stringify(bucket));
-        console.log("📝 Saved S3 Buckets Data to Cache:", JSON.stringify(data, null, 2));
         console.log(`💾 S3 Cache Updated: ${data.length} Buckets`);
     }
 }

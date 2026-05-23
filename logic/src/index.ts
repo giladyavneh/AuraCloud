@@ -68,7 +68,6 @@ async function main() {
           },
           { upsert: true, new: true }
         );
-        console.log(`📝 Evaluated Permissions for ${user.name} (${user.userId}):`, JSON.stringify(permissionsData, null, 2));
         console.log(`Saved evaluation results for user: ${user.name} (${user.userId})`);
       }
       console.log(`[${new Date().toLocaleTimeString()}] ✅ Logic Evaluation Cycle Complete`);

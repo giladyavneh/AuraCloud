@@ -150,6 +150,28 @@ userSchema.index({ source: 1, externalId: 1 }, { unique: true });
 
 export const UserModel = mongoose.model('User', userSchema);
 
+const customerSchema = new mongoose.Schema(
+  {
+    name:  { type: String, required: true },
+    email: { type: String },
+    awsCredentials: {
+      accessKeyId:     { type: String },
+      // TODO: encrypt secretAccessKey before persisting (MVP plaintext)
+      secretAccessKey: { type: String },
+      status:          { type: String, enum: ['connected', 'disconnected', 'error'], default: 'connected' },
+      connectedAt:     { type: Date },
+    },
+  },
+  { timestamps: true },
+);
+
+export type Customer = InferSchemaType<typeof customerSchema>;
+export type CustomerDoc = HydratedDocument<Customer>;
+
+export const CustomerModel =
+  (mongoose.models.Customer as mongoose.Model<Customer>) ??
+  mongoose.model<Customer>('Customer', customerSchema);
+
 export { mongoose };
 export type { RedisClientType } from 'redis';
 export * from './utils.js';

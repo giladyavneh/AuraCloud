@@ -19,7 +19,7 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
-    "utils": "*",
+    "@aws-sdk/client-config-service": "^3.1053.0",
     "@aws-sdk/client-ec2": "^3.1032.0",
     "@aws-sdk/client-iam": "^3.1032.0",
     "@aws-sdk/client-identitystore": "^3.1035.0",
@@ -31,6 +31,7 @@
     "dotenv": "^17.4.2",
     "extend": "^3.0.2",
     "redis": "^5.12.1",
-    "redis-memory-server": "^0.16.0"
+    "redis-memory-server": "^0.16.0",
+    "utils": "*"
   }
 }

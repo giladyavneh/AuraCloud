@@ -2,6 +2,7 @@ import { GetBucketAclCommand, GetBucketCorsCommand, GetBucketLocationCommand, Ge
 import { GetCallerIdentityCommand, STSClient } from "@aws-sdk/client-sts";
 import { BaseCrawler } from "./crawlerBase.js";
 import extend from "extend";
+import { ConfigServiceClient, GetResourceConfigHistoryCommand } from "@aws-sdk/client-config-service";
 
 const GLOBAL_S3_REGION = "us-east-1";
 
@@ -31,6 +32,49 @@ export class S3Crawler extends BaseCrawler {
         return response ? response[key] : null;
     }
 
+    private async getPermissionsFromAwsConfigFallback(bucketName: string, region: string): Promise<string | undefined> {
+        try {
+            const configClient = new ConfigServiceClient({ region, credentials: this.credentials });
+            const configRes = await this.callAndHandleThrotteling(() =>
+                configClient.send(new GetResourceConfigHistoryCommand({
+                    resourceType: "AWS::S3::Bucket", resourceId: bucketName, limit: 1
+                }))
+            );
+            const latestItem = configRes.configurationItems?.[0];
+            if (latestItem) {
+                const supplementaryConfig = latestItem.supplementaryConfiguration || {};
+                const bucketPolicy = supplementaryConfig.BucketPolicy;
+                if (bucketPolicy) {
+                    console.log(`[S3 CRAWLER] Successfully retrieved policy for ${bucketName} from AWS Config history fallback!`);
+                    return bucketPolicy;
+                } else {
+                    console.log(`[S3 CRAWLER] AWS Config fallback succeeded but found no policy for ${bucketName}`);
+                }
+            } else {
+                console.log(`[S3 CRAWLER] AWS Config history returned no configuration items for ${bucketName}`);
+            }
+        } catch (configErr: any) {
+            console.error(`[S3 CRAWLER] AWS Config fallback failed for ${bucketName}:`, configErr.message || configErr);
+        }
+    }
+
+    async getBucketPolicies(regionalClient: S3Client, bucketName: string, region: string): Promise<string | null | undefined> {
+        try {
+            return await this.callAwsAndExtract(() =>
+                regionalClient.send(new GetBucketPolicyCommand({ Bucket: bucketName })), "Policy"
+            );
+        } catch (err: any) {
+            const errMsg = err.message || '';
+            const isAccessDenied = err.name === "AccessDenied" || errMsg.includes("Access Denied") || errMsg.includes("not authorized");
+            
+            if (isAccessDenied) {
+                return await this.getPermissionsFromAwsConfigFallback(bucketName, region) || null;
+            } else {
+                console.error(`[S3 CRAWLER] GetBucketPolicy error for ${bucketName} in region ${region}:`, errMsg);
+            }
+        }
+    }
+
     private async enrichBucket(bucket: any) {
         const locationClient = this.getRegionalClient(GLOBAL_S3_REGION);
         const bucketLocation = await this.callAwsAndExtract(
@@ -45,10 +89,7 @@ export class S3Crawler extends BaseCrawler {
             bucketAcl,
             bucketCors
         ] = await Promise.all([
-            this.callAwsAndExtract(() => regionalClient.send(new GetBucketPolicyCommand({ Bucket: bucket.Name! })), "Policy").catch((err) => {
-                console.error(`[S3 CRAWLER] GetBucketPolicy error for ${bucket.Name} in region ${region}:`, err.message || err);
-                return null;
-            }),
+            this.getBucketPolicies(regionalClient, bucket.Name!, region),
             this.callAwsAndExtract(() => regionalClient.send(new GetBucketAclCommand({ Bucket: bucket.Name! })), "Grants").catch(() => null),
             this.callAwsAndExtract(() => regionalClient.send(new GetBucketCorsCommand({ Bucket: bucket.Name! })), "CORSRules").catch(() => null)
         ]);
@@ -71,6 +112,7 @@ export class S3Crawler extends BaseCrawler {
     
     async save(redis: any, data: any) {
         for (const bucket of data) await redis.hSet("aura:resource:s3buckets", bucket.BucketArn, JSON.stringify(bucket));
+        console.log("📝 Saved S3 Buckets Data to Cache:", JSON.stringify(data, null, 2));
         console.log(`💾 S3 Cache Updated: ${data.length} Buckets`);
     }
 }

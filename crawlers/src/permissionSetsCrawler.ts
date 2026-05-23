@@ -12,7 +12,8 @@ import {
 import { GetPolicyCommand, GetPolicyVersionCommand, IAMClient } from "@aws-sdk/client-iam";
 import { GetCallerIdentityCommand, STSClient } from "@aws-sdk/client-sts";
 import { BaseCrawler } from "./crawlerBase.js";
-import { print } from "utils";
+import { print, AwsResourceModel, ResourceActionModel } from "utils";
+import { extractActionsFromPolicyDocument } from "./utils.js";
 
 function parseInlinePolicy(policyText: string | undefined): Record<string, unknown> | undefined {
   if (!policyText?.trim()) return undefined;
@@ -202,9 +203,58 @@ export class PermissionSetsCrawler extends BaseCrawler {
       if (!arn) continue;
       await redis.hSet("aura:sso:permission-sets", arn, JSON.stringify(ps));
     }
-    console.log(`💾 Permission Sets Cache Updated: ${data.length} permission sets`);
+  }
+
+  async saveToMongo(data: unknown) {
+    const permissionSets = data as any[];
+    const now = new Date();
+
+    for (const ps of permissionSets) {
+      const arn = ps?.PermissionSetArn;
+      if (!arn) continue;
+
+      await AwsResourceModel.findOneAndUpdate(
+        { arn },
+        {
+          arn,
+          resourceType: 'PermissionSet',
+          name: ps.Name ?? arn,
+          metadata: {
+            description: ps.Description,
+            sessionDuration: ps.SessionDuration,
+            relayState: ps.RelayState,
+            awsManagedAttachments: ps.awsManagedAttachments,
+            customerManagedReferences: ps.customerManagedReferences,
+          },
+          lastSyncedAt: now,
+        },
+        { upsert: true, returnDocument: 'after' },
+      );
+
+      // Extract actions from the inline policy
+      const inlineActions = ps.inlinePolicyDocument
+        ? extractActionsFromPolicyDocument(ps.inlinePolicyDocument)
+        : [];
+      for (const actionName of inlineActions) {
+        await ResourceActionModel.findOneAndUpdate(
+          { resourceArn: arn, actionName },
+          { resourceArn: arn, actionName, policySource: 'InlinePolicy', lastSeenAt: now },
+          { upsert: true, returnDocument: 'after' },
+        );
+      }
+
+      // Extract actions from each attached managed policy document
+      for (const policyDoc of ps.attachedIamPolicyDocuments ?? []) {
+        const attachedActions = extractActionsFromPolicyDocument(policyDoc);
+        for (const actionName of attachedActions) {
+          await ResourceActionModel.findOneAndUpdate(
+            { resourceArn: arn, actionName },
+            { resourceArn: arn, actionName, policySource: 'PermissionSet', lastSeenAt: now },
+            { upsert: true, returnDocument: 'after' },
+          );
+        }
+      }
+    }
+
   }
 }
-
-
-new PermissionSetsCrawler().crawl().catch((err) => console.error("Crawler failed:", err));

@@ -1,10 +1,11 @@
-import { 
-  IAMClient, ListUsersCommand, ListRolesCommand, ListGroupsCommand, 
+import {
+  IAMClient, ListUsersCommand, ListRolesCommand, ListGroupsCommand,
   ListGroupsForUserCommand, ListAttachedUserPoliciesCommand,
   ListAttachedGroupPoliciesCommand, ListGroupPoliciesCommand,
-  type User, type Role, type Group 
+  type User, type Role, type Group
 } from "@aws-sdk/client-iam";
 import { BaseCrawler } from "./crawlerBase.js";
+import { AwsResourceModel, ResourceActionModel } from "utils";
 
 export class BasicIamCrawler extends BaseCrawler {
     public intervalMs = 1000;
@@ -85,6 +86,76 @@ export class BasicIamCrawler extends BaseCrawler {
         for (const user of data.users) await redis.hSet("aura:iam:users", user.UserName, JSON.stringify(user));
         for (const role of data.roles) await redis.hSet("aura:iam:roles", role.RoleName, JSON.stringify(role));
         for (const group of data.groups) await redis.hSet("aura:iam:groups", group.GroupName, JSON.stringify(group));
-        console.log(`💾 IAM Cache Updated: ${data.users.length} Users, ${data.groups.length} Groups, ${data.roles.length} Roles`);
+    }
+
+    async saveToMongo(data: unknown) {
+        const { users, roles, groups } = data as { users: any[]; roles: any[]; groups: any[] };
+        const now = new Date();
+
+        for (const user of users) {
+            const arn = user.Arn;
+            if (!arn) continue;
+            await AwsResourceModel.findOneAndUpdate(
+                { arn },
+                {
+                    arn,
+                    resourceType: 'IAMUser',
+                    name: user.UserName,
+                    accountId: this.accountId,
+                    metadata: { groups: user.Groups, attachedPolicies: user.AttachedPolicies },
+                    lastSyncedAt: now,
+                },
+                { upsert: true, returnDocument: 'after' },
+            );
+            for (const policy of user.AttachedPolicies ?? []) {
+                await ResourceActionModel.findOneAndUpdate(
+                    { resourceArn: arn, actionName: policy.PolicyName },
+                    { resourceArn: arn, actionName: policy.PolicyName, policySource: 'AttachedPolicy', policyArn: policy.PolicyArn, lastSeenAt: now },
+                    { upsert: true, returnDocument: 'after' },
+                );
+            }
+        }
+
+        for (const role of roles) {
+            const arn = role.Arn;
+            if (!arn) continue;
+            await AwsResourceModel.findOneAndUpdate(
+                { arn },
+                {
+                    arn,
+                    resourceType: 'IAMRole',
+                    name: role.RoleName,
+                    accountId: this.accountId,
+                    metadata: { assumeRolePolicyDocument: role.AssumeRolePolicyDocument },
+                    lastSyncedAt: now,
+                },
+                { upsert: true, returnDocument: 'after' },
+            );
+        }
+
+        for (const group of groups) {
+            const arn = group.Arn;
+            if (!arn) continue;
+            await AwsResourceModel.findOneAndUpdate(
+                { arn },
+                {
+                    arn,
+                    resourceType: 'IAMGroup',
+                    name: group.GroupName,
+                    accountId: this.accountId,
+                    metadata: { attachedPolicies: group.AttachedPolicies, inlinePolicyNames: group.InlinePolicyNames },
+                    lastSyncedAt: now,
+                },
+                { upsert: true, returnDocument: 'after' },
+            );
+            for (const policy of group.AttachedPolicies ?? []) {
+                await ResourceActionModel.findOneAndUpdate(
+                    { resourceArn: arn, actionName: policy.PolicyName },
+                    { resourceArn: arn, actionName: policy.PolicyName, policySource: 'AttachedPolicy', policyArn: policy.PolicyArn, lastSeenAt: now },
+                    { upsert: true, returnDocument: 'after' },
+                );
+            }
+        }
+
     }
 }

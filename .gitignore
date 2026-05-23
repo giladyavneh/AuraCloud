@@ -116,6 +116,9 @@ dist
 # DynamoDB Local files
 .dynamodb/
 
+# Redis persistence file (runtime-generated, not source)
+dump.rdb
+
 # Firebase cache directory
 .firebase/
 

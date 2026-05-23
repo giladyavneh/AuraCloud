@@ -3,10 +3,13 @@ import { SsoCrawler } from './ssoCrawler.js';
 import { PermissionSetsCrawler } from './permissionSetsCrawler.js';
 import { BasicIamCrawler } from './basicIamCrawler.js';
 import { S3Crawler } from './s3Crawler.js';
-import { getRedisClient } from 'utils';
+import { getRedisClient, connectMongo } from 'utils';
 
 async function main() {
-  const redis = await getRedisClient();
+  const [redis] = await Promise.all([
+    getRedisClient(),
+    connectMongo(),
+  ]);
   console.log("🚀 AuraCloud: Identity Sync Initiated");
 
   const ssoCrawler = new SsoCrawler();
@@ -27,6 +30,7 @@ async function runCrawler(crawler: any, name: string, redis: any) {
     try {
       const data = await crawler.crawl();
       await crawler.save(redis, data);
+      await crawler.saveToMongo(data);
       console.log(`[${new Date().toLocaleTimeString()}] ✅ ${name} Sync Complete`);
     } catch (err: any) {
       console.error(`❌ ${name} Error:`, err.message);

@@ -4,8 +4,8 @@ import { BaseCrawler } from "./crawlerBase.js";
 import extend from "extend";
 
 export class S3Crawler extends BaseCrawler {
-    protected s3Client = new S3Client({ region: this.region });
-    protected stsClient = new STSClient({ region: this.region });
+    protected s3Client = new S3Client({ region: this.region, credentials: this.credentials });
+    protected stsClient = new STSClient({ region: this.region, credentials: this.credentials });
     protected intervalMs = 1000;
 
     private async callAwsAndExtract<T, K extends keyof T>(fn: () => Promise<T>, key: K): Promise<T[K]|null> {

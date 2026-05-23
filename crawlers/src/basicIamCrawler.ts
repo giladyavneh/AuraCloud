@@ -8,7 +8,7 @@ import { BaseCrawler } from "./crawlerBase.js";
 
 export class BasicIamCrawler extends BaseCrawler {
     public intervalMs = 1000;
-    protected iamClient = new IAMClient({ region: this.region });
+    protected iamClient = new IAMClient({ region: this.region, credentials: this.credentials });
 
     private async fetchUsers(): Promise<User[]> {
         const res: User[] = [];

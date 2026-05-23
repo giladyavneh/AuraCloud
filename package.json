@@ -5,7 +5,8 @@
     "utils",
     "logic",
     "crawlers",
-    "api-server"
+    "api-server",
+    "frontend"
   ],
   "scripts": {
     "start": "sh -c 'if [ -z \"$1\" ]; then echo \"Usage: npm start <workspace>\"; exit 1; fi; npm run dev -w \"$1\"' --",
@@ -16,6 +17,7 @@
     "start:logic": "npm run dev -w logic",
     "start:crawlers": "npm run dev -w crawlers",
     "start:api-server": "npm run dev -w api-server",
+    "start:all": "npx concurrently -n crawlers,logic,api,frontend -c blue,magenta,green,cyan \"npm run dev -w crawlers\" \"npm run dev -w logic\" \"npm run dev -w api-server\" \"npm run dev -w frontend\"",
     "redis:up": "npm run redis:up -w utils"
   }
 }

@@ -25,7 +25,7 @@ export const LogoContainer = styled(Box)(({ theme }) => ({
 export const LogoIconBox = styled(Box)(({ theme }) => ({
   width: 48,
   height: 48,
-  borderRadius: theme.shape.borderRadius + 2,
+  borderRadius: (theme.shape.borderRadius as number) + 2,
   backgroundColor: theme.palette.primary.main,
   display: 'flex',
   alignItems: 'center',

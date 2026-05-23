@@ -193,7 +193,6 @@ export class PermissionSetsCrawler extends BaseCrawler {
       } while (nextToken);
     }
 
-      print(enriched)
     return enriched;
   }
 

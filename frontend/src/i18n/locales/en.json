@@ -1,0 +1,42 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "resourceWatchList": "Resource Watch List",
+    "settings": "Settings",
+    "signOut": "Sign Out",
+    "profileName": "Mike Wazowski",
+    "profileRole": "Scare Assistant"
+  },
+  "app": {
+    "name": "Aura Cloud",
+    "subtitle": "AWS Monitoring"
+  },
+  "dashboard": {
+    "globalStatus": "Global Infrastructure Status",
+    "healthHeading": "Healthy with 1 active blocker",
+    "refresh": "Refresh",
+    "resourceStatus": "Resource Status",
+    "resourceStatusDescription": "Single source of truth for live infrastructure checks and blockers.",
+    "focusCueLabel": "Focus cue:",
+    "focusCueText": "1 blocker requires IAM fix. Resource code paths appear healthy for all other monitored services.",
+    "stats": {
+      "totalResources": "Total Resources Monitored",
+      "activeBlockers": "Active Blockers",
+      "staleResources": "Stale Resources",
+      "healthScore": "Infrastructure Health Score"
+    }
+  },
+  "resourceCard": {
+    "actions": "Actions:",
+    "moreActions": "{{count}} more >",
+    "errorPrefix": "Error:",
+    "details": "Details"
+  },
+  "status": {
+    "healthy": "Healthy",
+    "blocked": "Blocked",
+    "stale": "Stale",
+    "warning": "Warning",
+    "online": "System Online"
+  }
+}

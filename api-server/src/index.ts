@@ -1,7 +1,7 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import { connectDB, disconnectMongo, UserResourceWatchlistModel } from './db.js';
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import { connectDB, UserResourceWatchlistModel, UserPermissionModel } from "./db";
 
 dotenv.config();
 
@@ -21,30 +21,20 @@ app.get('/api/user-resource-watchlist', async (_req, res) => {
   }
 });
 
-async function start() {
-  await connectDB();
-  const server = app.listen(port, () => {
-    console.log(`API Server is running on http://localhost:${port}`);
-  });
+app.get("/api/user-permissions/:userId", async (req, res) => {
+  try {
+    const permission = await UserPermissionModel.findOne({ userId: req.params.userId });
+    if (!permission) {
+      res.status(404).json({ message: "User permissions not found" });
+      return;
+    }
+    res.json(permission);
+  } catch (error) {
+    res.status(500).json({ message: "Server Error" });
+  }
+});
 
-  const shutdown = async (signal: string) => {
-    console.log(`${signal} received, shutting down...`);
-    server.close(async () => {
-      try {
-        await disconnectMongo();
-      } catch (err) {
-        console.error('Error closing Mongo:', err);
-      }
-      process.exit(0);
-    });
-    setTimeout(() => process.exit(1), 10_000).unref();
-  };
-
-  process.on('SIGINT', () => void shutdown('SIGINT'));
-  process.on('SIGTERM', () => void shutdown('SIGTERM'));
-}
-
-start().catch((err) => {
-  console.error('API Server failed to start:', err);
-  process.exit(1);
+app.listen(port, () => {
+  const publicUrl = process.env.PUBLIC_URL ?? `http://localhost:${port}`;
+  console.log(`API Server is running on ${publicUrl}`);
 });

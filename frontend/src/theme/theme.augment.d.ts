@@ -3,10 +3,13 @@ import '@mui/material/styles';
 declare module '@mui/material/styles' {
   interface Palette {
     surface: {
+      canvas: string;
+      base: string;
       subtle: string;
       glow: string;
     };
     border: {
+      default: string;
       strong: string;
       glow: string;
     };
@@ -14,10 +17,13 @@ declare module '@mui/material/styles' {
 
   interface PaletteOptions {
     surface?: {
+      canvas?: string;
+      base?: string;
       subtle?: string;
       glow?: string;
     };
     border?: {
+      default?: string;
       strong?: string;
       glow?: string;
     };

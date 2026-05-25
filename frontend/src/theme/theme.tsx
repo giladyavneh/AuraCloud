@@ -53,13 +53,16 @@ const theme = createTheme({
 
     // Custom Figma tokens not covered by standard MUI palette slots
     surface: {
+      canvas: "#0b0f19", // color/surface/canvas  (page background)
+      base:   "#111827", // color/surface/base    (card background)
       subtle: "#0f172a", // color/surface/subtle  (sidebar background)
-      glow: "rgba(223,181,253,0.2)", // color/surface/glow
+      glow:   "rgba(223,181,253,0.2)", // color/surface/glow
     },
 
     border: {
-      strong: "#334155", // color/border/strong
-      glow: "rgba(255,255,255,0.2)", // color/border/glow
+      default: "#1f2937", // color/border/default
+      strong:  "#334155", // color/border/strong
+      glow:    "rgba(255,255,255,0.2)", // color/border/glow
     },
   },
 

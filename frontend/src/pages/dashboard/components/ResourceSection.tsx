@@ -4,11 +4,11 @@ import { useUserPermissions, useUserResourceWatchlist } from "@/hooks/resources.
 import {
   deriveStatusFromArnData,
   formatTimestamp,
-  getActionsFromArnData,
   getErrorReasonFromArnData,
   getTimestampFromArnData,
   inferServiceFromArn,
 } from "@/pages/dashboard/helpers/dashboard.helpers";
+import type { ArnPermissionData } from "@/services/types/resources.types";
 import { ResourceSectionHeader } from "@/pages/dashboard/components/dashboard.styled";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -24,7 +24,8 @@ const ResourceSection: React.FC = () => {
   const { data: permission, isLoading: permissionsLoading, isError, error } = useUserPermissions();
 
   const watchlistResources = watchlistItems[0]?.resources ?? [];
-  const permissionsMap: Record<string, unknown> = permission?.permissionsData ?? {};
+  const permissionsMap: Record<string, ArnPermissionData> =
+    (permission?.permissionsData as Record<string, ArnPermissionData>) ?? {};
 
   const isLoading = watchlistLoading || permissionsLoading;
 
@@ -73,7 +74,7 @@ const ResourceSection: React.FC = () => {
             // If Brain hasn't analysed this resource yet, show it as stale
             const status = arnData ? deriveStatusFromArnData(arnData) : "stale";
             const errorReason = arnData ? getErrorReasonFromArnData(arnData) : undefined;
-            const timestamp = arnData ? getTimestampFromArnData(arnData) : null;
+            const timestamp = arnData ? getTimestampFromArnData(arnData) : "";
 
             return (
               <Grid key={arn} size={{ xs: 12, md: 6, lg: 4 }}>

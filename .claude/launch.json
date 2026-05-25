@@ -1,0 +1,28 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Frontend (Vite)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "-w", "frontend"],
+      "port": 5173
+    },
+    {
+      "name": "API Server",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "-w", "api-server"],
+      "port": 3000,
+      "autoPort": false
+    },
+    {
+      "name": "Crawlers",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "-w", "crawlers"]
+    },
+    {
+      "name": "Logic",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "-w", "logic"]
+    }
+  ]
+}

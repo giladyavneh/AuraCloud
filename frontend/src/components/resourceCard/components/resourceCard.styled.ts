@@ -20,13 +20,13 @@ export const CardBody = styled(Box)(({ theme }) => ({
 
 export const CardHeader = styled(Box)({
   display: "flex",
-  alignItems: "center",
+  alignItems: "start",
   justifyContent: "space-between",
 });
 
 export const ServiceInfo = styled(Box)(({ theme }) => ({
   display: "flex",
-  alignItems: "center",
+  alignItems: "start",
   gap: theme.spacing(3),
 }));
 

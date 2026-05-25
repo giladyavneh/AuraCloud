@@ -175,10 +175,26 @@ app.get("/api/auth/me", requireAuth, async (req, res) => {
 
 app.get("/api/user-resource-watchlist", requireAuth, async (req, res) => {
   try {
-    const watchlists = await UserResourceWatchlistModel
-      .find({ userId: req.customer!.customerId })
+    const customerId = req.customer!.customerId;
+    let watchlists = await UserResourceWatchlistModel
+      .find({ userId: customerId })
       .lean()
       .exec();
+
+    // Auto-create an empty watchlist the first time a user hits this endpoint
+    if (watchlists.length === 0) {
+      const customer = await CustomerModel.findById(customerId).lean();
+      const name = customer
+        ? `${customer.firstName}'s Watchlist`
+        : "My Watchlist";
+      const created = await UserResourceWatchlistModel.create({
+        userId: customerId,
+        name,
+        resources: [],
+      });
+      watchlists = [created.toObject()];
+    }
+
     res.json(watchlists);
   } catch (err) {
     console.error("GET /api/user-resource-watchlist failed:", err);

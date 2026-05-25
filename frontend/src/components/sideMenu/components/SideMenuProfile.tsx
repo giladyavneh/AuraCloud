@@ -2,26 +2,26 @@ import React from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Avatar from '@mui/material/Avatar';
-import { useTranslation } from 'react-i18next';
+import { useCurrentUser } from '@/hooks/user.hooks';
 import { ProfileRow } from '@/components/sideMenu/components/sideMenu.styled';
 
 const SideMenuProfile: React.FC = () => {
-  const { t } = useTranslation();
+  const { data: user } = useCurrentUser();
 
   return (
     <ProfileRow>
       <Avatar
-        src=""
-        alt={t('nav.profileName')}
+        src={user?.avatarUrl ?? ''}
+        alt={user?.name}
         sx={(theme) => ({ width: 48, height: 48, bgcolor: theme.palette.divider })}
       />
 
       <Box>
         <Typography variant="body1" color="textPrimary" noWrap>
-          {t('nav.profileName')}
+          {user?.name}
         </Typography>
         <Typography variant="body2" color="textDisabled" noWrap>
-          {t('nav.profileRole')}
+          {user?.role}
         </Typography>
       </Box>
     </ProfileRow>

@@ -1,13 +1,16 @@
-import React from "react";
-import IconButton from "@mui/material/IconButton";
-import Typography from "@mui/material/Typography";
-import { InputAdornment } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
-import { MagnifyingGlassIcon, TrashIcon } from "@phosphor-icons/react";
-import { useTranslation } from "react-i18next";
-import { MaterialReactTable, useMaterialReactTable } from "material-react-table";
 import { useWatchlistTableColumns } from "@/pages/resourceWatchlist/hooks/resourceWatchlist.hooks";
 import type { WatchlistTableProps } from "@/pages/resourceWatchlist/types/resourceWatchlist.types";
+import { InputAdornment } from "@mui/material";
+import IconButton from "@mui/material/IconButton";
+import { useTheme } from "@mui/material/styles";
+import Typography from "@mui/material/Typography";
+import { MagnifyingGlassIcon, TrashIcon } from "@phosphor-icons/react";
+import {
+  MaterialReactTable,
+  useMaterialReactTable,
+} from "material-react-table";
+import React from "react";
+import { useTranslation } from "react-i18next";
 
 const WatchlistTable: React.FC<WatchlistTableProps> = ({
   resources,

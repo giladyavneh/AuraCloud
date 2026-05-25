@@ -3,4 +3,5 @@ export const QUERY_KEYS = {
   userPermissions: ['userPermissions'],
   allResources: ['allResources'],
   resourceActions: (arn: string) => ['resourceActions', arn],
+  currentUser: ['currentUser'],
 } as const;

@@ -7,6 +7,8 @@ import {
   AmazonEc2,
   AmazonRds,
   AmazonCloudWatch,
+  AwsIdentityAndAccessManagement,
+  AwsIamIdentityCenter,
 } from "@nxavis/aws-icons";
 import type { AwsService } from "@/components/awsServiceIcon/types/awsServiceIcon.types";
 
@@ -21,4 +23,6 @@ export const SERVICE_CONFIG: Record<
   ec2: AmazonEc2,
   rds: AmazonRds,
   cloudwatch: AmazonCloudWatch,
+  iam: AwsIdentityAndAccessManagement,
+  sso: AwsIamIdentityCenter,
 };

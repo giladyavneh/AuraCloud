@@ -8,6 +8,7 @@ import {
   getTimestampFromArnData,
   inferServiceFromArn,
 } from "@/pages/dashboard/helpers/dashboard.helpers";
+import { extractResourceName } from "@/helpers/arn.helpers";
 import type { ArnPermissionData } from "@/services/types/resources.types";
 import { ResourceSectionHeader } from "@/pages/dashboard/components/dashboard.styled";
 import Box from "@mui/material/Box";
@@ -69,7 +70,7 @@ const ResourceSection: React.FC = () => {
           {watchlistResources.map(({ arn, actions }) => {
             const arnData = permissionsMap[arn];
             const service = inferServiceFromArn(arn);
-            const resourceName = arn.split(":::")[1] ?? arn;
+            const resourceName = extractResourceName(arn);
 
             // If Brain hasn't analysed this resource yet, show it as stale
             const status = arnData ? deriveStatusFromArnData(arnData) : "stale";

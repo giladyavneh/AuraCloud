@@ -1,34 +1,33 @@
-import React from "react";
-import Box from "@mui/material/Box";
-import Grid from "@mui/material/Grid";
-import Typography from "@mui/material/Typography";
-import CircularProgress from "@mui/material/CircularProgress";
-import { useTranslation } from "react-i18next";
 import GlowCard from "@/components/glowCard/GlowCard";
 import ResourceCard from "@/components/resourceCard/ResourceCard";
 import { useUserPermissions } from "@/hooks/resources.hooks";
 import {
-  inferServiceFromArn,
-  getActionsFromArnData,
   deriveStatusFromArnData,
+  formatTimestamp,
+  getActionsFromArnData,
   getErrorReasonFromArnData,
   getTimestampFromArnData,
-  formatTimestamp,
+  inferServiceFromArn,
 } from "@/pages/dashboard/helpers/dashboard.helpers";
 import { ResourceSectionHeader } from "@/pages/dashboard/components/dashboard.styled";
-import { MOCK_USER_ID } from "@/constants";
+import Box from "@mui/material/Box";
+import CircularProgress from "@mui/material/CircularProgress";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import React from "react";
+import { useTranslation } from "react-i18next";
 
 const ResourceSection: React.FC = () => {
   const { t } = useTranslation();
-  const {
-    data: permission,
-    isLoading,
-    isError,
-  } = useUserPermissions(MOCK_USER_ID);
+  const { data: permission, isLoading, isError, error } = useUserPermissions();
 
   const arnEntries = permission
     ? Object.entries(permission.permissionsData)
     : [];
+
+  // A 404 means the Brain hasn't generated data yet — not a real error
+  const isNoData = isError && error?.message.includes("404");
+  const isRealError = isError && !isNoData;
 
   return (
     <>
@@ -45,14 +44,20 @@ const ResourceSection: React.FC = () => {
       <GlowCard />
 
       {isLoading && (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+        <Box sx={{ display: "flex", justifyContent: "center", paddingBlock: 4 }}>
           <CircularProgress color="primary" />
         </Box>
       )}
 
-      {isError && (
+      {isRealError && (
         <Typography variant="body2" color="error">
           {t("dashboard.permissionsLoadError")}
+        </Typography>
+      )}
+
+      {(isNoData || arnEntries.length === 0) && !isLoading && !isRealError && (
+        <Typography variant="body2" color="textSecondary">
+          {t("dashboard.noResourcesYet")}
         </Typography>
       )}
 

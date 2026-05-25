@@ -24,12 +24,12 @@ export const fetchUserResourceWatchlist = async (): Promise<ResourceWatchlistIte
   return response.json() as Promise<ResourceWatchlistItem[]>;
 };
 
-export const fetchUserPermissions = async (userId: string): Promise<UserPermission> => {
-  const response = await fetch(`${API_BASE_URL}/api/user-permissions/${userId}`, {
+export const fetchUserPermissions = async (): Promise<UserPermission> => {
+  const response = await fetch(`${API_BASE_URL}/api/user-permissions`, {
     headers: authHeaders(),
   });
   if (!response.ok) {
-    throw new Error(`Failed to fetch user permissions: ${response.statusText}`);
+    throw new Error(`${response.status}: Failed to fetch user permissions`);
   }
   return response.json() as Promise<UserPermission>;
 };

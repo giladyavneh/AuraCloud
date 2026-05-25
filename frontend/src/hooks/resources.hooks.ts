@@ -15,10 +15,14 @@ export const useUserResourceWatchlist = () =>
     queryFn: fetchUserResourceWatchlist,
   });
 
-export const useUserPermissions = (userId: string) =>
+// No userId arg — the backend reads it from the JWT
+export const useUserPermissions = () =>
   useQuery({
-    queryKey: [...QUERY_KEYS.userPermissions, userId],
-    queryFn: () => fetchUserPermissions(userId),
+    queryKey: QUERY_KEYS.userPermissions,
+    queryFn: fetchUserPermissions,
+    // 404 means no Brain data yet — treat as empty, not an error
+    retry: (failureCount, error) =>
+      error.message.includes('404') ? false : failureCount < 3,
   });
 
 export const useAllResources = () =>

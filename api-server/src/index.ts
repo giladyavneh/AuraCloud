@@ -83,13 +83,6 @@ app.post("/api/auth/signup", async (req, res) => {
       passwordHash,
     });
 
-    // Create an empty watchlist for the new customer
-    await UserResourceWatchlistModel.create({
-      userId: customer._id.toString(),
-      name: `${firstName.trim()}'s Watchlist`,
-      resources: [],
-    });
-
     const token = signToken({ customerId: customer._id.toString(), email: customer.email });
     res.status(201).json({
       token,
@@ -175,26 +168,10 @@ app.get("/api/auth/me", requireAuth, async (req, res) => {
 
 app.get("/api/user-resource-watchlist", requireAuth, async (req, res) => {
   try {
-    const customerId = req.customer!.customerId;
-    let watchlists = await UserResourceWatchlistModel
-      .find({ userId: customerId })
+    const watchlists = await UserResourceWatchlistModel
+      .find({ userId: req.customer!.customerId })
       .lean()
       .exec();
-
-    // Auto-create an empty watchlist the first time a user hits this endpoint
-    if (watchlists.length === 0) {
-      const customer = await CustomerModel.findById(customerId).lean();
-      const name = customer
-        ? `${customer.firstName}'s Watchlist`
-        : "My Watchlist";
-      const created = await UserResourceWatchlistModel.create({
-        userId: customerId,
-        name,
-        resources: [],
-      });
-      watchlists = [created.toObject()];
-    }
-
     res.json(watchlists);
   } catch (err) {
     console.error("GET /api/user-resource-watchlist failed:", err);
@@ -243,11 +220,13 @@ app.put("/api/user-resource-watchlist/:id", requireAuth, async (req, res) => {
   }
 });
 
-app.get("/api/user-permissions/:userId", async (req, res) => {
+app.get("/api/user-permissions", requireAuth, async (req, res) => {
   try {
-    const permission = await UserPermissionModel.findOne({ userId: req.params.userId });
+    const permission = await UserPermissionModel.findOne({
+      userId: req.customer!.customerId,
+    });
     if (!permission) {
-      res.status(404).json({ message: "User permissions not found" });
+      res.status(404).json({ message: "No permissions data yet" });
       return;
     }
     res.json(permission);

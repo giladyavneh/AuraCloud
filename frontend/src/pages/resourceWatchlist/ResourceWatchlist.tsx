@@ -12,6 +12,8 @@ import {
 import type { WatchlistResource } from "@/pages/resourceWatchlist/types/resourceWatchlist.types";
 import type { ResourceWatchlistItem } from "@/services/types/resources.types";
 import { Grid } from "@mui/material";
+import Box from "@mui/material/Box";
+import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -80,11 +82,26 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
 // the content. key={watchlist._id} resets child state if the document changes.
 
 const ResourceWatchlist: React.FC = () => {
-  const { data: watchlistItems = [] } = useUserResourceWatchlist();
+  const { t } = useTranslation();
+  const { data: watchlistItems = [], isLoading } = useUserResourceWatchlist();
   const watchlist = watchlistItems[0];
 
+  if (isLoading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", paddingBlock: 8 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   if (!watchlist) {
-    return null;
+    return (
+      <Box sx={{ paddingBlock: 8, paddingInline: 4 }}>
+        <Typography variant="body2" color="textSecondary">
+          {t("resourceWatchlist.noWatchlist")}
+        </Typography>
+      </Box>
+    );
   }
 
   return <ResourceWatchlistContent key={watchlist._id} watchlist={watchlist} />;

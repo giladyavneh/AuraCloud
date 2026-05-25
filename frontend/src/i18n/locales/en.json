@@ -16,6 +16,7 @@
     "resourceStatus": "Resource Status",
     "resourceStatusDescription": "Single source of truth for live infrastructure checks and blockers.",
     "permissionsLoadError": "Could not load user permissions.",
+    "noResourcesYet": "No resources to monitor yet. Add resources to your watchlist to start monitoring.",
     "focusCueLabel": "Focus cue:",
     "focusCueText": "1 blocker requires IAM fix. Resource code paths appear healthy for all other monitored services.",
     "stats": {
@@ -55,6 +56,7 @@
     "selectActions": "Select actions",
     "add": "Add",
     "noResources": "No resources added yet",
+    "noWatchlist": "No watchlist found. Start by adding resources to monitor.",
     "search": "Search resources or actions...",
     "remove": "Remove",
     "jsonEditor": "JSON Editor",

@@ -10,3 +10,5 @@ export const API_BASE_URL =
 
 // Placeholder until real auth is implemented
 export const MOCK_USER_ID = '123';
+
+export const WATCHLIST_DOWNLOAD_FILENAME = 'watchlist.json';

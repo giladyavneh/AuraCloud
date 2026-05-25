@@ -110,6 +110,14 @@ const theme = createTheme({
     borderRadius: 8,
   },
 
+  iconSize: {
+    xs: 16, // button / inline icons
+    sm: 20, // footer nav icons
+    md: 28, // logo
+    lg: 32, // feature icons, table AWS icons
+    xl: 46, // resource card AWS icon
+  },
+
   components: {
     MuiCssBaseline: {
       styleOverrides: {

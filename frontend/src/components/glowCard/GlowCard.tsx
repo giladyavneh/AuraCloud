@@ -11,7 +11,7 @@ const GlowCard: React.FC = () => {
 
   return (
     <CardRoot>
-      <SparkleIcon size={32} weight="fill" color={theme.palette.primary.main} />
+      <SparkleIcon size={theme.iconSize.lg} weight="fill" color={theme.palette.primary.main} />
 
       <TextContent>
         <Typography variant="subtitle1" color="textPrimary">

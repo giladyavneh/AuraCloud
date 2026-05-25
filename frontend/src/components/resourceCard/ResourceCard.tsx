@@ -43,7 +43,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
       <CardBody>
         <CardHeader>
           <ServiceInfo>
-            <AwsServiceIcon service={service} size={46} />
+            <AwsServiceIcon service={service} size={theme.iconSize.xl} />
 
             <ServiceMeta>
               <Typography variant="caption" color="textDisabled">

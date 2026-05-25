@@ -17,6 +17,7 @@
     "refresh": "Refresh",
     "resourceStatus": "Resource Status",
     "resourceStatusDescription": "Single source of truth for live infrastructure checks and blockers.",
+    "permissionsLoadError": "Could not load user permissions.",
     "focusCueLabel": "Focus cue:",
     "focusCueText": "1 blocker requires IAM fix. Resource code paths appear healthy for all other monitored services.",
     "stats": {
@@ -24,6 +25,19 @@
       "activeBlockers": "Active Blockers",
       "staleResources": "Stale Resources",
       "healthScore": "Infrastructure Health Score"
+    },
+    "timeAgo": {
+      "unknown": "Unknown",
+      "lessThanMinute": "< 1 min ago",
+      "minutesAgo": "{{count}} min ago",
+      "oneHourAgo": "1 hour ago",
+      "hoursAgo": "{{count}} hours ago",
+      "oneHourAndMinutesAgo": "1 hour, {{minutes}} min ago",
+      "hoursAndMinutesAgo": "{{hours}} hours, {{minutes}} min ago",
+      "oneDayAgo": "1 day ago",
+      "daysAgo": "{{count}} days ago",
+      "oneDayAndHoursAgo": "1 day, {{hours}} hour ago",
+      "daysAndHoursAgo": "{{days}} days, {{hours}} hour ago"
     }
   },
   "resourceCard": {

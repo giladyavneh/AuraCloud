@@ -3,6 +3,7 @@ import { inferServiceFromArn } from "@/helpers/arn.helpers";
 import type { WatchlistResource } from "@/services/resources.service";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
+import { useTheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { type MRT_ColumnDef } from "material-react-table";
 import { useMemo } from "react";
@@ -11,6 +12,7 @@ import { useTranslation } from "react-i18next";
 export const useWatchlistTableColumns =
   (): MRT_ColumnDef<WatchlistResource>[] => {
     const { t } = useTranslation();
+    const theme = useTheme();
 
     return useMemo<MRT_ColumnDef<WatchlistResource>[]>(
       () => [
@@ -21,7 +23,7 @@ export const useWatchlistTableColumns =
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
               <AwsServiceIcon
                 service={inferServiceFromArn(row.original.arn)}
-                size={32}
+                size={theme.iconSize.lg}
               />
 
               <Typography
@@ -57,6 +59,6 @@ export const useWatchlistTableColumns =
           ),
         },
       ],
-      [t],
+      [t, theme.iconSize.lg],
     );
   };

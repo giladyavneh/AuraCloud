@@ -72,7 +72,7 @@ const WatchlistTable: React.FC<WatchlistTableProps> = ({
         onClick={() => onRemove(row.original.arn)}
         aria-label={t("resourceWatchlist.remove")}
       >
-        <TrashIcon size={16} />
+        <TrashIcon size={theme.iconSize.xs} />
       </IconButton>
     ),
     displayColumnDefOptions: {

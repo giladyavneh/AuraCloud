@@ -52,7 +52,7 @@ const ResourceSection: React.FC = () => {
 
       {isError && (
         <Typography variant="body2" color="error">
-          {t("resourceCard.errorPrefix")} Could not load user permissions.
+          {t("dashboard.permissionsLoadError")}
         </Typography>
       )}
 

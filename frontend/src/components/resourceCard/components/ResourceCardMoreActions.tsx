@@ -8,6 +8,7 @@ import Paper from "@mui/material/Paper";
 import Popper from "@mui/material/Popper";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
+import { useTheme } from "@mui/material/styles";
 import { useHover } from "@uidotdev/usehooks";
 import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -22,6 +23,7 @@ const ResourceCardMoreActions: React.FC<ResourceCardMoreActionsProps> = ({
   dotColor,
 }) => {
   const { t } = useTranslation();
+  const theme = useTheme();
   const [hoverRef, hovering] = useHover<HTMLButtonElement>();
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
 
@@ -55,7 +57,7 @@ const ResourceCardMoreActions: React.FC<ResourceCardMoreActionsProps> = ({
         sx={{ zIndex: (theme) => theme.zIndex.tooltip, pointerEvents: "none" }}
       >
         {({ TransitionProps }) => (
-          <Grow {...TransitionProps} timeout={200}>
+          <Grow {...TransitionProps} timeout={theme.transitions.duration.shorter}>
             <Paper elevation={4}>
               <MoreActionsPopoverContent>
                 <Typography variant="subtitle2" color="textSecondary">

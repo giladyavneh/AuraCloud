@@ -23,10 +23,7 @@ export const StatValue = styled('p', {
   shouldForwardProp: (prop) => prop !== 'valueColor',
 })<{ valueColor?: string }>(({ theme, valueColor }) => ({
   margin: 0,
-  fontSize: '34px',
-  fontWeight: 400,
-  lineHeight: '40px',
-  letterSpacing: '0.25px',
-  color: valueColor ?? theme.palette.text.primary,
+  ...theme.typography.h4,
   fontFamily: theme.typography.fontFamily,
+  color: valueColor ?? theme.palette.text.primary,
 }));

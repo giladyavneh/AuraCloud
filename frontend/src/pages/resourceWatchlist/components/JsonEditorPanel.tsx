@@ -2,8 +2,10 @@ import React, { useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
+import { useTheme } from '@mui/material/styles';
 import { DownloadSimpleIcon, UploadSimpleIcon } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
+import { WATCHLIST_DOWNLOAD_FILENAME } from '@/constants';
 import {
   parseWatchlistJson,
   watchlistToJson,
@@ -22,6 +24,7 @@ const JsonEditorPanel: React.FC<JsonEditorPanelProps> = ({
   onDraftChange,
 }) => {
   const { t } = useTranslation();
+  const theme = useTheme();
   const [hasJsonError, setHasJsonError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -44,7 +47,7 @@ const JsonEditorPanel: React.FC<JsonEditorPanelProps> = ({
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = 'watchlist.json';
+    anchor.download = WATCHLIST_DOWNLOAD_FILENAME;
     anchor.click();
     URL.revokeObjectURL(url);
   };
@@ -87,7 +90,7 @@ const JsonEditorPanel: React.FC<JsonEditorPanelProps> = ({
           <Button
             size="small"
             variant="outlined"
-            startIcon={<DownloadSimpleIcon size={16} />}
+            startIcon={<DownloadSimpleIcon size={theme.iconSize.xs} />}
             onClick={handleDownload}
           >
             {t('resourceWatchlist.download')}
@@ -96,7 +99,7 @@ const JsonEditorPanel: React.FC<JsonEditorPanelProps> = ({
           <Button
             size="small"
             variant="outlined"
-            startIcon={<UploadSimpleIcon size={16} />}
+            startIcon={<UploadSimpleIcon size={theme.iconSize.xs} />}
             onClick={handleUploadClick}
           >
             {t('resourceWatchlist.upload')}

@@ -3,6 +3,7 @@ import type {
   ArnPermissionData,
   ActionData,
 } from "@/services/types/resources.types";
+import i18next from "i18next";
 
 export { inferServiceFromArn, inferTitleFromArn } from "@/helpers/arn.helpers";
 
@@ -71,29 +72,39 @@ export const getTimestampFromArnData = (data: ArnPermissionData): string => {
   return firstAction?.timestamp ?? "";
 };
 
+const { t } = i18next;
+
 /** Formats an ISO timestamp as a human-readable relative time string. */
 export const formatTimestamp = (isoTimestamp: string): string => {
-  if (!isoTimestamp) return "Unknown";
+  if (!isoTimestamp) return t("dashboard.timeAgo.unknown");
 
   const diffMs = Date.now() - new Date(isoTimestamp).getTime();
   const totalMinutes = Math.floor(diffMs / 60_000);
   const totalHours = Math.floor(totalMinutes / 60);
   const totalDays = Math.floor(totalHours / 24);
 
-  if (totalMinutes < 1) return "< 1 min ago";
-  if (totalMinutes < 60) return `${totalMinutes} min ago`;
+  if (totalMinutes < 1) return t("dashboard.timeAgo.lessThanMinute");
+  if (totalMinutes < 60) return t("dashboard.timeAgo.minutesAgo", { count: totalMinutes });
 
   if (totalHours < 24) {
     const remainingMinutes = totalMinutes % 60;
-    const hourLabel = totalHours === 1 ? "hour" : "hours";
+    if (totalHours === 1) {
+      return remainingMinutes > 0
+        ? t("dashboard.timeAgo.oneHourAndMinutesAgo", { minutes: remainingMinutes })
+        : t("dashboard.timeAgo.oneHourAgo");
+    }
     return remainingMinutes > 0
-      ? `${totalHours} ${hourLabel}, ${remainingMinutes} min ago`
-      : `${totalHours} ${hourLabel} ago`;
+      ? t("dashboard.timeAgo.hoursAndMinutesAgo", { hours: totalHours, minutes: remainingMinutes })
+      : t("dashboard.timeAgo.hoursAgo", { count: totalHours });
   }
 
   const remainingHours = totalHours % 24;
-  const dayLabel = totalDays === 1 ? "day" : "days";
+  if (totalDays === 1) {
+    return remainingHours > 0
+      ? t("dashboard.timeAgo.oneDayAndHoursAgo", { hours: remainingHours })
+      : t("dashboard.timeAgo.oneDayAgo");
+  }
   return remainingHours > 0
-    ? `${totalDays} ${dayLabel}, ${remainingHours} hour ago`
-    : `${totalDays} ${dayLabel} ago`;
+    ? t("dashboard.timeAgo.daysAndHoursAgo", { days: totalDays, hours: remainingHours })
+    : t("dashboard.timeAgo.daysAgo", { count: totalDays });
 };

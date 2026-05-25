@@ -1,6 +1,7 @@
 import React from "react";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
+import { useTheme } from "@mui/material/styles";
 import { useTranslation } from "react-i18next";
 import { ArrowsClockwiseIcon } from "@phosphor-icons/react";
 import StatusTag from "@/components/statusTag/StatusTag";
@@ -16,6 +17,7 @@ interface StatusSummaryProps {
 
 const StatusSummary: React.FC<StatusSummaryProps> = ({ onRefresh }) => {
   const { t } = useTranslation();
+  const theme = useTheme();
 
   return (
     <StatusSummaryRoot>
@@ -35,7 +37,7 @@ const StatusSummary: React.FC<StatusSummaryProps> = ({ onRefresh }) => {
         <Button
           variant="outlined"
           color="primary"
-          startIcon={<ArrowsClockwiseIcon size={16} />}
+          startIcon={<ArrowsClockwiseIcon size={theme.iconSize.xs} />}
           onClick={onRefresh}
         >
           {t("dashboard.refresh")}

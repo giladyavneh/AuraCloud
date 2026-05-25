@@ -6,6 +6,8 @@ export interface AuthCustomer {
   companyName: string;
   roleTitle: string;
   hasAwsConnected: boolean;
+  /** Present when hasAwsConnected is true. Key IDs are not secret — safe to display. */
+  awsAccessKeyId?: string;
 }
 
 export interface AuthResponse {
@@ -25,4 +27,12 @@ export interface SignUpPayload {
 export interface LoginPayload {
   email: string;
   password: string;
+}
+
+export interface UpdateProfilePayload {
+  firstName: string;
+  lastName: string;
+  email: string;
+  companyName: string;
+  roleTitle: string;
 }

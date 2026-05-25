@@ -5,6 +5,7 @@ import Dashboard from "@/pages/dashboard/Dashboard";
 import Login from "@/pages/login/Login";
 import Onboard from "@/pages/onboard/Onboard";
 import ResourceWatchlist from "@/pages/resourceWatchlist/ResourceWatchlist";
+import Settings from "@/pages/settings/Settings";
 import SignUp from "@/pages/signUp/SignUp";
 import { Navigate, Route, Routes } from "react-router-dom";
 
@@ -24,6 +25,7 @@ const App = () => (
         <Route element={<PageWrapper />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/resource-watch-list" element={<ResourceWatchlist />} />
+          <Route path="/settings" element={<Settings />} />
         </Route>
       </Route>
     </Route>

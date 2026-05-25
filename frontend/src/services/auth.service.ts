@@ -3,6 +3,7 @@ import type {
   AuthResponse,
   LoginPayload,
   SignUpPayload,
+  UpdateProfilePayload,
 } from "@/services/types/auth.types";
 
 const API_BASE = "http://localhost:3000/api";
@@ -54,6 +55,22 @@ export const fetchMe = async (): Promise<AuthCustomer> => {
     headers: authHeaders(),
   });
   if (!response.ok) throw new Error("Not authenticated");
+  return response.json() as Promise<AuthCustomer>;
+};
+
+export const updateProfile = async (payload: UpdateProfilePayload): Promise<AuthCustomer> => {
+  const response = await fetch(`${API_BASE}/user/profile`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: "Failed to update profile" }));
+    throw new Error((error as { message: string }).message);
+  }
   return response.json() as Promise<AuthCustomer>;
 };
 

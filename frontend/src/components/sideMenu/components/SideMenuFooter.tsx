@@ -20,7 +20,7 @@ const SideMenuFooter: React.FC = () => {
 
   return (
     <FooterRow>
-      <FooterLink>
+      <FooterLink onClick={() => navigate('/settings')} role="button" sx={{ cursor: 'pointer' }}>
         <GearIcon size={theme.iconSize.sm} />
         <Typography variant="body1" color="textPrimary">
           {t('nav.settings')}

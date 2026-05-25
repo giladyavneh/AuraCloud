@@ -107,6 +107,33 @@
     "successTitle": "You're connected!",
     "successDescription": "Your AWS account is now linked. Taking you to your dashboard..."
   },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your profile and AWS connection.",
+    "profile": {
+      "title": "Profile",
+      "description": "Update your personal and company information.",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Work Email",
+      "companyName": "Company Name",
+      "roleTitle": "Role Title",
+      "save": "Save Changes",
+      "saving": "Saving...",
+      "successMessage": "Profile updated successfully."
+    },
+    "aws": {
+      "title": "AWS Credentials",
+      "description": "Rotate your AWS access keys. Enter new credentials and save to update.",
+      "currentKey": "Current Access Key ID",
+      "notConnected": "No AWS account connected yet.",
+      "accessKeyId": "New Access Key ID",
+      "secretAccessKey": "New Secret Access Key",
+      "save": "Update Credentials",
+      "saving": "Updating...",
+      "successMessage": "AWS credentials updated successfully."
+    }
+  },
   "status": {
     "healthy": "Healthy",
     "blocked": "Blocked",

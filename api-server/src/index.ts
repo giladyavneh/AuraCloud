@@ -56,6 +56,33 @@ function signToken(payload: JwtPayload): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
 }
 
+// Builds the safe customer object sent to the frontend.
+// awsAccessKeyId is included (not secret) so the UI can display which key is active.
+// awsSecretAccessKey is never included.
+function toCustomerResponse(customer: {
+  _id: unknown;
+  firstName: string;
+  lastName: string;
+  email: string;
+  companyName: string;
+  roleTitle: string;
+  awsCredentials?: { accessKeyId?: string; status?: string } | null;
+}) {
+  const connected = customer.awsCredentials?.status === "connected";
+  return {
+    _id: customer._id,
+    firstName: customer.firstName,
+    lastName: customer.lastName,
+    email: customer.email,
+    companyName: customer.companyName,
+    roleTitle: customer.roleTitle,
+    hasAwsConnected: connected,
+    ...(connected && customer.awsCredentials?.accessKeyId
+      ? { awsAccessKeyId: customer.awsCredentials.accessKeyId }
+      : {}),
+  };
+}
+
 // ── Auth routes ────────────────────────────────────────────────────────────────
 
 app.post("/api/auth/signup", async (req, res) => {
@@ -84,18 +111,7 @@ app.post("/api/auth/signup", async (req, res) => {
     });
 
     const token = signToken({ customerId: customer._id.toString(), email: customer.email });
-    res.status(201).json({
-      token,
-      customer: {
-        _id: customer._id,
-        firstName: customer.firstName,
-        lastName: customer.lastName,
-        email: customer.email,
-        companyName: customer.companyName,
-        roleTitle: customer.roleTitle,
-        hasAwsConnected: false,
-      },
-    });
+    res.status(201).json({ token, customer: toCustomerResponse(customer) });
   } catch (err) {
     console.error("POST /api/auth/signup failed:", err);
     res.status(500).json({ message: "Server Error" });
@@ -124,18 +140,7 @@ app.post("/api/auth/login", async (req, res) => {
     }
 
     const token = signToken({ customerId: customer._id.toString(), email: customer.email });
-    res.json({
-      token,
-      customer: {
-        _id: customer._id,
-        firstName: customer.firstName,
-        lastName: customer.lastName,
-        email: customer.email,
-        companyName: customer.companyName,
-        roleTitle: customer.roleTitle,
-        hasAwsConnected: customer.awsCredentials?.status === "connected",
-      },
-    });
+    res.json({ token, customer: toCustomerResponse(customer) });
   } catch (err) {
     console.error("POST /api/auth/login failed:", err);
     res.status(500).json({ message: "Server Error" });
@@ -149,15 +154,7 @@ app.get("/api/auth/me", requireAuth, async (req, res) => {
       res.status(404).json({ message: "Customer not found" });
       return;
     }
-    res.json({
-      _id: customer._id,
-      firstName: customer.firstName,
-      lastName: customer.lastName,
-      email: customer.email,
-      companyName: customer.companyName,
-      roleTitle: customer.roleTitle,
-      hasAwsConnected: customer.awsCredentials?.status === "connected",
-    });
+    res.json(toCustomerResponse(customer));
   } catch (err) {
     console.error("GET /api/auth/me failed:", err);
     res.status(500).json({ message: "Server Error" });
@@ -235,6 +232,51 @@ app.get("/api/user-permissions", requireAuth, async (req, res) => {
   }
 });
 
+app.put("/api/user/profile", requireAuth, async (req, res) => {
+  try {
+    const { firstName, lastName, email, companyName, roleTitle } = req.body ?? {};
+
+    if (!firstName || !lastName || !email || !companyName || !roleTitle) {
+      res.status(400).json({ message: "All fields are required" });
+      return;
+    }
+
+    // Guard against email being taken by a different account
+    const emailConflict = await CustomerModel.findOne({
+      email: (email as string).toLowerCase().trim(),
+      _id: { $ne: req.customer!.customerId },
+    }).lean();
+    if (emailConflict) {
+      res.status(409).json({ message: "An account with this email already exists" });
+      return;
+    }
+
+    const updated = await CustomerModel.findByIdAndUpdate(
+      req.customer!.customerId,
+      {
+        $set: {
+          firstName: (firstName as string).trim(),
+          lastName: (lastName as string).trim(),
+          email: (email as string).toLowerCase().trim(),
+          companyName: (companyName as string).trim(),
+          roleTitle: (roleTitle as string).trim(),
+        },
+      },
+      { new: true },
+    ).lean();
+
+    if (!updated) {
+      res.status(404).json({ message: "Customer not found" });
+      return;
+    }
+
+    res.json(toCustomerResponse(updated));
+  } catch (err) {
+    console.error("PUT /api/user/profile failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
 app.post("/api/aws/onboard-credentials", requireAuth, async (req, res) => {
   try {
     const { accessKeyId, secretAccessKey } = req.body ?? {};
@@ -268,15 +310,7 @@ app.post("/api/aws/onboard-credentials", requireAuth, async (req, res) => {
       return;
     }
 
-    res.json({
-      _id: updated._id,
-      firstName: updated.firstName,
-      lastName: updated.lastName,
-      email: updated.email,
-      companyName: updated.companyName,
-      roleTitle: updated.roleTitle,
-      hasAwsConnected: updated.awsCredentials?.status === "connected",
-    });
+    res.json(toCustomerResponse(updated));
   } catch (err) {
     console.error("POST /api/aws/onboard-credentials failed:", err);
     res.status(500).json({ message: "Server Error" });

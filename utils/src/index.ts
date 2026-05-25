@@ -206,18 +206,23 @@ export const ResourceActionModel =
 // ==========================================
 const customerSchema = new mongoose.Schema(
   {
-    name:  { type: String, required: true },
-    email: { type: String },
+    firstName:    { type: String, required: true },
+    lastName:     { type: String, required: true },
+    email:        { type: String, required: true },
+    companyName:  { type: String, required: true },
+    roleTitle:    { type: String, required: true },
+    passwordHash: { type: String, required: true },
     awsCredentials: {
       accessKeyId:     { type: String },
       // TODO: encrypt secretAccessKey before persisting (MVP plaintext)
       secretAccessKey: { type: String },
-      status:          { type: String, enum: ['connected', 'disconnected', 'error'], default: 'connected' },
+      status:          { type: String, enum: ['connected', 'disconnected', 'error'] },
       connectedAt:     { type: Date },
     },
   },
   { timestamps: true },
 );
+customerSchema.index({ email: 1 }, { unique: true });
 
 export type Customer = InferSchemaType<typeof customerSchema>;
 export type CustomerDoc = HydratedDocument<Customer>;

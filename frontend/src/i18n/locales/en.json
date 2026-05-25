@@ -66,6 +66,45 @@
       "actions": "Actions"
     }
   },
+  "signUp": {
+    "title": "Create your account",
+    "subtitle": "Start monitoring your AWS infrastructure in minutes.",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "email": "Work Email",
+    "companyName": "Company Name",
+    "roleTitle": "Role Title",
+    "password": "Password",
+    "submit": "Create Account",
+    "submitting": "Creating account...",
+    "loginPrompt": "Already have an account?",
+    "loginLink": "Sign in"
+  },
+  "login": {
+    "title": "Welcome back",
+    "subtitle": "Sign in to your Aura Cloud account.",
+    "email": "Work Email",
+    "password": "Password",
+    "submit": "Sign In",
+    "submitting": "Signing in...",
+    "signUpPrompt": "Don't have an account?",
+    "signUpLink": "Sign up"
+  },
+  "onboard": {
+    "title": "Connect your AWS account",
+    "subtitle": "Aura needs read-only access to your AWS account to start monitoring your infrastructure.",
+    "step1Title": "Deploy the Aura stack",
+    "step1Description": "Click the button below to open AWS CloudFormation. It will deploy a read-only IAM role in your account and generate the credentials you need.",
+    "step1Button": "Open AWS CloudFormation",
+    "step2Title": "Enter your credentials",
+    "step2Description": "Once the stack is deployed, copy the Access Key ID and Secret Access Key from the CloudFormation outputs and paste them below.",
+    "accessKeyId": "Access Key ID",
+    "secretAccessKey": "Secret Access Key",
+    "submit": "Connect AWS Account",
+    "submitting": "Connecting...",
+    "successTitle": "You're connected!",
+    "successDescription": "Your AWS account is now linked. Taking you to your dashboard..."
+  },
   "status": {
     "healthy": "Healthy",
     "blocked": "Blocked",

@@ -1,6 +1,6 @@
 import GlowCard from "@/components/glowCard/GlowCard";
 import ResourceCard from "@/components/resourceCard/ResourceCard";
-import { useUserPermissions } from "@/hooks/resources.hooks";
+import { useUserPermissions, useUserResourceWatchlist } from "@/hooks/resources.hooks";
 import {
   deriveStatusFromArnData,
   formatTimestamp,
@@ -19,15 +19,17 @@ import { useTranslation } from "react-i18next";
 
 const ResourceSection: React.FC = () => {
   const { t } = useTranslation();
-  const { data: permission, isLoading, isError, error } = useUserPermissions();
 
-  const arnEntries = permission
-    ? Object.entries(permission.permissionsData)
-    : [];
+  const { data: watchlistItems = [], isLoading: watchlistLoading } = useUserResourceWatchlist();
+  const { data: permission, isLoading: permissionsLoading, isError, error } = useUserPermissions();
 
-  // A 404 means the Brain hasn't generated data yet — not a real error
-  const isNoData = isError && error?.message.includes("404");
-  const isRealError = isError && !isNoData;
+  const watchlistResources = watchlistItems[0]?.resources ?? [];
+  const permissionsMap: Record<string, unknown> = permission?.permissionsData ?? {};
+
+  const isLoading = watchlistLoading || permissionsLoading;
+
+  // A 404 just means the Brain hasn't run yet — not a real error
+  const isRealError = isError && !error?.message.includes("404");
 
   return (
     <>
@@ -55,21 +57,23 @@ const ResourceSection: React.FC = () => {
         </Typography>
       )}
 
-      {(isNoData || arnEntries.length === 0) && !isLoading && !isRealError && (
+      {!isLoading && !isRealError && watchlistResources.length === 0 && (
         <Typography variant="body2" color="textSecondary">
           {t("dashboard.noResourcesYet")}
         </Typography>
       )}
 
-      {arnEntries.length > 0 && (
+      {!isLoading && !isRealError && watchlistResources.length > 0 && (
         <Grid container spacing={2}>
-          {arnEntries.map(([arn, arnData]) => {
+          {watchlistResources.map(({ arn, actions }) => {
+            const arnData = permissionsMap[arn];
             const service = inferServiceFromArn(arn);
             const resourceName = arn.split(":::")[1] ?? arn;
-            const actions = getActionsFromArnData(arnData);
-            const status = deriveStatusFromArnData(arnData);
-            const errorReason = getErrorReasonFromArnData(arnData);
-            const timestamp = getTimestampFromArnData(arnData);
+
+            // If Brain hasn't analysed this resource yet, show it as stale
+            const status = arnData ? deriveStatusFromArnData(arnData) : "stale";
+            const errorReason = arnData ? getErrorReasonFromArnData(arnData) : undefined;
+            const timestamp = arnData ? getTimestampFromArnData(arnData) : null;
 
             return (
               <Grid key={arn} size={{ xs: 12, md: 6, lg: 4 }}>

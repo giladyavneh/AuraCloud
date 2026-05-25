@@ -83,6 +83,13 @@ app.post("/api/auth/signup", async (req, res) => {
       passwordHash,
     });
 
+    // Create an empty watchlist for the new customer
+    await UserResourceWatchlistModel.create({
+      userId: customer._id.toString(),
+      name: `${firstName.trim()}'s Watchlist`,
+      resources: [],
+    });
+
     const token = signToken({ customerId: customer._id.toString(), email: customer.email });
     res.status(201).json({
       token,
@@ -166,17 +173,20 @@ app.get("/api/auth/me", requireAuth, async (req, res) => {
 
 // ── Existing routes ────────────────────────────────────────────────────────────
 
-app.get("/api/user-resource-watchlist", async (_req, res) => {
+app.get("/api/user-resource-watchlist", requireAuth, async (req, res) => {
   try {
-    const statuses = await UserResourceWatchlistModel.find().lean().exec();
-    res.json(statuses);
+    const watchlists = await UserResourceWatchlistModel
+      .find({ userId: req.customer!.customerId })
+      .lean()
+      .exec();
+    res.json(watchlists);
   } catch (err) {
     console.error("GET /api/user-resource-watchlist failed:", err);
     res.status(500).json({ message: "Server Error" });
   }
 });
 
-app.get("/api/resources", async (_req, res) => {
+app.get("/api/resources", requireAuth, async (_req, res) => {
   try {
     const resources = await AwsResourceModel.find().lean().exec();
     res.json(resources);
@@ -186,7 +196,7 @@ app.get("/api/resources", async (_req, res) => {
   }
 });
 
-app.get("/api/resources/:arn/actions", async (req, res) => {
+app.get("/api/resources/:arn/actions", requireAuth, async (req, res) => {
   try {
     // ARN is URL-encoded since it contains colons and slashes
     const arn = decodeURIComponent(req.params.arn);
@@ -198,10 +208,11 @@ app.get("/api/resources/:arn/actions", async (req, res) => {
   }
 });
 
-app.put("/api/user-resource-watchlist/:id", async (req, res) => {
+app.put("/api/user-resource-watchlist/:id", requireAuth, async (req, res) => {
   try {
-    const doc = await UserResourceWatchlistModel.findByIdAndUpdate(
-      req.params.id,
+    // Ensure the watchlist belongs to the requesting customer
+    const doc = await UserResourceWatchlistModel.findOneAndUpdate(
+      { _id: req.params.id, userId: req.customer!.customerId },
       { resources: req.body.resources },
       { returnDocument: "after" },
     );

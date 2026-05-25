@@ -1,0 +1,28 @@
+# Cloud formation engine version
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFormation Template for Aura SaaS Crawler Integration'
+
+Resources:
+  # create a user with ReadOnlyAccess policy for the crawler
+  AuraSaaSCrawlerUser:
+    Type: 'AWS::IAM::User'
+    Properties:
+      UserName: 'Aura-SaaS-Crawler'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/ReadOnlyAccess'
+
+  # create access keys for the crawler user
+  AuraCrawlerAccessKeys:
+    Type: 'AWS::IAM::AccessKey'
+    Properties:
+      UserName: !Ref AuraSaaSCrawlerUser
+
+Outputs:
+  # output the access keys for the crawler user back to the user (make sure to keep the secret access key secure)
+  AuraAccessKeyId:
+    Description: 'The Access Key ID for Aura Crawler'
+    Value: !Ref AuraCrawlerAccessKeys
+
+  AuraSecretAccessKey:
+    Description: 'The Secret Access Key for Aura Crawler (Keep it secure)'
+    Value: !GetAtt AuraCrawlerAccessKeys.SecretAccessKey

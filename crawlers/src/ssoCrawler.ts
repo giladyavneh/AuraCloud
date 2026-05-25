@@ -6,8 +6,8 @@ import { AwsResourceModel } from "utils";
 export class SsoCrawler extends BaseCrawler {
     protected region = "eu-central-1";
     protected intervalMs = 5000;
-    protected ssoAdminClient = new SSOAdminClient({ region: this.region });
-    protected identityStoreClient = new IdentitystoreClient({ region: this.region });
+    protected ssoAdminClient = new SSOAdminClient({ region: this.region, credentials: this.credentials });
+    protected identityStoreClient = new IdentitystoreClient({ region: this.region, credentials: this.credentials });
 
     private async getSsoUsers(identityStoreId: string): Promise<User[]> {
     const res: User[] = [];

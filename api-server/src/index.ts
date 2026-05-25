@@ -50,6 +50,24 @@ app.get("/api/resources/:arn/actions", async (req, res) => {
   }
 });
 
+app.put("/api/user-resource-watchlist/:id", async (req, res) => {
+  try {
+    const doc = await UserResourceWatchlistModel.findByIdAndUpdate(
+      req.params.id,
+      { resources: req.body.resources },
+      { returnDocument: "after" }
+    );
+    if (!doc) {
+      res.status(404).json({ message: "Watchlist not found" });
+      return;
+    }
+    res.json(doc);
+  } catch (err) {
+    console.error("PUT /api/user-resource-watchlist/:id failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
 app.get("/api/user-permissions/:userId", async (req, res) => {
   try {
     const permission = await UserPermissionModel.findOne({

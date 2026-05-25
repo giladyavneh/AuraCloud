@@ -1,3 +1,22 @@
+export interface AwsResource {
+  _id: string;
+  arn: string;
+  resourceType: string;
+  name: string;
+  accountId?: string;
+  region?: string;
+  lastSyncedAt: string;
+}
+
+export interface ResourceAction {
+  _id: string;
+  resourceArn: string;
+  actionName: string;
+  policySource?: string;
+  policyArn?: string;
+  lastSeenAt: string;
+}
+
 export interface ResourceWatchlistItem {
   _id: string;
   name: string;

@@ -33,6 +33,27 @@
     "errorPrefix": "Error:",
     "details": "Details"
   },
+  "resourceWatchlist": {
+    "title": "Resource Watchlist",
+    "subtitle": "Choose the AWS resources and actions you want to monitor. Changes take effect after saving.",
+    "save": "Save",
+    "saving": "Saving...",
+    "addResource": "Add Resource",
+    "selectResource": "Select a resource",
+    "selectActions": "Select actions",
+    "add": "Add",
+    "noResources": "No resources added yet",
+    "search": "Search resources or actions...",
+    "remove": "Remove",
+    "jsonEditor": "JSON Editor",
+    "download": "Download JSON",
+    "upload": "Upload JSON",
+    "jsonParseError": "Invalid JSON — fix the syntax to sync changes",
+    "columns": {
+      "resource": "Resource",
+      "actions": "Actions"
+    }
+  },
   "status": {
     "healthy": "Healthy",
     "blocked": "Blocked",

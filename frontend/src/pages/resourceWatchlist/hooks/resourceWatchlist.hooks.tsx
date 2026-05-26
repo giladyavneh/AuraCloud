@@ -53,7 +53,7 @@ export const useWatchlistTableColumns =
             const overflow = actions.length - MAX_VISIBLE_CHIPS;
 
             return (
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, paddingBlock: 1 }}>
                 {actions.length === 0 ? (
                   <Typography variant="caption" color="textDisabled">
                     —

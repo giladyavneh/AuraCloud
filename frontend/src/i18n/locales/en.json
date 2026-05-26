@@ -11,10 +11,20 @@
   },
   "dashboard": {
     "globalStatus": "Global Infrastructure Status",
-    "healthHeading": "Healthy with 1 active blocker",
+    "healthHeadingPrefix": "Healthy with",
     "refresh": "Refresh",
+    "activeBlockersSuffix_one": "active blocker",
+    "activeBlockersSuffix_other": "active blockers",
+    "focusCueBadge": "Focus Cue",
     "resourceStatus": "Resource Status",
     "resourceStatusDescription": "Single source of truth for live infrastructure checks and blockers.",
+    "filterTabs": {
+      "all": "All",
+      "iam": "IAM",
+      "resource": "Resource",
+      "network": "Network",
+      "healthy": "Healthy"
+    },
     "permissionsLoadError": "Could not load user permissions.",
     "noResourcesYet": "No resources to monitor yet. Add resources to your watchlist to start monitoring.",
     "focusCueLabel": "Focus cue:",

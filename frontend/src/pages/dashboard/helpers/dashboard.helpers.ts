@@ -3,9 +3,24 @@ import type {
   ArnPermissionData,
   ActionData,
 } from "@/services/types/resources.types";
+import type { AwsService } from "@/components/awsServiceIcon/types/awsServiceIcon.types";
 import i18next from "i18next";
 
 export { inferServiceFromArn, inferTitleFromArn } from "@/helpers/arn.helpers";
+
+export type ResourceCategory = "iam" | "network" | "resource";
+
+/**
+ * Maps an AWS service to a high-level category used by the dashboard filter tabs.
+ * - iam:      permission / identity services
+ * - network:  network / connectivity services
+ * - resource: storage / compute / messaging services
+ */
+export const getServiceCategory = (service: AwsService): ResourceCategory => {
+  if (["iam", "sso", "lambda"].includes(service)) return "iam";
+  if (["ec2", "rds", "ecr"].includes(service)) return "network";
+  return "resource";
+};
 
 interface HasStatus {
   status: unknown;

@@ -2,14 +2,13 @@ import Aurora from "@/components/aurora/Aurora";
 import {
   AuroraLayer,
   ContentRow,
+  FocusCueLabel,
   Scrim,
-  TextContent,
 } from "@/components/glowCard/components/glowCard.styled";
 import { toHexColor } from "@/components/glowCard/helpers/glowCard.helpers";
 import SpotlightCard from "@/components/spotlightCard/SpotlightCard";
 import { alpha, darken, lighten, useTheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
-import { SparkleIcon } from "@phosphor-icons/react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -18,8 +17,7 @@ const GlowCard: React.FC = () => {
   const theme = useTheme();
 
   // Three-stop gradient driven purely from theme.primary — a deeper purple,
-  // the base lavender, and a soft highlight. Keeps the aurora on-brand
-  // without introducing hardcoded colors. MUI's darken/lighten return rgb()
+  // the base lavender, and a soft highlight. MUI's darken/lighten return rgb()
   // strings; Aurora's WebGL parser only accepts hex, hence the normaliser.
   const auroraStops = [
     toHexColor(darken(theme.palette.primary.main, 0.35)),
@@ -36,21 +34,11 @@ const GlowCard: React.FC = () => {
       <Scrim />
 
       <ContentRow>
-        <SparkleIcon
-          size={theme.iconSize.lg}
-          weight="fill"
-          color={theme.palette.primary.main}
-        />
+        <FocusCueLabel>{t("dashboard.focusCueBadge")}</FocusCueLabel>
 
-        <TextContent>
-          <Typography variant="subtitle1" color="textPrimary">
-            {t("dashboard.focusCueLabel")}
-          </Typography>
-          <Typography variant="body2" color="textSecondary">
-            {t("dashboard.focusCueText")}
-          </Typography>
-        </TextContent>
-
+        <Typography variant="body2" color="textSecondary">
+          {t("dashboard.focusCueText")}
+        </Typography>
       </ContentRow>
     </SpotlightCard>
   );

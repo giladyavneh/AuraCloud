@@ -20,13 +20,24 @@ export const Scrim = styled(Box)(({ theme }) => ({
   background: `linear-gradient(180deg, ${alpha(theme.palette.surface.canvas, 0.2)} 0%, ${alpha(theme.palette.surface.canvas, 0.65)} 100%)`,
 }));
 
-// Foreground row: icon + text. Sits above the aurora + scrim.
+// Foreground row: label + description. Sits above the aurora + scrim.
 export const ContentRow = styled(Box)(({ theme }) => ({
   position: "relative",
   zIndex: 3,
   display: "flex",
   alignItems: "center",
   gap: theme.spacing(4),
+}));
+
+// "FOCUS CUE" — uppercase bold label on the left of the content row
+export const FocusCueLabel = styled(Box)(({ theme }) => ({
+  flexShrink: 0,
+  fontSize: theme.typography.caption.fontSize,
+  fontWeight: 700,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: theme.palette.text.primary,
+  whiteSpace: "nowrap",
 }));
 
 export const TextContent = styled(Box)(({ theme }) => ({

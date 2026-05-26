@@ -16,7 +16,7 @@ import {
 } from "@/components/resourceCard/helpers/resourceCard.helpers";
 import type { ResourceCardProps } from "@/components/resourceCard/types/resourceCard.types";
 import StatusTag from "@/components/statusTag/StatusTag";
-import { Alert, Button } from "@mui/material";
+import { Alert, Box, Button } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import React from "react";
@@ -56,7 +56,9 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
             </ServiceMeta>
           </ServiceInfo>
 
-          <StatusTag variant={status} />
+          <Box sx={{ flexShrink: 0 }}>
+            <StatusTag variant={status} />
+          </Box>
         </CardHeader>
 
         <ResourceList>

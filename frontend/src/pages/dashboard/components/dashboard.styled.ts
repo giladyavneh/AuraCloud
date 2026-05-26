@@ -28,15 +28,51 @@ export const StatusSummaryRight = styled(Box)(({ theme }) => ({
   flexDirection: "column",
   alignItems: "flex-end",
   gap: theme.spacing(3),
+  flexShrink: 0,
 }));
+
 
 export const StatsRowContainer = styled(Box)(({ theme }) => ({
   display: "flex",
   gap: theme.spacing(4),
 }));
 
+/** Row containing the section title/description (left) and filter tabs (right) */
 export const ResourceSectionHeader = styled(Box)(({ theme }) => ({
   display: "flex",
-  flexDirection: "column",
-  gap: theme.spacing(1),
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: theme.spacing(4),
+}));
+
+/** Pill container that wraps all filter tab buttons */
+export const FilterTabsRow = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  gap: theme.spacing(0.5),
+  border: `1px solid ${theme.palette.divider}`,
+  borderRadius: 99,
+  padding: theme.spacing(0.5),
+  flexShrink: 0,
+}));
+
+/** Individual filter tab — active state gets a solid primary fill */
+export const FilterTab = styled(Box, {
+  shouldForwardProp: (prop) => prop !== "isActive",
+})<{ isActive?: boolean }>(({ theme, isActive }) => ({
+  padding: theme.spacing(1.5, 3),
+  borderRadius: 99,
+  cursor: "pointer",
+  fontSize: theme.typography.body2.fontSize,
+  fontWeight: 400,
+  color: isActive ? theme.palette.background.default : theme.palette.text.secondary,
+  backgroundColor: isActive ? theme.palette.primary.main : "transparent",
+  transition: "background-color 0.15s ease, color 0.15s ease",
+  userSelect: "none",
+  whiteSpace: "nowrap",
+
+  "&:hover": {
+    color: isActive ? theme.palette.background.default : theme.palette.text.primary,
+    backgroundColor: isActive ? theme.palette.primary.main : theme.palette.divider,
+  },
 }));

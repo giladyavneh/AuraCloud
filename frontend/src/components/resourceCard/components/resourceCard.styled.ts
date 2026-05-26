@@ -18,16 +18,20 @@ export const CardBody = styled(Box)(({ theme }) => ({
   padding: theme.spacing(4),
 }));
 
-export const CardHeader = styled(Box)({
+export const CardHeader = styled(Box)(({ theme }) => ({
   display: "flex",
   alignItems: "start",
   justifyContent: "space-between",
-});
+  gap: theme.spacing(2),
+}));
 
 export const ServiceInfo = styled(Box)(({ theme }) => ({
   display: "flex",
   alignItems: "start",
   gap: theme.spacing(3),
+  flex: 1,
+  minWidth: 0, // allows flex child to shrink below its content size
+  overflow: "hidden",
 }));
 
 export const ServiceMeta = styled(Box)({

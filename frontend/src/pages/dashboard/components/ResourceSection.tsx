@@ -5,21 +5,31 @@ import {
   deriveStatusFromArnData,
   formatTimestamp,
   getErrorReasonFromArnData,
+  getServiceCategory,
   getTimestampFromArnData,
   inferServiceFromArn,
 } from "@/pages/dashboard/helpers/dashboard.helpers";
 import { extractResourceName } from "@/helpers/arn.helpers";
 import type { ArnPermissionData } from "@/services/types/resources.types";
-import { ResourceSectionHeader } from "@/pages/dashboard/components/dashboard.styled";
+import {
+  FilterTab,
+  FilterTabsRow,
+  ResourceSectionHeader,
+} from "@/pages/dashboard/components/dashboard.styled";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
-import React from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+
+type FilterTabValue = "all" | "iam" | "resource" | "network" | "healthy";
+
+const FILTER_TABS: FilterTabValue[] = ["all", "iam", "resource", "network", "healthy"];
 
 const ResourceSection: React.FC = () => {
   const { t } = useTranslation();
+  const [activeFilter, setActiveFilter] = useState<FilterTabValue>("all");
 
   const { data: watchlistItems = [], isLoading: watchlistLoading } = useUserResourceWatchlist();
   const { data: permission, isLoading: permissionsLoading, isError, error } = useUserPermissions();
@@ -33,16 +43,41 @@ const ResourceSection: React.FC = () => {
   // A 404 just means the Brain hasn't run yet — not a real error
   const isRealError = isError && !error?.message.includes("404");
 
+  const filteredResources = watchlistResources.filter(({ arn }) => {
+    if (activeFilter === "all") return true;
+
+    const service = inferServiceFromArn(arn);
+    const arnData = permissionsMap[arn];
+    const status = arnData ? deriveStatusFromArnData(arnData) : "stale";
+
+    if (activeFilter === "healthy") return status === "healthy";
+    return getServiceCategory(service) === activeFilter;
+  });
+
   return (
     <>
       <ResourceSectionHeader>
-        <Typography variant="h5" color="textPrimary">
-          {t("dashboard.resourceStatus")}
-        </Typography>
+        <Box>
+          <Typography variant="h5" color="textPrimary">
+            {t("dashboard.resourceStatus")}
+          </Typography>
 
-        <Typography variant="body2" color="textDisabled">
-          {t("dashboard.resourceStatusDescription")}
-        </Typography>
+          <Typography variant="body2" color="textDisabled">
+            {t("dashboard.resourceStatusDescription")}
+          </Typography>
+        </Box>
+
+        <FilterTabsRow>
+          {FILTER_TABS.map((tab) => (
+            <FilterTab
+              key={tab}
+              isActive={activeFilter === tab}
+              onClick={() => setActiveFilter(tab)}
+            >
+              {t(`dashboard.filterTabs.${tab}`)}
+            </FilterTab>
+          ))}
+        </FilterTabsRow>
       </ResourceSectionHeader>
 
       <GlowCard />
@@ -65,9 +100,9 @@ const ResourceSection: React.FC = () => {
         </Typography>
       )}
 
-      {!isLoading && !isRealError && watchlistResources.length > 0 && (
+      {!isLoading && !isRealError && filteredResources.length > 0 && (
         <Grid container spacing={2}>
-          {watchlistResources.map(({ arn, actions }) => {
+          {filteredResources.map(({ arn, actions }) => {
             const arnData = permissionsMap[arn];
             const service = inferServiceFromArn(arn);
             const resourceName = extractResourceName(arn);

@@ -1,5 +1,11 @@
+import AuraLogo from "@/components/auraLogo/AuraLogo";
+import PixelBlast from "@/components/pixelBlast/PixelBlast";
 import { useSignUp } from "@/hooks/auth.hooks";
 import {
+  BackgroundLayer,
+  FooterLink,
+  HeaderBlock,
+  LogoBadge,
   NameRow,
   SignUpCard,
   SignUpForm,
@@ -14,7 +20,7 @@ import { useTheme } from "@mui/material/styles";
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/auth/AuthContext";
 
 interface SignUpFormValues {
@@ -50,19 +56,35 @@ const SignUp: React.FC = () => {
 
   return (
     <SignUpRoot>
+      <BackgroundLayer>
+        <PixelBlast
+          variant="square"
+          color={theme.palette.primary.main}
+          pixelSize={4}
+          patternScale={3}
+          patternDensity={1.2}
+          pixelSizeJitter={0.4}
+          edgeFade={0.4}
+          speed={0.4}
+          // Listen for clicks page-wide so ripples also fire when the card is clicked
+          rippleTrigger="window"
+        />
+      </BackgroundLayer>
+
       <SignUpCard elevation={0}>
-        <div>
-          <Typography variant="h5" color="textPrimary" gutterBottom>
+        <HeaderBlock>
+          <LogoBadge>
+            <AuraLogo size={theme.iconSize.md} />
+          </LogoBadge>
+          <Typography variant="h5" color="textPrimary">
             {t("signUp.title")}
           </Typography>
           <Typography variant="body2" color="textSecondary">
             {t("signUp.subtitle")}
           </Typography>
-        </div>
+        </HeaderBlock>
 
-        {error && (
-          <Alert severity="error">{error.message}</Alert>
-        )}
+        {error && <Alert severity="error">{error.message}</Alert>}
 
         <SignUpForm onSubmit={handleSubmit(onSubmit)} noValidate>
           <NameRow>
@@ -122,7 +144,6 @@ const SignUp: React.FC = () => {
             fullWidth
             disabled={isPending}
             startIcon={isPending && <CircularProgress size={theme.iconSize.xs} color="inherit" />}
-            sx={{ marginTop: 1 }}
           >
             {isPending ? t("signUp.submitting") : t("signUp.submit")}
           </Button>
@@ -130,9 +151,7 @@ const SignUp: React.FC = () => {
 
         <Typography variant="body2" color="textSecondary" sx={{ textAlign: "center" }}>
           {t("signUp.loginPrompt")}{" "}
-          <Link to="/login" style={{ color: theme.palette.primary.main }}>
-            {t("signUp.loginLink")}
-          </Link>
+          <FooterLink to="/login">{t("signUp.loginLink")}</FooterLink>
         </Typography>
 
       </SignUpCard>

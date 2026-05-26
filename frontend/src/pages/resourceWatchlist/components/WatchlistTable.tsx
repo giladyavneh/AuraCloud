@@ -40,10 +40,13 @@ const WatchlistTable: React.FC<WatchlistTableProps> = ({
     positionGlobalFilter: "right",
 
     // ── Search field ──────────────────────────────────────────
+    // sx is at the TextField top-level (width applies to the whole field),
+    // and the start-adornment goes through `slotProps.input` (MUI v6 API).
     muiSearchTextFieldProps: {
       size: "small",
       variant: "outlined",
       placeholder: t("resourceWatchlist.search"),
+      sx: { width: 260 },
       slotProps: {
         input: {
           startAdornment: (
@@ -51,7 +54,6 @@ const WatchlistTable: React.FC<WatchlistTableProps> = ({
               <MagnifyingGlassIcon />
             </InputAdornment>
           ),
-          sx: { width: 260 },
         },
       },
     },
@@ -83,15 +85,25 @@ const WatchlistTable: React.FC<WatchlistTableProps> = ({
     },
 
     // ── Styling to match dark theme ───────────────────────────
+    muiTablePaperProps: {
+      elevation: 0,
+      sx: { backgroundColor: "transparent" },
+    },
+    muiTopToolbarProps: {
+      sx: { backgroundColor: "transparent", paddingInline: 0 },
+    },
+    muiTableContainerProps: {
+      sx: { backgroundColor: "transparent" },
+    },
     muiTableHeadCellProps: {
-      sx: { borderColor: theme.palette.border.strong },
+      sx: { borderColor: theme.palette.border.default },
     },
     muiTableBodyCellProps: ({ row, table }) => {
       const isLastRow = row.index === table.getRowModel().rows.length - 1;
 
       return {
         sx: {
-          borderColor: theme.palette.border.strong,
+          borderColor: theme.palette.border.default,
           borderBottom: isLastRow ? "none" : undefined,
         },
       };

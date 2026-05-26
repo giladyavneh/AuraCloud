@@ -24,7 +24,7 @@ export const PageTitleBlock = styled(Box)(({ theme }) => ({
 }));
 
 export const LeftPanel = styled(Box)(({ theme }) => ({
-  height: "stretch",
+  height: "100%",
   minWidth: 0,
   display: "flex",
   flexDirection: "column",
@@ -32,8 +32,8 @@ export const LeftPanel = styled(Box)(({ theme }) => ({
 }));
 
 export const PanelCard = styled(Card)(({ theme }) => ({
-  backgroundColor: theme.palette.surface.subtle,
-  border: `1px solid ${theme.palette.border.strong}`,
+  backgroundColor: theme.palette.surface.base,
+  border: `1px solid ${theme.palette.border.default}`,
   borderRadius: theme.shape.borderRadius,
   padding: theme.spacing(4),
   display: "flex",
@@ -42,11 +42,11 @@ export const PanelCard = styled(Card)(({ theme }) => ({
 }));
 
 export const JsonPanelCard = styled(Card)(({ theme }) => ({
-  height: "stretch",
+  height: "100%",
   minWidth: 0,
   minHeight: 0,
-  backgroundColor: theme.palette.surface.subtle,
-  border: `1px solid ${theme.palette.border.strong}`,
+  backgroundColor: theme.palette.surface.base,
+  border: `1px solid ${theme.palette.border.default}`,
   borderRadius: theme.shape.borderRadius,
   padding: theme.spacing(4),
   display: "flex",
@@ -78,7 +78,7 @@ export const EditorWrapper = styled(Box)(({ theme }) => ({
   minHeight: 0,
   borderRadius: theme.shape.borderRadius,
   overflow: "hidden",
-  border: `1px solid ${theme.palette.border.strong}`,
+  border: `1px solid ${theme.palette.border.default}`,
 }));
 
 export const JsonErrorBadge = styled(Box)(({ theme }) => ({

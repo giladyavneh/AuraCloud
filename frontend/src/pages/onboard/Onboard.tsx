@@ -1,6 +1,11 @@
+import AuraLogo from "@/components/auraLogo/AuraLogo";
+import PixelBlast from "@/components/pixelBlast/PixelBlast";
 import { useSubmitAwsCredentials } from "@/hooks/auth.hooks";
 import {
+  BackgroundLayer,
   Divider,
+  HeaderBlock,
+  LogoBadge,
   OnboardCard,
   OnboardForm,
   OnboardRoot,
@@ -44,15 +49,32 @@ const Onboard: React.FC = () => {
 
   return (
     <OnboardRoot>
+      <BackgroundLayer>
+        <PixelBlast
+          variant="square"
+          color={theme.palette.primary.main}
+          pixelSize={4}
+          patternScale={3}
+          patternDensity={1.2}
+          pixelSizeJitter={0.4}
+          edgeFade={0.4}
+          speed={0.4}
+          rippleTrigger="window"
+        />
+      </BackgroundLayer>
+
       <OnboardCard elevation={0}>
-        <div>
-          <Typography variant="h5" color="textPrimary" gutterBottom>
+        <HeaderBlock>
+          <LogoBadge>
+            <AuraLogo size={theme.iconSize.md} />
+          </LogoBadge>
+          <Typography variant="h5" color="textPrimary">
             {t("onboard.title")}
           </Typography>
           <Typography variant="body2" color="textSecondary">
             {t("onboard.subtitle")}
           </Typography>
-        </div>
+        </HeaderBlock>
 
         {/* Step 1 */}
         <StepBlock>

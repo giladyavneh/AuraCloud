@@ -56,8 +56,8 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
         </PageTitleBlock>
       </PageHeader>
 
-      <Grid container spacing={4} sx={{ height: "100%" }}>
-        <Grid size={{ xs: 12, lg: 8 }}>
+      <Grid container spacing={4} sx={{ flex: 1, minHeight: 0 }}>
+        <Grid size={{ xs: 12, lg: 8 }} sx={{ height: "100%" }}>
           <ResourceSelectorPanel
             draftResources={draftResources}
             onDraftChange={setDraftResources}
@@ -66,7 +66,7 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
           />
         </Grid>
 
-        <Grid size={{ xs: 12, lg: 4 }}>
+        <Grid size={{ xs: 12, lg: 4 }} sx={{ height: "100%" }}>
           <JsonEditorPanel
             draftResources={draftResources}
             onDraftChange={setDraftResources}

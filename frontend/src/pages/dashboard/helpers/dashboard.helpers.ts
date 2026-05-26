@@ -17,7 +17,7 @@ export type ResourceCategory = "iam" | "network" | "resource";
  * - resource: storage / compute / messaging services
  */
 export const getServiceCategory = (service: AwsService): ResourceCategory => {
-  if (["iam", "sso", "lambda"].includes(service)) return "iam";
+  if (["iam", "sso"].includes(service)) return "iam";
   if (["ec2", "rds", "ecr"].includes(service)) return "network";
   return "resource";
 };

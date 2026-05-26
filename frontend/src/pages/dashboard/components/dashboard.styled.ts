@@ -58,6 +58,16 @@ export const FilterTabsRow = styled(Box)(({ theme }) => ({
   flexShrink: 0,
 }));
 
+/** Small count badge rendered inside a FilterTab */
+export const FilterTabCount = styled("span", {
+  shouldForwardProp: (prop) => prop !== "isActive",
+})<{ isActive?: boolean }>(({ theme, isActive }) => ({
+  marginLeft: theme.spacing(1),
+  fontSize: "11px",
+  fontFamily: theme.typography.fontFamilyMono,
+  opacity: isActive ? 0.75 : 0.5,
+}));
+
 /** Individual filter tab — active state gets a solid primary fill */
 export const FilterTab = styled(Box, {
   shouldForwardProp: (prop) => prop !== "isActive",

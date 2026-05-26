@@ -15,7 +15,7 @@ const SERVICE_ARN_MAP: Array<{
   { segment: ':sso',    service: 'sso',    title: 'SSO' },
 ];
 
-const FALLBACK_SERVICE: AwsService = 's3';
+const FALLBACK_SERVICE: AwsService = 'unknown';
 
 /** Derives the AwsService key from a resource ARN. Falls back to 's3'. */
 export const inferServiceFromArn = (arn: string): AwsService => {

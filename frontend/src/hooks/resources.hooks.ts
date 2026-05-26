@@ -21,6 +21,7 @@ export const useUserPermissions = () =>
   useQuery({
     queryKey: QUERY_KEYS.userPermissions,
     queryFn: fetchUserPermissions,
+    refetchInterval: 10_000,
     // 404 means no Brain data yet — treat as empty, not an error
     retry: (failureCount, error) =>
       error.message.includes('404') ? false : failureCount < 3,

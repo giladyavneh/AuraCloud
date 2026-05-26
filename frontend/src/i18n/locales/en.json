@@ -74,6 +74,8 @@
     "noResources": "No resources added yet",
     "noWatchlist": "No watchlist found. Start by adding resources to monitor.",
     "unsavedChanges": "Unsaved changes",
+    "saveSuccess": "Watchlist saved successfully.",
+    "saveError": "Failed to save watchlist. Please try again.",
     "search": "Search resources or actions...",
     "remove": "Remove",
     "jsonEditor": "JSON Editor",

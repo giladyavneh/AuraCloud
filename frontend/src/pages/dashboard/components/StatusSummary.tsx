@@ -5,7 +5,9 @@ import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 import { useTranslation } from "react-i18next";
 import { ArrowsClockwiseIcon } from "@phosphor-icons/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useUserPermissions } from "@/hooks/resources.hooks";
+import { QUERY_KEYS } from "@/constants/queryKeys";
 import { deriveStatusFromArnData } from "@/pages/dashboard/helpers/dashboard.helpers";
 import type { ArnPermissionData } from "@/services/types/resources.types";
 import StatusTag from "@/components/statusTag/StatusTag";
@@ -18,7 +20,13 @@ import {
 const StatusSummary: React.FC = () => {
   const { t } = useTranslation();
   const theme = useTheme();
-  const { data: permission, refetch } = useUserPermissions();
+  const queryClient = useQueryClient();
+  const { data: permission } = useUserPermissions();
+
+  const handleRefresh = () => {
+    void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.userPermissions });
+    void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.userResourceWatchlist });
+  };
 
   const activeBlockers = Object.values(
     (permission?.permissionsData as Record<string, ArnPermissionData>) ?? {},
@@ -58,7 +66,7 @@ const StatusSummary: React.FC = () => {
           variant="outlined"
           color="primary"
           startIcon={<ArrowsClockwiseIcon size={theme.iconSize.xs} />}
-          onClick={() => refetch()}
+          onClick={handleRefresh}
         >
           {t("dashboard.refresh")}
         </Button>

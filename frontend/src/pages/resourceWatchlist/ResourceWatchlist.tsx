@@ -12,10 +12,12 @@ import {
 import type { WatchlistResource } from "@/pages/resourceWatchlist/types/resourceWatchlist.types";
 import type { ResourceWatchlistItem } from "@/services/types/resources.types";
 import { Grid } from "@mui/material";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
+import Snackbar from "@mui/material/Snackbar";
 import Typography from "@mui/material/Typography";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 // ─── Inner content component ─────────────────────────────────────────────────
@@ -28,26 +30,43 @@ interface ResourceWatchlistContentProps {
   watchlist: ResourceWatchlistItem;
 }
 
+const sortedSnapshot = (resources: WatchlistResource[]) =>
+  [...resources].sort((a, b) => a.arn.localeCompare(b.arn)).map((r) => ({ arn: r.arn, actions: r.actions }));
+
 const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
   watchlist,
 }) => {
   const { t } = useTranslation();
-  const { mutate: save, isPending: isSaving } = useUpdateWatchlist();
+  const { mutate: save, isPending: isSaving, isSuccess: isSaved, isError: hasSaveError } = useUpdateWatchlist();
 
   const [draftResources, setDraftResources] = useState<WatchlistResource[]>(
     watchlist.resources,
   );
+  const [snackbar, setSnackbar] = useState<{ open: boolean; severity: "success" | "error" }>({
+    open: false,
+    severity: "success",
+  });
 
   const isDirty = useMemo(
-    () =>
-      JSON.stringify(draftResources.map((r) => ({ arn: r.arn, actions: r.actions }))) !==
-      JSON.stringify(watchlist.resources.map((r) => ({ arn: r.arn, actions: r.actions }))),
+    () => JSON.stringify(sortedSnapshot(draftResources)) !== JSON.stringify(sortedSnapshot(watchlist.resources)),
     [draftResources, watchlist.resources],
   );
 
   const handleSave = () => {
     save({ id: watchlist._id, resources: draftResources });
   };
+
+  const handleSnackbarClose = () => setSnackbar((prev) => ({ ...prev, open: false }));
+
+  // Detect when a pending save settles so the toast fires reliably
+  const wasPending = useRef(false);
+  useEffect(() => {
+    if (wasPending.current && !isSaving) {
+      if (isSaved) setSnackbar({ open: true, severity: "success" });
+      if (hasSaveError) setSnackbar({ open: true, severity: "error" });
+    }
+    wasPending.current = isSaving;
+  }, [isSaving, isSaved, hasSaveError]);
 
   return (
     <PageRoot>
@@ -62,6 +81,19 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
           </Typography>
         </PageTitleBlock>
       </PageHeader>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} variant="filled">
+          {snackbar.severity === "success"
+            ? t("resourceWatchlist.saveSuccess")
+            : t("resourceWatchlist.saveError")}
+        </Alert>
+      </Snackbar>
 
       <Grid container spacing={4} sx={{ flex: 1, minHeight: 0 }}>
         <Grid size={{ xs: 12, lg: 7 }} sx={{ height: "100%" }}>

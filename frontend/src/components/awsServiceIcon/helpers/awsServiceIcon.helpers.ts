@@ -10,6 +10,7 @@ import {
   AwsIdentityAndAccessManagement,
   AwsIamIdentityCenter,
 } from "@nxavis/aws-icons";
+import { QuestionIcon } from "@phosphor-icons/react";
 import type { AwsService } from "@/components/awsServiceIcon/types/awsServiceIcon.types";
 
 export const SERVICE_CONFIG: Record<
@@ -25,4 +26,5 @@ export const SERVICE_CONFIG: Record<
   cloudwatch: AmazonCloudWatch,
   iam: AwsIdentityAndAccessManagement,
   sso: AwsIamIdentityCenter,
+  unknown: QuestionIcon,
 };

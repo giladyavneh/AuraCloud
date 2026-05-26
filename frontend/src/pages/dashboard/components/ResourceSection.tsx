@@ -14,6 +14,7 @@ import type { ArnPermissionData } from "@/services/types/resources.types";
 import {
   FilterTab,
   FilterTabsRow,
+  FilterTabCount,
   ResourceSectionHeader,
 } from "@/pages/dashboard/components/dashboard.styled";
 import Box from "@mui/material/Box";
@@ -35,8 +36,10 @@ const ResourceSection: React.FC = () => {
   const { data: permission, isLoading: permissionsLoading, isError, error } = useUserPermissions();
 
   const watchlistResources = watchlistItems[0]?.resources ?? [];
-  const permissionsMap: Record<string, ArnPermissionData> =
-    (permission?.permissionsData as Record<string, ArnPermissionData>) ?? {};
+  const permissionsMap = useMemo<Record<string, ArnPermissionData>>(
+    () => (permission?.permissionsData as Record<string, ArnPermissionData>) ?? {},
+    [permission?.permissionsData],
+  );
 
   const isLoading = watchlistLoading || permissionsLoading;
 
@@ -76,6 +79,19 @@ const ResourceSection: React.FC = () => {
     }
     return t("dashboard.focusCueAllHealthy");
   }, [isLoading, isRealError, watchlistResources.length, blockerCount, staleCount, t]);
+
+  const tabCounts = useMemo<Record<FilterTabValue, number>>(() => {
+    const counts: Record<FilterTabValue, number> = { all: watchlistResources.length, iam: 0, resource: 0, network: 0, healthy: 0 };
+    for (const { arn } of watchlistResources) {
+      const service = inferServiceFromArn(arn);
+      const arnData = permissionsMap[arn];
+      const status = arnData ? deriveStatusFromArnData(arnData) : "stale";
+      const category = getServiceCategory(service);
+      counts[category]++;
+      if (status === "healthy") counts.healthy++;
+    }
+    return counts;
+  }, [watchlistResources, permissionsMap]);
 
   const filteredResources = watchlistResources.filter(({ arn }) => {
     if (activeFilter === "all") return true;
@@ -117,6 +133,9 @@ const ResourceSection: React.FC = () => {
               }}
             >
               {t(`dashboard.filterTabs.${tab}`)}
+              {watchlistResources.length > 0 && (
+                <FilterTabCount isActive={activeFilter === tab}>{tabCounts[tab]}</FilterTabCount>
+              )}
             </FilterTab>
           ))}
         </FilterTabsRow>

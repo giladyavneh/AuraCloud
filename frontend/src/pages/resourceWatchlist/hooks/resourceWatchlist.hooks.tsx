@@ -66,7 +66,7 @@ export const useWatchlistTableColumns =
                     {overflow > 0 && (
                       <Tooltip
                         title={
-                          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                          <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, paddingBlock: 0.5 }}>
                             {actions.slice(MAX_VISIBLE_CHIPS).map((action) => (
                               <Typography key={action} variant="caption">
                                 {action}

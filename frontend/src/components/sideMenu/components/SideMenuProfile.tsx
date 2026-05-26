@@ -8,13 +8,29 @@ import { ProfileRow } from '@/components/sideMenu/components/sideMenu.styled';
 const SideMenuProfile: React.FC = () => {
   const { data: user } = useCurrentUser();
 
+  const initials = user?.name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join('') ?? '';
+
   return (
     <ProfileRow>
       <Avatar
-        src={user?.avatarUrl ?? ''}
+        src={user?.avatarUrl}
         alt={user?.name}
-        sx={(theme) => ({ width: 48, height: 48, bgcolor: theme.palette.divider })}
-      />
+        sx={(theme) => ({
+          width: 48,
+          height: 48,
+          bgcolor: theme.palette.primary.main,
+          color: theme.palette.primary.contrastText,
+          fontSize: theme.typography.body1.fontSize,
+          fontWeight: theme.typography.fontWeightBold,
+        })}
+      >
+        {!user?.avatarUrl && initials}
+      </Avatar>
 
       <Box>
         <Typography variant="body1" color="textPrimary" noWrap>

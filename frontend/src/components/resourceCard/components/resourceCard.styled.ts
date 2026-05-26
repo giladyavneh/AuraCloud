@@ -21,25 +21,22 @@ export const CardBody = styled(Box)(({ theme }) => ({
 export const CardHeader = styled(Box)(({ theme }) => ({
   display: "flex",
   alignItems: "start",
-  justifyContent: "space-between",
-  gap: theme.spacing(2),
-}));
-
-export const ServiceInfo = styled(Box)(({ theme }) => ({
-  display: "flex",
-  alignItems: "start",
   gap: theme.spacing(3),
-  flex: 1,
-  minWidth: 0, // allows flex child to shrink below its content size
-  overflow: "hidden",
 }));
 
 export const ServiceMeta = styled(Box)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
-  gap: theme.spacing(0.5),
+  gap: theme.spacing(1),
+  flex: 1,
   minWidth: 0,
-  overflow: "hidden",
+}));
+
+export const MetaTopRow = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: theme.spacing(2),
 }));
 
 export const ResourceList = styled(Box)(({ theme }) => ({

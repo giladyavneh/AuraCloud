@@ -3,10 +3,10 @@ import {
   CardBody,
   CardHeader,
   CardRoot,
+  MetaTopRow,
   ResourceDot,
   ResourceItem,
   ResourceList,
-  ServiceInfo,
   ServiceMeta,
 } from "@/components/resourceCard/components/resourceCard.styled";
 import ResourceCardMoreActions from "@/components/resourceCard/components/ResourceCardMoreActions";
@@ -16,7 +16,7 @@ import {
 } from "@/components/resourceCard/helpers/resourceCard.helpers";
 import type { ResourceCardProps } from "@/components/resourceCard/types/resourceCard.types";
 import StatusTag from "@/components/statusTag/StatusTag";
-import { Alert, Box, Button } from "@mui/material";
+import { Alert, Button } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import React from "react";
@@ -42,32 +42,21 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
     <CardRoot>
       <CardBody>
         <CardHeader>
-          <ServiceInfo>
-            <AwsServiceIcon service={service} size={theme.iconSize.xl} />
+          <AwsServiceIcon service={service} size={theme.iconSize.xl} />
 
-            <ServiceMeta>
+          <ServiceMeta>
+            <MetaTopRow>
               <Typography variant="caption" color="textDisabled">
                 {lastUpdated}
               </Typography>
 
-              <Typography
-                variant="h5"
-                color="textPrimary"
-                sx={{
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                }}
-              >
-                {title}
-              </Typography>
-            </ServiceMeta>
-          </ServiceInfo>
+              <StatusTag variant={status} />
+            </MetaTopRow>
 
-          <Box sx={{ flexShrink: 0 }}>
-            <StatusTag variant={status} />
-          </Box>
+            <Typography variant="h5" color="textPrimary">
+              {title}
+            </Typography>
+          </ServiceMeta>
         </CardHeader>
 
         <ResourceList>

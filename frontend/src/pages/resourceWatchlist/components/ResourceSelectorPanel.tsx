@@ -1,5 +1,9 @@
 import React from "react";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
+import { useTheme } from "@mui/material/styles";
 import { useTranslation } from "react-i18next";
 import AddResourceForm from "@/pages/resourceWatchlist/components/AddResourceForm";
 import WatchlistTable from "@/pages/resourceWatchlist/components/WatchlistTable";
@@ -17,8 +21,10 @@ const ResourceSelectorPanel: React.FC<ResourceSelectorPanelProps> = ({
   onDraftChange,
   onSave,
   isSaving,
+  isDirty,
 }) => {
   const { t } = useTranslation();
+  const theme = useTheme();
 
   const handleAdd = (resource: WatchlistResource) => {
     onDraftChange([...draftResources, resource]);
@@ -40,14 +46,31 @@ const ResourceSelectorPanel: React.FC<ResourceSelectorPanelProps> = ({
         <AddResourceForm
           onAdd={handleAdd}
           existingArns={existingArns}
-          onSave={onSave}
-          isSaving={isSaving}
         />
       </PanelCard>
 
       <PanelCard sx={{ flex: 1, overflow: "auto" }}>
         <WatchlistTable resources={draftResources} onRemove={handleRemove} />
       </PanelCard>
+
+      <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: theme.spacing(2) }}>
+        {isDirty && (
+          <Typography variant="caption" color="warning.main">
+            {t("resourceWatchlist.unsavedChanges")}
+          </Typography>
+        )}
+
+        <Button
+          variant={isDirty ? "contained" : "outlined"}
+          color="primary"
+          onClick={onSave}
+          disabled={isSaving}
+          size="medium"
+          startIcon={isSaving ? <CircularProgress size={theme.iconSize.xs} color="inherit" /> : undefined}
+        >
+          {isSaving ? t("resourceWatchlist.saving") : t("resourceWatchlist.save")}
+        </Button>
+      </Box>
     </LeftPanel>
   );
 };

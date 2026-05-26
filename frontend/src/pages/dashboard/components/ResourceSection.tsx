@@ -20,7 +20,7 @@ import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 type FilterTabValue = "all" | "iam" | "resource" | "network" | "healthy";
@@ -42,6 +42,40 @@ const ResourceSection: React.FC = () => {
 
   // A 404 just means the Brain hasn't run yet — not a real error
   const isRealError = isError && !error?.message.includes("404");
+
+  const blockerCount = useMemo(
+    () =>
+      watchlistResources.filter(({ arn }) => {
+        const arnData = permissionsMap[arn];
+        return arnData ? deriveStatusFromArnData(arnData) === "blocked" : false;
+      }).length,
+    [watchlistResources, permissionsMap],
+  );
+
+  const staleCount = useMemo(
+    () =>
+      watchlistResources.filter(({ arn }) => {
+        const arnData = permissionsMap[arn];
+        return !arnData || deriveStatusFromArnData(arnData) === "stale";
+      }).length,
+    [watchlistResources, permissionsMap],
+  );
+
+  const focusCueText = useMemo(() => {
+    if (isLoading || isRealError || watchlistResources.length === 0) {
+      return t("dashboard.focusCueNoData");
+    }
+    if (blockerCount > 0 && staleCount > 0) {
+      return t("dashboard.focusCueMixed", { blockers: blockerCount, stale: staleCount });
+    }
+    if (blockerCount > 0) {
+      return t("dashboard.focusCueBlockers", { count: blockerCount });
+    }
+    if (staleCount > 0) {
+      return t("dashboard.focueCueStaleOnly", { count: staleCount });
+    }
+    return t("dashboard.focusCueAllHealthy");
+  }, [isLoading, isRealError, watchlistResources.length, blockerCount, staleCount, t]);
 
   const filteredResources = watchlistResources.filter(({ arn }) => {
     if (activeFilter === "all") return true;
@@ -73,6 +107,14 @@ const ResourceSection: React.FC = () => {
               key={tab}
               isActive={activeFilter === tab}
               onClick={() => setActiveFilter(tab)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e: React.KeyboardEvent) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setActiveFilter(tab);
+                }
+              }}
             >
               {t(`dashboard.filterTabs.${tab}`)}
             </FilterTab>
@@ -80,7 +122,7 @@ const ResourceSection: React.FC = () => {
         </FilterTabsRow>
       </ResourceSectionHeader>
 
-      <GlowCard />
+      <GlowCard focusText={focusCueText} />
 
       {isLoading && (
         <Box sx={{ display: "flex", justifyContent: "center", paddingBlock: 4 }}>
@@ -97,6 +139,12 @@ const ResourceSection: React.FC = () => {
       {!isLoading && !isRealError && watchlistResources.length === 0 && (
         <Typography variant="body2" color="textSecondary">
           {t("dashboard.noResourcesYet")}
+        </Typography>
+      )}
+
+      {!isLoading && !isRealError && watchlistResources.length > 0 && filteredResources.length === 0 && (
+        <Typography variant="body2" color="textSecondary">
+          {t("dashboard.noResourcesForFilter")}
         </Typography>
       )}
 

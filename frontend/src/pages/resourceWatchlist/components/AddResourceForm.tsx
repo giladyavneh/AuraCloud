@@ -8,8 +8,6 @@ import type {
 import Autocomplete from "@mui/material/Autocomplete";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
-import CircularProgress from "@mui/material/CircularProgress";
-import { useTheme } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -19,11 +17,8 @@ const AUTOCOMPLETE_MIN_WIDTH = 280;
 const AddResourceForm: React.FC<AddResourceFormProps> = ({
   onAdd,
   existingArns,
-  onSave,
-  isSaving,
 }) => {
   const { t } = useTranslation();
-  const theme = useTheme();
   const [selectedResource, setSelectedResource] = useState<AwsResource | null>(
     null,
   );
@@ -125,17 +120,6 @@ const AddResourceForm: React.FC<AddResourceFormProps> = ({
         sx={{ alignSelf: "center" }}
       >
         {t("resourceWatchlist.add")}
-      </Button>
-
-      <Button
-        variant="contained"
-        onClick={onSave}
-        disabled={isSaving}
-        size="medium"
-        startIcon={isSaving && <CircularProgress size={theme.iconSize.xs} color="inherit" />}
-        sx={{ alignSelf: "center" }}
-      >
-        {isSaving ? t("resourceWatchlist.saving") : t("resourceWatchlist.save")}
       </Button>
     </FormRow>
   );

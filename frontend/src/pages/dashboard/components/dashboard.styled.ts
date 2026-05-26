@@ -1,6 +1,8 @@
 import { styled } from "@mui/material/styles";
 import Box from "@mui/material/Box";
 
+const PILL_RADIUS = 99;
+
 export const PageRoot = styled(Box)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
@@ -51,7 +53,7 @@ export const FilterTabsRow = styled(Box)(({ theme }) => ({
   alignItems: "center",
   gap: theme.spacing(0.5),
   border: `1px solid ${theme.palette.divider}`,
-  borderRadius: 99,
+  borderRadius: PILL_RADIUS,
   padding: theme.spacing(0.5),
   flexShrink: 0,
 }));
@@ -61,7 +63,7 @@ export const FilterTab = styled(Box, {
   shouldForwardProp: (prop) => prop !== "isActive",
 })<{ isActive?: boolean }>(({ theme, isActive }) => ({
   padding: theme.spacing(1.5, 3),
-  borderRadius: 99,
+  borderRadius: PILL_RADIUS,
   cursor: "pointer",
   fontSize: theme.typography.body2.fontSize,
   fontWeight: 400,
@@ -70,9 +72,15 @@ export const FilterTab = styled(Box, {
   transition: "background-color 0.15s ease, color 0.15s ease",
   userSelect: "none",
   whiteSpace: "nowrap",
+  outline: "none",
 
   "&:hover": {
     color: isActive ? theme.palette.background.default : theme.palette.text.primary,
     backgroundColor: isActive ? theme.palette.primary.main : theme.palette.divider,
+  },
+
+  "&:focus-visible": {
+    outline: `2px solid ${theme.palette.primary.main}`,
+    outlineOffset: 2,
   },
 }));

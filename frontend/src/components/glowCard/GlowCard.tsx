@@ -12,7 +12,11 @@ import Typography from "@mui/material/Typography";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-const GlowCard: React.FC = () => {
+interface GlowCardProps {
+  focusText?: string;
+}
+
+const GlowCard: React.FC<GlowCardProps> = ({ focusText }) => {
   const { t } = useTranslation();
   const theme = useTheme();
 
@@ -37,7 +41,7 @@ const GlowCard: React.FC = () => {
         <FocusCueLabel>{t("dashboard.focusCueBadge")}</FocusCueLabel>
 
         <Typography variant="body2" color="textSecondary">
-          {t("dashboard.focusCueText")}
+          {focusText ?? t("dashboard.focusCueNoData")}
         </Typography>
       </ContentRow>
     </SpotlightCard>

@@ -50,7 +50,16 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
                 {lastUpdated}
               </Typography>
 
-              <Typography variant="h5" color="textPrimary">
+              <Typography
+                variant="h5"
+                color="textPrimary"
+                sx={{
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                }}
+              >
                 {title}
               </Typography>
             </ServiceMeta>

@@ -15,7 +15,7 @@ import { Grid } from "@mui/material";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 // ─── Inner content component ─────────────────────────────────────────────────
@@ -38,6 +38,13 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
     watchlist.resources,
   );
 
+  const isDirty = useMemo(
+    () =>
+      JSON.stringify(draftResources.map((r) => ({ arn: r.arn, actions: r.actions }))) !==
+      JSON.stringify(watchlist.resources.map((r) => ({ arn: r.arn, actions: r.actions }))),
+    [draftResources, watchlist.resources],
+  );
+
   const handleSave = () => {
     save({ id: watchlist._id, resources: draftResources });
   };
@@ -57,16 +64,17 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
       </PageHeader>
 
       <Grid container spacing={4} sx={{ flex: 1, minHeight: 0 }}>
-        <Grid size={{ xs: 12, lg: 8 }} sx={{ height: "100%" }}>
+        <Grid size={{ xs: 12, lg: 7 }} sx={{ height: "100%" }}>
           <ResourceSelectorPanel
             draftResources={draftResources}
             onDraftChange={setDraftResources}
             onSave={handleSave}
             isSaving={isSaving}
+            isDirty={isDirty}
           />
         </Grid>
 
-        <Grid size={{ xs: 12, lg: 4 }} sx={{ height: "100%" }}>
+        <Grid size={{ xs: 12, lg: 5 }} sx={{ height: "100%" }}>
           <JsonEditorPanel
             draftResources={draftResources}
             onDraftChange={setDraftResources}

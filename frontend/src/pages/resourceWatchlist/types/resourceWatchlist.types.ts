@@ -7,6 +7,7 @@ export interface ResourceSelectorPanelProps {
   onDraftChange: (resources: WatchlistResource[]) => void;
   onSave: () => void;
   isSaving: boolean;
+  isDirty: boolean;
 }
 
 export interface JsonEditorPanelProps {
@@ -22,6 +23,4 @@ export interface WatchlistTableProps {
 export interface AddResourceFormProps {
   onAdd: (resource: WatchlistResource) => void;
   existingArns: string[];
-  onSave: () => void;
-  isSaving: boolean;
 }

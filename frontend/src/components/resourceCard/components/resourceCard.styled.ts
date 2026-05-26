@@ -34,17 +34,19 @@ export const ServiceInfo = styled(Box)(({ theme }) => ({
   overflow: "hidden",
 }));
 
-export const ServiceMeta = styled(Box)({
+export const ServiceMeta = styled(Box)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
-  gap: 2,
-});
+  gap: theme.spacing(0.5),
+  minWidth: 0,
+  overflow: "hidden",
+}));
 
-export const ResourceList = styled(Box)({
+export const ResourceList = styled(Box)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
-  gap: 6,
-});
+  gap: theme.spacing(1),
+}));
 
 export const ResourceItem = styled(Box)(({ theme }) => ({
   display: "flex",

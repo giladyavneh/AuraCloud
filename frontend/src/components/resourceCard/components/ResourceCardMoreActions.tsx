@@ -26,6 +26,7 @@ const ResourceCardMoreActions: React.FC<ResourceCardMoreActionsProps> = ({
   const theme = useTheme();
   const [hoverRef, hovering] = useHover<HTMLButtonElement>();
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
+  const [clickOpen, setClickOpen] = useState(false);
 
   // Combine useHover's ref with a state setter so Popper always gets
   // a stable, non-null element reference rather than ref.current at render time
@@ -45,16 +46,17 @@ const ResourceCardMoreActions: React.FC<ResourceCardMoreActionsProps> = ({
         color="primary"
         size="small"
         sx={{ width: "fit-content", marginTop: 1 }}
+        onClick={() => setClickOpen((prev) => !prev)}
       >
         {t("resourceCard.moreActions", { count: actions.length })}
       </Button>
 
       <Popper
-        open={hovering}
+        open={hovering || clickOpen}
         anchorEl={anchorEl}
         placement="bottom-start"
         transition
-        sx={{ zIndex: (theme) => theme.zIndex.tooltip, pointerEvents: "none" }}
+        sx={{ zIndex: (theme) => theme.zIndex.tooltip, pointerEvents: clickOpen ? "auto" : "none" }}
       >
         {({ TransitionProps }) => (
           <Grow {...TransitionProps} timeout={theme.transitions.duration.shorter}>

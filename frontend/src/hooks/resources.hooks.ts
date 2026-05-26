@@ -13,6 +13,7 @@ export const useUserResourceWatchlist = () =>
   useQuery({
     queryKey: QUERY_KEYS.userResourceWatchlist,
     queryFn: fetchUserResourceWatchlist,
+    refetchInterval: 10_000,
   });
 
 // No userId arg — the backend reads it from the JWT

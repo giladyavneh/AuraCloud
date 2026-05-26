@@ -11,7 +11,7 @@ export const TagContainer = styled(Box, {
   return {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 6,
+    gap: theme.spacing(1.5),
     padding: theme.spacing(1, 2.5),
     borderRadius: theme.shape.borderRadius,
     border: `1px solid ${styles.border}`,

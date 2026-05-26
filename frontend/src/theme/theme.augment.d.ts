@@ -1,6 +1,13 @@
 import '@mui/material/styles';
 
 declare module '@mui/material/styles' {
+  interface TypographyVariants {
+    fontFamilyMono: string;
+  }
+  interface TypographyVariantsOptions {
+    fontFamilyMono?: string;
+  }
+
   interface Palette {
     surface: {
       canvas: string;

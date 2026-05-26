@@ -70,7 +70,7 @@ const AwsCredentialsSection: React.FC = () => {
           </Typography>
           <CurrentKeyRow>
             <KeyIcon size={theme.iconSize.sm} color={theme.palette.text.secondary} />
-            <Typography variant="body2" color="textSecondary" sx={{ fontFamily: "monospace" }}>
+            <Typography variant="body2" color="textSecondary" sx={{ fontFamily: theme.typography.fontFamilyMono, fontSize: "12px" }}>
               {customer.awsAccessKeyId}
             </Typography>
           </CurrentKeyRow>

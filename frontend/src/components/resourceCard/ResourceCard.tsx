@@ -79,7 +79,11 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
             <ResourceItem key={action}>
               <ResourceDot dotColor={dotColor} />
 
-              <Typography variant="body2" color="textSecondary">
+              <Typography
+                variant="body2"
+                color="textSecondary"
+                sx={{ fontFamily: theme.typography.fontFamilyMono, fontSize: "11px" }}
+              >
                 {action}
               </Typography>
             </ResourceItem>

@@ -32,7 +32,7 @@ export const useWatchlistTableColumns =
               <Typography
                 variant="body2"
                 color="textPrimary"
-                sx={{ wordBreak: "break-all" }}
+                sx={{ wordBreak: "break-all", fontFamily: theme.typography.fontFamilyMono, fontSize: "11px" }}
               >
                 {row.original.arn}
               </Typography>

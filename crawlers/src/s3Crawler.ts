@@ -18,7 +18,7 @@ export class S3Crawler extends BaseCrawler {
         }
         let client = this.regionalClientsCache.get(region);
         if (!client) {
-            client = new S3Client({ region });
+            client = new S3Client({ region, credentials: this.credentials });
             this.regionalClientsCache.set(region, client);
         }
         return client;

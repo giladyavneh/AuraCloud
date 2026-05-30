@@ -4,30 +4,99 @@ import { BaseCrawler } from "./crawlerBase.js";
 import { AwsResourceModel, ResourceActionModel } from "utils";
 import { extractActionsFromPolicyDocument } from "./utils.js";
 import extend from "extend";
+import { ConfigServiceClient, GetResourceConfigHistoryCommand } from "@aws-sdk/client-config-service";
+
+const GLOBAL_S3_REGION = "us-east-1";
 
 export class S3Crawler extends BaseCrawler {
     protected s3Client = new S3Client({ region: this.region, credentials: this.credentials });
     protected stsClient = new STSClient({ region: this.region, credentials: this.credentials });
     protected intervalMs = 1000;
+    private regionalClientsCache = new Map<string, S3Client>();
+
+    private getRegionalClient(region: string): S3Client {
+        if (region === this.region) {
+            return this.s3Client;
+        }
+        let client = this.regionalClientsCache.get(region);
+        if (!client) {
+            client = new S3Client({ region });
+            this.regionalClientsCache.set(region, client);
+        }
+        return client;
+    }
 
     private async callAwsAndExtract<T, K extends keyof T>(fn: () => Promise<T>, key: K): Promise<T[K]|null> {
-        const response = await this.callAndHandleThrotteling(fn).catch(() => null);
+        const response = await this.callAndHandleThrotteling(fn).catch((err) => {
+            console.error(`[S3 CRAWLER] AWS SDK Error:`, err.message || err);
+            return null;
+        });
         return response ? response[key] : null;
     }
 
+    private async getPermissionsFromAwsConfigFallback(bucketName: string, region: string): Promise<string | undefined> {
+        try {
+            const configClient = new ConfigServiceClient({ region, credentials: this.credentials });
+            const configRes = await this.callAndHandleThrotteling(() =>
+                configClient.send(new GetResourceConfigHistoryCommand({
+                    resourceType: "AWS::S3::Bucket", resourceId: bucketName, limit: 1
+                }))
+            );
+            const latestItem = configRes.configurationItems?.[0];
+            if (latestItem) {
+                const supplementaryConfig = latestItem.supplementaryConfiguration || {};
+                const bucketPolicy = supplementaryConfig.BucketPolicy;
+                if (bucketPolicy) {
+                    console.log(`[S3 CRAWLER] Successfully retrieved policy for ${bucketName} from AWS Config history fallback!`);
+                    return bucketPolicy;
+                } else {
+                    console.log(`[S3 CRAWLER] AWS Config fallback succeeded but found no policy for ${bucketName}`);
+                }
+            } else {
+                console.log(`[S3 CRAWLER] AWS Config history returned no configuration items for ${bucketName}`);
+            }
+        } catch (configErr: any) {
+            console.error(`[S3 CRAWLER] AWS Config fallback failed for ${bucketName}:`, configErr.message || configErr);
+        }
+    }
+
+    async getBucketPolicies(regionalClient: S3Client, bucketName: string, region: string): Promise<string | null | undefined> {
+        try {
+            return await this.callAwsAndExtract(() =>
+                regionalClient.send(new GetBucketPolicyCommand({ Bucket: bucketName })), "Policy"
+            );
+        } catch (err: any) {
+            const errMsg = err.message || '';
+            const isAccessDenied = err.name === "AccessDenied" || errMsg.includes("Access Denied") || errMsg.includes("not authorized");
+            
+            if (isAccessDenied) {
+                return await this.getPermissionsFromAwsConfigFallback(bucketName, region) || null;
+            } else {
+                console.error(`[S3 CRAWLER] GetBucketPolicy error for ${bucketName} in region ${region}:`, errMsg);
+            }
+        }
+    }
+
     private async enrichBucket(bucket: any) {
+        const locationClient = this.getRegionalClient(GLOBAL_S3_REGION);
+        const bucketLocation = await this.callAwsAndExtract(
+            () => locationClient.send(new GetBucketLocationCommand({ Bucket: bucket.Name! })), "LocationConstraint"
+        ).catch((err) => { console.error(`[S3 CRAWLER] GetBucketLocation error for ${bucket.Name}:`, err.message || err); });
+
+        const region = bucketLocation || GLOBAL_S3_REGION;
+        const regionalClient = this.getRegionalClient(region);
+
         const [
             bucketPolicies,
-            bucketLocation,
             bucketAcl,
             bucketCors
         ] = await Promise.all([
-            this.callAwsAndExtract(() => this.s3Client.send(new GetBucketPolicyCommand({ Bucket: bucket.Name! })), "Policy").catch(() => null), // Not all buckets have policies, so we catch and return null
-            this.callAwsAndExtract(() => this.s3Client.send(new GetBucketLocationCommand({ Bucket: bucket.Name! })), "LocationConstraint").catch(() => null), // Not all buckets have policies, so we catch and return null
-            this.callAwsAndExtract(() => this.s3Client.send(new GetBucketAclCommand({ Bucket: bucket.Name! })), "Grants").catch(() => null), // Not all buckets have policies, so we catch and return null
-            this.callAwsAndExtract(() => this.s3Client.send(new GetBucketCorsCommand({ Bucket: bucket.Name! })), "CORSRules").catch(() => null) // Not all buckets have policies, so we catch and return null
+            this.getBucketPolicies(regionalClient, bucket.Name!, region),
+            this.callAwsAndExtract(() => regionalClient.send(new GetBucketAclCommand({ Bucket: bucket.Name! })), "Grants").catch(() => null),
+            this.callAwsAndExtract(() => regionalClient.send(new GetBucketCorsCommand({ Bucket: bucket.Name! })), "CORSRules").catch(() => null)
         ]);
-        extend(bucket, { bucketPolicies, bucketLocation, bucketAcl, bucketCors });
+
+        extend(bucket, { bucketPolicies, bucketLocation: region, bucketAcl, bucketCors });
     }
 
     async crawl() {

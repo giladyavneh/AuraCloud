@@ -19,10 +19,9 @@ async function main() {
       const users = await getUsersFromMongo();
       for (const user of users) {
         const findings = await evaluateUser(user, redis as any);
-        print(findings);
-
         const permissionsData: Record<string, any> = {};
         const timestamp = new Date().toISOString();
+        if (!findings) continue
 
         for (const resEntry of findings.resources) {
           const arn = Object.keys(resEntry)[0];
@@ -36,21 +35,16 @@ async function main() {
             if (!actionName) continue;
             const result = actionObj[actionName];
 
-            let actionStatus;
-            if (result === 'stale') {
-              actionStatus = {
-                status: 'stale',
-                reason: 'identity data missing from AWS cache',
-                timestamp,
-              };
-            } else {
-              const isAllowed = result === true;
-              actionStatus = {
-                status: isAllowed ? 'valid' : 'error',
-                reason: isAllowed ? null : 'policy mismatch',
-                timestamp,
-              };
-            }
+            const evalRes = result as any;
+            const actionStatus = {
+              status: evalRes.allowed ? 'valid' : 'error',
+              reason: evalRes.allowed ? null : evalRes.reason,
+              timestamp,
+              details: {
+                context: evalRes.context,
+                steps: evalRes.steps,
+              }
+            };
 
             permissionsData[arn][actionName] = actionStatus;
 

@@ -72,7 +72,7 @@ function toCustomerResponse(customer: {
   email: string;
   companyName: string;
   roleTitle: string;
-  awsCredentials?: { accessKeyId?: string; status?: string } | null;
+  awsCredentials?: { accessKeyId?: string | null; status?: string | null } | null;
 }) {
   const connected = customer.awsCredentials?.status === "connected";
   return {
@@ -195,7 +195,8 @@ app.get("/api/resources", requireAuth, async (_req, res) => {
 app.get("/api/resources/:arn/actions", requireAuth, async (req, res) => {
   try {
     // ARN is URL-encoded since it contains colons and slashes
-    const arn = decodeURIComponent(req.params.arn);
+    const rawArn = req.params.arn;
+    const arn = decodeURIComponent(Array.isArray(rawArn) ? rawArn[0] : rawArn);
     const actions = await ResourceActionModel.find({ resourceArn: arn }).lean().exec();
     res.json(actions);
   } catch (err) {

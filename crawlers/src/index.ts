@@ -1,23 +1,22 @@
-import 'dotenv/config';
-import { SsoCrawler } from './ssoCrawler.js';
-import { PermissionSetsCrawler } from './permissionSetsCrawler.js';
-import { BasicIamCrawler } from './basicIamCrawler.js';
-import { S3Crawler } from './s3Crawler.js';
-import { getRedisClient, connectMongo, CustomerModel } from 'utils';
+import "dotenv/config";
+import { SsoCrawler } from "./ssoCrawler.js";
+import { PermissionSetsCrawler } from "./permissionSetsCrawler.js";
+import { BasicIamCrawler } from "./basicIamCrawler.js";
+import { S3Crawler } from "./s3Crawler.js";
+import { getRedisClient, connectMongo, CustomerModel } from "utils";
 
 async function main() {
-  const [redis] = await Promise.all([
-    getRedisClient(),
-    connectMongo(),
-  ]);
+  const [redis] = await Promise.all([getRedisClient(), connectMongo()]);
   console.log("🚀 AuraCloud: Identity Sync Initiated");
 
-  const customers = await CustomerModel
-    .find({ 'awsCredentials.status': 'connected' })
-    .lean();
+  const customers = await CustomerModel.find({
+    "awsCredentials.status": "connected",
+  }).lean();
 
   if (customers.length === 0) {
-    console.warn("⚠️  No connected customers found — crawlers idle. Onboard a customer to begin.");
+    console.warn(
+      "⚠️  No connected customers found — crawlers idle. Onboard a customer to begin.",
+    );
     return;
   }
 
@@ -31,19 +30,25 @@ async function main() {
   for (const customer of customers) {
     const creds = customer.awsCredentials;
     if (!creds || !creds.accessKeyId || !creds.secretAccessKey) {
-      console.warn(`⚠️  Customer ${customer._id} marked connected but missing keys — skipping`);
+      console.warn(
+        `⚠️  Customer ${customer._id} marked connected but missing keys — skipping`,
+      );
       continue;
     }
     const credentials = {
       accessKeyId: creds.accessKeyId,
       secretAccessKey: creds.secretAccessKey,
     };
-    const tag = `${customer.name}:${customer._id.toString().slice(-6)}`;
+    const tag = `${customer.firstName}:${customer._id.toString().slice(-6)}`;
 
-    runCrawler(new SsoCrawler(credentials),            `SSO[${tag}]`,            redis);
-    runCrawler(new PermissionSetsCrawler(credentials), `PermissionSets[${tag}]`, redis);
-    runCrawler(new BasicIamCrawler(credentials),       `IAM[${tag}]`,            redis);
-    runCrawler(new S3Crawler(credentials),             `S3[${tag}]`,             redis);
+    runCrawler(new SsoCrawler(credentials), `SSO[${tag}]`, redis);
+    runCrawler(
+      new PermissionSetsCrawler(credentials),
+      `PermissionSets[${tag}]`,
+      redis,
+    );
+    runCrawler(new BasicIamCrawler(credentials), `IAM[${tag}]`, redis);
+    runCrawler(new S3Crawler(credentials), `S3[${tag}]`, redis);
   }
 }
 
@@ -54,12 +59,14 @@ async function runCrawler(crawler: any, name: string, redis: any) {
       const data = await crawler.crawl();
       await crawler.save(redis, data);
       await crawler.saveToMongo(data);
-      console.log(`[${new Date().toLocaleTimeString()}] ✅ ${name} Sync Complete`);
+      console.log(
+        `[${new Date().toLocaleTimeString()}] ✅ ${name} Sync Complete`,
+      );
     } catch (err: any) {
       console.error(`❌ ${name} Error:`, err.message);
     }
     const sleep = Math.max(crawler.intervalMs - (Date.now() - start), 0);
-    await new Promise(r => setTimeout(r, sleep));
+    await new Promise((r) => setTimeout(r, sleep));
   }
 }
 

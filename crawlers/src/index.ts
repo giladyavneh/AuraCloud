@@ -1,3 +1,8 @@
+// Node 22+/24 defaults to IPv6 DNS (link-local) which causes querySrv ECONNREFUSED
+// on residential routers. Force IPv4 DNS servers before any network call is made.
+import dns from "dns";
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
+
 import "dotenv/config";
 import { SsoCrawler } from "./ssoCrawler.js";
 import { PermissionSetsCrawler } from "./permissionSetsCrawler.js";

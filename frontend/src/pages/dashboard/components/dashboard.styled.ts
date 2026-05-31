@@ -1,5 +1,6 @@
 import { styled } from "@mui/material/styles";
 import Box from "@mui/material/Box";
+import Card from "@mui/material/Card";
 
 const PILL_RADIUS = 99;
 
@@ -66,6 +67,20 @@ export const FilterTabCount = styled("span", {
   fontSize: "11px",
   fontFamily: theme.typography.fontFamilyMono,
   opacity: isActive ? 0.75 : 0.5,
+}));
+
+/** Full-width empty-state card shown when the watchlist has no resources */
+export const EmptyStateCard = styled(Card)(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  textAlign: "center",
+  gap: theme.spacing(4),
+  padding: theme.spacing(10, 6),
+  backgroundColor: "transparent",
+  border: `1px dashed ${theme.palette.divider}`,
+  borderRadius: theme.shape.borderRadius,
+  boxShadow: "none",
 }));
 
 /** Individual filter tab — active state gets a solid primary fill */

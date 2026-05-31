@@ -55,6 +55,17 @@ export const JsonPanelCard = styled(Card)(({ theme }) => ({
   overflow: "hidden",
 }));
 
+export const EmptyStateBanner = styled(Box)(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  textAlign: "center",
+  gap: theme.spacing(2),
+  padding: theme.spacing(8, 4),
+  border: `1px dashed ${theme.palette.divider}`,
+  borderRadius: theme.shape.borderRadius,
+}));
+
 export const FormRow = styled(Box)(({ theme }) => ({
   display: "flex",
   gap: theme.spacing(3),

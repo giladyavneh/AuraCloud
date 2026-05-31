@@ -55,6 +55,25 @@ export const fetchResourceActions = async (arn: string): Promise<ResourceAction[
   return response.json() as Promise<ResourceAction[]>;
 };
 
+export const createWatchlist = async (
+  resources: WatchlistResource[],
+): Promise<ResourceWatchlistItem> => {
+  const response = await fetch(`${API_BASE_URL}/api/user-resource-watchlist`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ resources }),
+  });
+  // 409 means a watchlist was already created between renders — treat as success
+  if (response.status === 409) {
+    const body = (await response.json()) as { watchlist: ResourceWatchlistItem };
+    return body.watchlist;
+  }
+  if (!response.ok) {
+    throw new Error(`Failed to create watchlist: ${response.statusText}`);
+  }
+  return response.json() as Promise<ResourceWatchlistItem>;
+};
+
 export const updateWatchlist = async (
   id: string,
   resources: WatchlistResource[],

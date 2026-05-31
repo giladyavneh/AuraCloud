@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  createWatchlist,
   fetchAllResources,
   fetchResourceActions,
   fetchUserPermissions,
@@ -40,6 +41,17 @@ export const useResourceActions = (arn: string | null) =>
     queryFn: () => fetchResourceActions(arn!),
     enabled: arn !== null,
   });
+
+export const useCreateWatchlist = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (resources: WatchlistResource[]) => createWatchlist(resources),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.userResourceWatchlist });
+    },
+  });
+};
 
 export const useUpdateWatchlist = () => {
   const queryClient = useQueryClient();

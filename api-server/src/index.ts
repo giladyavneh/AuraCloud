@@ -286,6 +286,28 @@ app.get("/api/user-resource-watchlist", requireAuth, async (req, res) => {
   }
 });
 
+app.post("/api/user-resource-watchlist", requireAuth, async (req, res) => {
+  try {
+    const existing = await UserResourceWatchlistModel.findOne({
+      userId: req.customer!.customerId,
+    });
+    if (existing) {
+      // Watchlist already exists — return it without creating a duplicate
+      res.status(409).json({ message: "Watchlist already exists", watchlist: existing });
+      return;
+    }
+    const doc = await UserResourceWatchlistModel.create({
+      userId: req.customer!.customerId,
+      name: "My Watchlist",
+      resources: req.body.resources ?? [],
+    });
+    res.status(201).json(doc);
+  } catch (err) {
+    console.error("POST /api/user-resource-watchlist failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
 app.put("/api/user-resource-watchlist/:id", requireAuth, async (req, res) => {
   try {
     // Ensure the watchlist belongs to the requesting customer

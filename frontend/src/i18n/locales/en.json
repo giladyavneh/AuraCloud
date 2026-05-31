@@ -37,8 +37,12 @@
       "healthy": "Healthy"
     },
     "permissionsLoadError": "Could not load user permissions.",
-    "noResourcesYet": "No resources to monitor yet. Add resources to your watchlist to start monitoring.",
     "noResourcesForFilter": "No resources match this filter.",
+    "emptyState": {
+      "title": "No resources to monitor yet",
+      "description": "Add AWS resources to your watchlist and Aura will start tracking their permissions, status, and health in real time.",
+      "cta": "Set Up Watchlist"
+    },
     "stats": {
       "totalResources": "Total Resources Monitored",
       "activeBlockers": "Active Blockers",
@@ -76,7 +80,10 @@
     "selectActions": "Select actions",
     "add": "Add",
     "noResources": "No resources added yet",
-    "noWatchlist": "No watchlist found. Start by adding resources to monitor.",
+    "emptyState": {
+      "title": "Your watchlist is empty",
+      "description": "Pick an AWS resource from the selector or paste a JSON config — Aura will start monitoring it the moment you save."
+    },
     "unsavedChanges": "Unsaved changes",
     "saveSuccess": "Watchlist saved successfully.",
     "saveError": "Failed to save watchlist. Please try again.",

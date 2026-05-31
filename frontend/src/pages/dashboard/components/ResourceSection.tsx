@@ -12,17 +12,22 @@ import {
 import { extractResourceName } from "@/helpers/arn.helpers";
 import type { ArnPermissionData } from "@/services/types/resources.types";
 import {
+  EmptyStateCard,
   FilterTab,
   FilterTabsRow,
   FilterTabCount,
   ResourceSectionHeader,
 } from "@/pages/dashboard/components/dashboard.styled";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
+import { useTheme } from "@mui/material/styles";
+import { DatabaseIcon, ArrowRightIcon } from "@phosphor-icons/react";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 type FilterTabValue = "all" | "iam" | "resource" | "network" | "healthy";
 
@@ -30,6 +35,8 @@ const FILTER_TABS: FilterTabValue[] = ["all", "iam", "resource", "network", "hea
 
 const ResourceSection: React.FC = () => {
   const { t } = useTranslation();
+  const theme = useTheme();
+  const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState<FilterTabValue>("all");
 
   const { data: watchlistItems = [], isLoading: watchlistLoading } = useUserResourceWatchlist();
@@ -156,9 +163,27 @@ const ResourceSection: React.FC = () => {
       )}
 
       {!isLoading && !isRealError && watchlistResources.length === 0 && (
-        <Typography variant="body2" color="textSecondary">
-          {t("dashboard.noResourcesYet")}
-        </Typography>
+        <EmptyStateCard>
+          <DatabaseIcon size={48} color={theme.palette.text.disabled} />
+
+          <Box>
+            <Typography variant="h6" color="textPrimary">
+              {t("dashboard.emptyState.title")}
+            </Typography>
+            <Typography variant="body2" color="textSecondary" sx={{ marginTop: 1 }}>
+              {t("dashboard.emptyState.description")}
+            </Typography>
+          </Box>
+
+          <Button
+            variant="contained"
+            size="large"
+            endIcon={<ArrowRightIcon size={theme.iconSize.sm} />}
+            onClick={() => navigate("/resource-watch-list")}
+          >
+            {t("dashboard.emptyState.cta")}
+          </Button>
+        </EmptyStateCard>
       )}
 
       {!isLoading && !isRealError && watchlistResources.length > 0 && filteredResources.length === 0 && (

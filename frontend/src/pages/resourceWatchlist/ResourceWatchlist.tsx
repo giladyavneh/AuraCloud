@@ -1,10 +1,12 @@
 import {
+  useCreateWatchlist,
   useUpdateWatchlist,
   useUserResourceWatchlist,
 } from "@/hooks/resources.hooks";
 import JsonEditorPanel from "@/pages/resourceWatchlist/components/JsonEditorPanel";
 import ResourceSelectorPanel from "@/pages/resourceWatchlist/components/ResourceSelectorPanel";
 import {
+  EmptyStateBanner,
   PageHeader,
   PageRoot,
   PageTitleBlock,
@@ -17,17 +19,18 @@ import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Snackbar from "@mui/material/Snackbar";
 import Typography from "@mui/material/Typography";
+import { useTheme } from "@mui/material/styles";
+import { ListPlusIcon } from "@phosphor-icons/react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 // ─── Inner content component ─────────────────────────────────────────────────
-// Receives a guaranteed watchlist document so useState can be seeded
-// synchronously from the prop — no useEffect needed.
-// The key={watchlist._id} on this component (set by the shell below) ensures
-// state resets automatically if the watchlist document ever changes.
+// Accepts watchlist: ResourceWatchlistItem | null.
+// null = no watchlist doc exists yet → save calls POST (create).
+// non-null = existing doc → save calls PUT (update).
 
 interface ResourceWatchlistContentProps {
-  watchlist: ResourceWatchlistItem;
+  watchlist: ResourceWatchlistItem | null;
 }
 
 const sortedSnapshot = (resources: WatchlistResource[]) =>
@@ -37,10 +40,17 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
   watchlist,
 }) => {
   const { t } = useTranslation();
+  const theme = useTheme();
+
   const { mutate: save, isPending: isSaving, isSuccess: isSaved, isError: hasSaveError } = useUpdateWatchlist();
+  const { mutate: create, isPending: isCreating, isSuccess: isCreated, isError: hasCreateError } = useCreateWatchlist();
+
+  const isPending = isSaving || isCreating;
+  const isSuccess = isSaved || isCreated;
+  const isError = hasSaveError || hasCreateError;
 
   const [draftResources, setDraftResources] = useState<WatchlistResource[]>(
-    watchlist.resources,
+    watchlist?.resources ?? [],
   );
   const [snackbar, setSnackbar] = useState<{ open: boolean; severity: "success" | "error" }>({
     open: false,
@@ -48,12 +58,18 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
   });
 
   const isDirty = useMemo(
-    () => JSON.stringify(sortedSnapshot(draftResources)) !== JSON.stringify(sortedSnapshot(watchlist.resources)),
-    [draftResources, watchlist.resources],
+    () =>
+      JSON.stringify(sortedSnapshot(draftResources)) !==
+      JSON.stringify(sortedSnapshot(watchlist?.resources ?? [])),
+    [draftResources, watchlist],
   );
 
   const handleSave = () => {
-    save({ id: watchlist._id, resources: draftResources });
+    if (watchlist) {
+      save({ id: watchlist._id, resources: draftResources });
+    } else {
+      create(draftResources);
+    }
   };
 
   const handleSnackbarClose = () => setSnackbar((prev) => ({ ...prev, open: false }));
@@ -61,12 +77,12 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
   // Detect when a pending save settles so the toast fires reliably
   const wasPending = useRef(false);
   useEffect(() => {
-    if (wasPending.current && !isSaving) {
-      if (isSaved) setSnackbar({ open: true, severity: "success" });
-      if (hasSaveError) setSnackbar({ open: true, severity: "error" });
+    if (wasPending.current && !isPending) {
+      if (isSuccess) setSnackbar({ open: true, severity: "success" });
+      if (isError) setSnackbar({ open: true, severity: "error" });
     }
-    wasPending.current = isSaving;
-  }, [isSaving, isSaved, hasSaveError]);
+    wasPending.current = isPending;
+  }, [isPending, isSuccess, isError]);
 
   return (
     <PageRoot>
@@ -95,13 +111,29 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
         </Alert>
       </Snackbar>
 
+      {/* Empty state banner — only shown before the user's first save */}
+      {!watchlist && (
+        <EmptyStateBanner>
+          <ListPlusIcon size={40} color={theme.palette.text.disabled} />
+
+          <Box>
+            <Typography variant="h6" color="textPrimary">
+              {t("resourceWatchlist.emptyState.title")}
+            </Typography>
+            <Typography variant="body2" color="textSecondary" sx={{ marginTop: 1 }}>
+              {t("resourceWatchlist.emptyState.description")}
+            </Typography>
+          </Box>
+        </EmptyStateBanner>
+      )}
+
       <Grid container spacing={4} sx={{ flex: 1, minHeight: 0 }}>
         <Grid size={{ xs: 12, lg: 7 }} sx={{ height: "100%" }}>
           <ResourceSelectorPanel
             draftResources={draftResources}
             onDraftChange={setDraftResources}
             onSave={handleSave}
-            isSaving={isSaving}
+            isSaving={isPending}
             isDirty={isDirty}
           />
         </Grid>
@@ -113,18 +145,18 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
           />
         </Grid>
       </Grid>
+
     </PageRoot>
   );
 };
 
 // ─── Shell component ──────────────────────────────────────────────────────────
-// Fetches the watchlist and waits until data is available before rendering
-// the content. key={watchlist._id} resets child state if the document changes.
+// Fetches the watchlist and renders content once loading settles.
+// watchlist may be null — content handles that gracefully.
 
 const ResourceWatchlist: React.FC = () => {
-  const { t } = useTranslation();
   const { data: watchlistItems = [], isLoading } = useUserResourceWatchlist();
-  const watchlist = watchlistItems[0];
+  const watchlist = watchlistItems[0] ?? null;
 
   if (isLoading) {
     return (
@@ -134,17 +166,7 @@ const ResourceWatchlist: React.FC = () => {
     );
   }
 
-  if (!watchlist) {
-    return (
-      <Box sx={{ paddingBlock: 8, paddingInline: 4 }}>
-        <Typography variant="body2" color="textSecondary">
-          {t("resourceWatchlist.noWatchlist")}
-        </Typography>
-      </Box>
-    );
-  }
-
-  return <ResourceWatchlistContent key={watchlist._id} watchlist={watchlist} />;
+  return <ResourceWatchlistContent key={watchlist?._id ?? "new"} watchlist={watchlist} />;
 };
 
 export default ResourceWatchlist;

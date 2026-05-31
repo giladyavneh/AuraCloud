@@ -8,5 +8,7 @@ export const SIDEBAR_WIDTH = 260;
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
 
-// Placeholder until real auth is implemented
-export const MOCK_USER_ID = '123';
+export const WATCHLIST_DOWNLOAD_FILENAME = 'watchlist.json';
+
+export const CLOUDFORMATION_URL =
+  'https://eu-central-1.console.aws.amazon.com/cloudformation/home?region=eu-central-1#/stacks/quickcreate?templateURL=https://aura-public-templates.s3.eu-central-1.amazonaws.com/aura-onboarding.yaml&stackName=Aura-SaaS-Onboarding';

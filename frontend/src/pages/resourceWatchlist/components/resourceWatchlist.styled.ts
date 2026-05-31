@@ -1,0 +1,87 @@
+import { styled } from "@mui/material/styles";
+import Box from "@mui/material/Box";
+import Card from "@mui/material/Card";
+
+export const PageRoot = styled(Box)(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  gap: theme.spacing(6),
+  height: "100%",
+  overflow: "auto",
+}));
+
+export const PageHeader = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: theme.spacing(4),
+}));
+
+export const PageTitleBlock = styled(Box)(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  gap: theme.spacing(1),
+}));
+
+export const LeftPanel = styled(Box)(({ theme }) => ({
+  height: "100%",
+  minWidth: 0,
+  display: "flex",
+  flexDirection: "column",
+  gap: theme.spacing(4),
+}));
+
+export const PanelCard = styled(Card)(({ theme }) => ({
+  backgroundColor: theme.palette.surface.base,
+  border: `1px solid ${theme.palette.border.default}`,
+  borderRadius: theme.shape.borderRadius,
+  padding: theme.spacing(4),
+  display: "flex",
+  flexDirection: "column",
+  gap: theme.spacing(3),
+}));
+
+export const JsonPanelCard = styled(Card)(({ theme }) => ({
+  height: "100%",
+  minWidth: 0,
+  minHeight: 0,
+  backgroundColor: theme.palette.surface.base,
+  border: `1px solid ${theme.palette.border.default}`,
+  borderRadius: theme.shape.borderRadius,
+  padding: theme.spacing(4),
+  display: "flex",
+  flexDirection: "column",
+  gap: theme.spacing(3),
+  overflow: "hidden",
+}));
+
+export const FormRow = styled(Box)(({ theme }) => ({
+  display: "flex",
+  gap: theme.spacing(3),
+  alignItems: "flex-start",
+  flexWrap: "wrap",
+}));
+
+export const EditorPanelHeader = styled(Box)({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+});
+
+export const EditorButtonGroup = styled(Box)(({ theme }) => ({
+  display: "flex",
+  gap: theme.spacing(2),
+}));
+
+export const EditorWrapper = styled(Box)(({ theme }) => ({
+  flex: 1,
+  minHeight: 0,
+  borderRadius: theme.shape.borderRadius,
+  overflow: "hidden",
+  border: `1px solid ${theme.palette.border.default}`,
+}));
+
+export const JsonErrorBadge = styled(Box)(({ theme }) => ({
+  color: theme.palette.error.main,
+  fontSize: theme.typography.caption.fontSize,
+}));

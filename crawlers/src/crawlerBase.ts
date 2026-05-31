@@ -48,4 +48,6 @@ export abstract class BaseCrawler {
   abstract crawl(): Promise<any>;
 
   abstract save(client: any, data: any): Promise<void>;
+
+  abstract saveToMongo(data: unknown): Promise<void>;
 }

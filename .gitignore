@@ -116,6 +116,9 @@ dist
 # DynamoDB Local files
 .dynamodb/
 
+# Redis persistence file (runtime-generated, not source)
+dump.rdb
+
 # Firebase cache directory
 .firebase/
 
@@ -144,6 +147,9 @@ vite.config.ts.timestamp-*
 
 # Claude Code — local-only settings (personal permissions, not shared)
 .claude/settings.local.json
+
+# Graphify — generated knowledge-graph output (regenerate with `graphify update .`)
+graphify-out/
 
 # Local-only docs (personal brainstorming specs, implementation plans, etc.)
 docs/

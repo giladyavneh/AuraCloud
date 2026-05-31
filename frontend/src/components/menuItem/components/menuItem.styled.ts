@@ -1,18 +1,17 @@
-import { styled } from '@mui/material/styles';
-import Box from '@mui/material/Box';
-import { SIDEBAR_WIDTH } from '@/constants';
+import Box from "@mui/material/Box";
+import { styled } from "@mui/material/styles";
 
 export const ItemRoot = styled(Box, {
-  shouldForwardProp: (prop) => prop !== 'isActive',
+  shouldForwardProp: (prop) => prop !== "isActive",
 })<{ isActive: boolean }>(({ theme, isActive }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: theme.spacing(4),
+  display: "flex",
+  alignItems: "center",
+  gap: isActive ? theme.spacing(3) : theme.spacing(4),
   height: 40,
-  width: SIDEBAR_WIDTH - 32, // account for sidebar horizontal padding
+  width: "100%",
   borderRadius: theme.shape.borderRadius,
-  cursor: 'pointer',
-  overflow: 'hidden',
+  cursor: "pointer",
+  overflow: "hidden",
 
   ...(isActive
     ? {
@@ -22,31 +21,34 @@ export const ItemRoot = styled(Box, {
       }
     : {
         backgroundColor: theme.palette.surface.subtle,
-        border: '1px solid transparent',
-        paddingLeft: theme.spacing(4),
+        border: "1px solid transparent",
       }),
 
-  '&:hover': {
-    backgroundColor: isActive ? theme.palette.divider : theme.palette.background.default,
+  "&:hover": {
+    backgroundColor: isActive
+      ? theme.palette.divider
+      : theme.palette.background.default,
     opacity: isActive ? 1 : 0.8,
   },
 }));
 
-export const ActiveIndicator = styled(Box)(({ theme }) => ({
+export const ActiveIndicator = styled(Box, {
+  shouldForwardProp: (prop) => prop !== "isActive",
+})<{ isActive: boolean }>(({ theme, isActive }) => ({
   width: 4,
   height: 40,
   borderRadius: `${theme.shape.borderRadius}px 0 0 ${theme.shape.borderRadius}px`,
-  backgroundColor: theme.palette.primary.main,
+  backgroundColor: isActive ? theme.palette.primary.main : "transparent",
   flexShrink: 0,
 }));
 
-export const ItemLabel = styled('span', {
-  shouldForwardProp: (prop) => prop !== 'isActive',
+export const ItemLabel = styled("span", {
+  shouldForwardProp: (prop) => prop !== "isActive",
 })<{ isActive: boolean }>(({ theme, isActive }) => ({
   fontSize: theme.typography.body1.fontSize,
   fontWeight: 400,
   lineHeight: 1,
   color: isActive ? theme.palette.text.primary : theme.palette.text.secondary,
-  whiteSpace: 'nowrap',
+  whiteSpace: "nowrap",
   fontFamily: theme.typography.fontFamily,
 }));

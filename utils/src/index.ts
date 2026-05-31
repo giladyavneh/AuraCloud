@@ -150,20 +150,79 @@ userSchema.index({ source: 1, externalId: 1 }, { unique: true });
 
 export const UserModel = mongoose.model('User', userSchema);
 
+// ==========================================
+// AwsResource — catalogue of every discovered AWS resource
+// ==========================================
+const awsResourceSchema = new mongoose.Schema(
+  {
+    arn: { type: String, required: true },
+    resourceType: {
+      type: String,
+      enum: ['S3Bucket', 'IAMUser', 'IAMRole', 'IAMGroup', 'SSOUser', 'SSOGroup', 'PermissionSet'],
+      required: true,
+    },
+    name: { type: String, required: true },
+    accountId: { type: String },
+    region: { type: String },
+    metadata: { type: mongoose.Schema.Types.Mixed },
+    lastSyncedAt: { type: Date, required: true },
+  },
+  { timestamps: true },
+);
+awsResourceSchema.index({ arn: 1 }, { unique: true });
+awsResourceSchema.index({ resourceType: 1, accountId: 1 });
+
+export type AwsResource = InferSchemaType<typeof awsResourceSchema>;
+export type AwsResourceDoc = HydratedDocument<AwsResource>;
+
+export const AwsResourceModel =
+  (mongoose.models.AwsResource as mongoose.Model<AwsResource>) ??
+  mongoose.model<AwsResource>('AwsResource', awsResourceSchema);
+
+// ==========================================
+// ResourceAction — IAM actions extracted from policies on each resource
+// ==========================================
+const resourceActionSchema = new mongoose.Schema(
+  {
+    resourceArn: { type: String, required: true, index: true },
+    actionName: { type: String, required: true },
+    policySource: { type: String }, // 'BucketPolicy' | 'AttachedPolicy' | 'InlinePolicy' | 'PermissionSet'
+    policyArn: { type: String },
+    lastSeenAt: { type: Date, required: true },
+  },
+  { timestamps: true },
+);
+resourceActionSchema.index({ resourceArn: 1, actionName: 1 }, { unique: true });
+
+export type ResourceAction = InferSchemaType<typeof resourceActionSchema>;
+export type ResourceActionDoc = HydratedDocument<ResourceAction>;
+
+export const ResourceActionModel =
+  (mongoose.models.ResourceAction as mongoose.Model<ResourceAction>) ??
+  mongoose.model<ResourceAction>('ResourceAction', resourceActionSchema);
+
+// ==========================================
+// Customer — a company that has onboarded to Aura
+// ==========================================
 const customerSchema = new mongoose.Schema(
   {
-    name:  { type: String, required: true },
-    email: { type: String },
+    firstName:    { type: String, required: true },
+    lastName:     { type: String, required: true },
+    email:        { type: String, required: true },
+    companyName:  { type: String, required: true },
+    roleTitle:    { type: String, required: true },
+    passwordHash: { type: String, required: true },
     awsCredentials: {
       accessKeyId:     { type: String },
       // TODO: encrypt secretAccessKey before persisting (MVP plaintext)
       secretAccessKey: { type: String },
-      status:          { type: String, enum: ['connected', 'disconnected', 'error'], default: 'connected' },
+      status:          { type: String, enum: ['connected', 'disconnected', 'error'] },
       connectedAt:     { type: Date },
     },
   },
   { timestamps: true },
 );
+customerSchema.index({ email: 1 }, { unique: true });
 
 export type Customer = InferSchemaType<typeof customerSchema>;
 export type CustomerDoc = HydratedDocument<Customer>;

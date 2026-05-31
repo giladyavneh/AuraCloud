@@ -22,7 +22,7 @@ const theme = createTheme({
     },
 
     primary: {
-      main: "#dfb5fd", // color/brand/accent
+      main: "#a78bfa", // color/brand/accent — electric violet (violet-400)
     },
 
     text: {
@@ -49,22 +49,26 @@ const theme = createTheme({
       contrastText: "#92400e", // color/border/warning
     },
 
-    divider: "#1f2937", // color/border/default  /  color/surface/selected
+    divider: "#1a2740", // color/border/default  /  color/surface/selected
 
     // Custom Figma tokens not covered by standard MUI palette slots
     surface: {
-      subtle: "#0f172a", // color/surface/subtle  (sidebar background)
-      glow: "rgba(223,181,253,0.2)", // color/surface/glow
+      canvas: "#070c15", // color/surface/canvas  (page background — deeper for contrast)
+      base:   "#0d1424", // color/surface/base    (card background)
+      subtle: "#0a1020", // color/surface/subtle  (sidebar background)
+      glow:   "rgba(167,139,250,0.10)", // color/surface/glow — matched to new primary, restrained
     },
 
     border: {
-      strong: "#334155", // color/border/strong
-      glow: "rgba(255,255,255,0.2)", // color/border/glow
+      default: "#1a2740", // color/border/default — more visible, blue-shifted for tech feel
+      strong:  "#2d4060", // color/border/strong
+      glow:    "rgba(167,139,250,0.20)", // color/border/glow
     },
   },
 
   typography: {
     fontFamily: '"Rubik", sans-serif',
+    fontFamilyMono: '"JetBrains Mono", "Fira Code", ui-monospace, "Cascadia Code", "Consolas", monospace',
     h4: {
       fontSize: "34px",
       fontWeight: 400,
@@ -110,6 +114,14 @@ const theme = createTheme({
     borderRadius: 8,
   },
 
+  iconSize: {
+    xs: 16, // button / inline icons
+    sm: 20, // footer nav icons
+    md: 28, // logo
+    lg: 32, // feature icons, table AWS icons
+    xl: 46, // resource card AWS icon
+  },
+
   components: {
     MuiCssBaseline: {
       styleOverrides: {
@@ -127,6 +139,18 @@ const theme = createTheme({
         root: {
           textTransform: "none",
         },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          borderRadius: 4,
+        },
+        label: ({ theme }) => ({
+          fontFamily: theme.typography.fontFamilyMono,
+          fontSize: "11px",
+          letterSpacing: "0.02em",
+        }),
       },
     },
     MuiAlert: {

@@ -1,37 +1,25 @@
-import type { AwsService } from "@/components/awsServiceIcon/types/awsServiceIcon.types";
 import type { StatusTagVariant } from "@/components/statusTag/types/statusTag.types";
 import type {
   ArnPermissionData,
   ActionData,
 } from "@/services/types/resources.types";
+import type { AwsService } from "@/components/awsServiceIcon/types/awsServiceIcon.types";
+import i18next from "i18next";
 
-const SERVICE_ARN_MAP: Array<{
-  segment: string;
-  service: AwsService;
-  title: string;
-}> = [
-  { segment: ":s3", service: "s3", title: "S3" },
-  { segment: ":sqs", service: "sqs", title: "SQS" },
-  { segment: ":ecr", service: "ecr", title: "ECR • versions" },
-  { segment: ":lambda", service: "lambda", title: "Lambda" },
-  { segment: ":ec2", service: "ec2", title: "EC2" },
-  { segment: ":rds", service: "rds", title: "RDS" },
-];
+export { inferServiceFromArn, inferTitleFromArn } from "@/helpers/arn.helpers";
 
-const FALLBACK_SERVICE: AwsService = "s3";
+export type ResourceCategory = "iam" | "network" | "resource";
 
-/** Derives the AwsService key from a resource ARN. Falls back to 's3'. */
-export const inferServiceFromArn = (arn: string): AwsService => {
-  const match = SERVICE_ARN_MAP.find((entry) => arn.includes(entry.segment));
-
-  return match?.service ?? FALLBACK_SERVICE;
-};
-
-/** Derives a human-readable service title from a resource ARN. */
-export const inferTitleFromArn = (arn: string): string => {
-  const match = SERVICE_ARN_MAP.find((entry) => arn.includes(entry.segment));
-
-  return match?.title ?? FALLBACK_SERVICE.toUpperCase();
+/**
+ * Maps an AWS service to a high-level category used by the dashboard filter tabs.
+ * - iam:      permission / identity services
+ * - network:  network / connectivity services
+ * - resource: storage / compute / messaging services
+ */
+export const getServiceCategory = (service: AwsService): ResourceCategory => {
+  if (["iam", "sso"].includes(service)) return "iam";
+  if (["ec2", "rds", "ecr"].includes(service)) return "network";
+  return "resource";
 };
 
 interface HasStatus {
@@ -99,29 +87,39 @@ export const getTimestampFromArnData = (data: ArnPermissionData): string => {
   return firstAction?.timestamp ?? "";
 };
 
+const { t } = i18next;
+
 /** Formats an ISO timestamp as a human-readable relative time string. */
 export const formatTimestamp = (isoTimestamp: string): string => {
-  if (!isoTimestamp) return "Unknown";
+  if (!isoTimestamp) return t("dashboard.timeAgo.unknown");
 
   const diffMs = Date.now() - new Date(isoTimestamp).getTime();
   const totalMinutes = Math.floor(diffMs / 60_000);
   const totalHours = Math.floor(totalMinutes / 60);
   const totalDays = Math.floor(totalHours / 24);
 
-  if (totalMinutes < 1) return "< 1 min ago";
-  if (totalMinutes < 60) return `${totalMinutes} min ago`;
+  if (totalMinutes < 1) return t("dashboard.timeAgo.lessThanMinute");
+  if (totalMinutes < 60) return t("dashboard.timeAgo.minutesAgo", { count: totalMinutes });
 
   if (totalHours < 24) {
     const remainingMinutes = totalMinutes % 60;
-    const hourLabel = totalHours === 1 ? "hour" : "hours";
+    if (totalHours === 1) {
+      return remainingMinutes > 0
+        ? t("dashboard.timeAgo.oneHourAndMinutesAgo", { minutes: remainingMinutes })
+        : t("dashboard.timeAgo.oneHourAgo");
+    }
     return remainingMinutes > 0
-      ? `${totalHours} ${hourLabel}, ${remainingMinutes} min ago`
-      : `${totalHours} ${hourLabel} ago`;
+      ? t("dashboard.timeAgo.hoursAndMinutesAgo", { hours: totalHours, minutes: remainingMinutes })
+      : t("dashboard.timeAgo.hoursAgo", { count: totalHours });
   }
 
   const remainingHours = totalHours % 24;
-  const dayLabel = totalDays === 1 ? "day" : "days";
+  if (totalDays === 1) {
+    return remainingHours > 0
+      ? t("dashboard.timeAgo.oneDayAndHoursAgo", { hours: remainingHours })
+      : t("dashboard.timeAgo.oneDayAgo");
+  }
   return remainingHours > 0
-    ? `${totalDays} ${dayLabel}, ${remainingHours} hour ago`
-    : `${totalDays} ${dayLabel} ago`;
+    ? t("dashboard.timeAgo.daysAndHoursAgo", { days: totalDays, hours: remainingHours })
+    : t("dashboard.timeAgo.daysAgo", { count: totalDays });
 };

@@ -4,6 +4,7 @@ import Box from "@mui/material/Box";
 export const CardRoot = styled(Box)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
+  height: "stretch",
   backgroundColor: theme.palette.background.paper,
   border: `1px solid ${theme.palette.divider}`,
   borderRadius: theme.shape.borderRadius,
@@ -17,29 +18,32 @@ export const CardBody = styled(Box)(({ theme }) => ({
   padding: theme.spacing(4),
 }));
 
-export const CardHeader = styled(Box)({
+export const CardHeader = styled(Box)(({ theme }) => ({
   display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-});
-
-export const ServiceInfo = styled(Box)(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
+  alignItems: "start",
   gap: theme.spacing(3),
 }));
 
-export const ServiceMeta = styled(Box)({
+export const ServiceMeta = styled(Box)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
-  gap: 2,
-});
+  gap: theme.spacing(1),
+  flex: 1,
+  minWidth: 0,
+}));
 
-export const ResourceList = styled(Box)({
+export const MetaTopRow = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: theme.spacing(2),
+}));
+
+export const ResourceList = styled(Box)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
-  gap: 6,
-});
+  gap: theme.spacing(1),
+}));
 
 export const ResourceItem = styled(Box)(({ theme }) => ({
   display: "flex",
@@ -55,4 +59,13 @@ export const ResourceDot = styled(Box, {
   borderRadius: "50%",
   backgroundColor: dotColor,
   flexShrink: 0,
+}));
+
+export const MoreActionsPopoverContent = styled(Box)(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  gap: theme.spacing(2),
+  padding: theme.spacing(4),
+  minWidth: 200,
+  maxWidth: 320,
 }));

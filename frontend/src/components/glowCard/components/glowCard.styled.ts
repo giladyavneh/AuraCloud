@@ -1,48 +1,47 @@
-import { styled, alpha } from '@mui/material/styles';
-import Box from '@mui/material/Box';
+import Box from "@mui/material/Box";
+import { alpha, styled } from "@mui/material/styles";
 
-export const CardRoot = styled(Box)(({ theme }) => ({
-  position: 'relative',
-  display: 'flex',
-  alignItems: 'center',
-  gap: theme.spacing(4),
-  padding: theme.spacing(4),
-  backgroundColor: theme.palette.surface.glow,
-  border: `1px solid ${theme.palette.border.glow}`,
-  borderRadius: theme.shape.borderRadius,
-  overflow: 'hidden',
+// Absolute layer that holds the Aurora WebGL canvas. Pinned to the card edges
+// so it always fills, regardless of content height.
+export const AuroraLayer = styled(Box)({
+  position: "absolute",
+  inset: 0,
+  zIndex: 0,
+  pointerEvents: "none",
+});
 
-  // Decorative blurred glow blob — top right
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    top: -80,
-    right: 0,
-    width: 220,
-    height: 220,
-    borderRadius: '50%',
-    background: `radial-gradient(circle, ${alpha(theme.palette.primary.main, 0.25)} 0%, transparent 70%)`,
-    pointerEvents: 'none',
-  },
-
-  // Decorative blurred glow blob — bottom left
-  '&::after': {
-    content: '""',
-    position: 'absolute',
-    bottom: -100,
-    left: 120,
-    width: 200,
-    height: 200,
-    borderRadius: '50%',
-    background: `radial-gradient(circle, ${alpha(theme.palette.primary.main, 0.15)} 0%, transparent 70%)`,
-    pointerEvents: 'none',
-  },
+// Soft dark scrim over the aurora so the body text stays readable.
+// Stronger at the bottom (where the aurora "ground" sits), lighter at the top.
+export const Scrim = styled(Box)(({ theme }) => ({
+  position: "absolute",
+  inset: 0,
+  zIndex: 1,
+  pointerEvents: "none",
+  background: `linear-gradient(180deg, ${alpha(theme.palette.surface.canvas, 0.2)} 0%, ${alpha(theme.palette.surface.canvas, 0.65)} 100%)`,
 }));
 
-export const TextContent = styled(Box)({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 2,
-  position: 'relative',
-  zIndex: 1,
-});
+// Foreground row: label + description. Sits above the aurora + scrim.
+export const ContentRow = styled(Box)(({ theme }) => ({
+  position: "relative",
+  zIndex: 3,
+  display: "flex",
+  alignItems: "center",
+  gap: theme.spacing(4),
+}));
+
+// "FOCUS CUE" — uppercase bold label on the left of the content row
+export const FocusCueLabel = styled(Box)(({ theme }) => ({
+  flexShrink: 0,
+  fontSize: theme.typography.caption.fontSize,
+  fontWeight: 700,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: theme.palette.text.primary,
+  whiteSpace: "nowrap",
+}));
+
+export const TextContent = styled(Box)(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  gap: theme.spacing(0.5),
+}));

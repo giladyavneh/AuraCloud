@@ -31,6 +31,7 @@ export const useAllResources = () =>
   useQuery({
     queryKey: QUERY_KEYS.allResources,
     queryFn: fetchAllResources,
+    refetchInterval: 10_000,
   });
 
 export const useResourceActions = (arn: string | null) =>

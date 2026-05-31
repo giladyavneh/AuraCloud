@@ -37,7 +37,6 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
   watchlist,
 }) => {
   const { t } = useTranslation();
-  const theme = useTheme();
 
   const { mutate: save, isPending: isSaving, isSuccess: isSaved, isError: hasSaveError } = useUpdateWatchlist();
   const { mutate: create, isPending: isCreating, isSuccess: isCreated, isError: hasCreateError } = useCreateWatchlist();

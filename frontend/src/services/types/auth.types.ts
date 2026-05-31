@@ -1,13 +1,18 @@
+export type CustomerRole = 'manager' | 'employee';
+
 export interface AuthCustomer {
   _id: string;
   firstName: string;
   lastName: string;
   email: string;
-  companyName: string;
   roleTitle: string;
+  role: CustomerRole;
+  companyId: string;
+  companyName: string;
+  companySlug: string;
   hasAwsConnected: boolean;
-  /** Present when hasAwsConnected is true. Key IDs are not secret — safe to display. */
-  awsAccessKeyId?: string;
+  /** Present for managers when company AWS is connected. Key IDs are not secret — safe to display. */
+  companyAwsAccessKeyId?: string;
 }
 
 export interface AuthResponse {
@@ -15,14 +20,29 @@ export interface AuthResponse {
   customer: AuthCustomer;
 }
 
-export interface SignUpPayload {
+export interface ManagerSignUpPayload {
+  role: 'manager';
   firstName: string;
   lastName: string;
   email: string;
-  companyName: string;
   roleTitle: string;
   password: string;
+  companyName: string;
+  companySlug: string;
 }
+
+export interface EmployeeSignUpPayload {
+  role: 'employee';
+  firstName: string;
+  lastName: string;
+  email: string;
+  roleTitle: string;
+  password: string;
+  companySlug: string;
+  inviteCode: string;
+}
+
+export type SignUpPayload = ManagerSignUpPayload | EmployeeSignUpPayload;
 
 export interface LoginPayload {
   email: string;
@@ -32,7 +52,5 @@ export interface LoginPayload {
 export interface UpdateProfilePayload {
   firstName: string;
   lastName: string;
-  email: string;
-  companyName: string;
   roleTitle: string;
 }

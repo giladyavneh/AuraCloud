@@ -1,4 +1,8 @@
 {
+  "common": {
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
+  },
   "nav": {
     "dashboard": "Dashboard",
     "resourceWatchList": "Resource Watchlist",
@@ -94,12 +98,42 @@
     "lastName": "Last Name",
     "email": "Work Email",
     "companyName": "Company Name",
+    "companySlug": "Team Handle",
+    "companySlugPlaceholder": "your-team",
+    "companySlugInvalid": "Only lowercase letters, numbers and hyphens allowed",
+    "companySlugTaken": "This handle is already taken",
+    "tooltipAvailable": "Handle available — your team's sign-up link will be aura-cloud.com/{{slug}}",
+    "tooltipTaken": "Handle already in use — choose a different one so your team gets a unique link",
+    "tooltipInvalid": "Only lowercase letters, numbers and hyphens are allowed — no spaces or special characters",
     "roleTitle": "Role Title",
     "password": "Password",
     "submit": "Create Account",
     "submitting": "Creating account...",
     "loginPrompt": "Already have an account?",
     "loginLink": "Sign in"
+  },
+  "companyLanding": {
+    "subtitle": "Sign up to monitor your AWS infrastructure.",
+    "signUp": "Create Account",
+    "notFound": "Company not found. Check the URL and try again.",
+    "loginPrompt": "Already have an account?",
+    "loginLink": "Sign in"
+  },
+  "companySignUp": {
+    "title": "Join your team",
+    "subtitle": "Create your account to start monitoring your AWS resources.",
+    "inviteCode": "Invite Code",
+    "inviteCodeHelper": "6-digit code provided by your manager",
+    "submit": "Join Team"
+  },
+  "selectAwsUser": {
+    "title": "Select your AWS identity",
+    "subtitle": "Choose the IAM or SSO user that matches your AWS account.",
+    "confirm": "Confirm Identity",
+    "confirming": "Linking...",
+    "fetchError": "Could not load AWS users. Try again later.",
+    "noUsers": "No AWS users found yet. Your manager may need to complete AWS onboarding first.",
+    "signOut": "Sign out"
   },
   "login": {
     "title": "Welcome back",
@@ -124,7 +158,8 @@
     "submit": "Connect AWS Account",
     "submitting": "Connecting...",
     "successTitle": "You're connected!",
-    "successDescription": "Your AWS account is now linked. Taking you to your dashboard..."
+    "successDescription": "Your AWS account is now linked. Taking you to your dashboard...",
+    "signOut": "Sign out"
   },
   "settings": {
     "title": "Settings",
@@ -140,6 +175,16 @@
       "save": "Save Changes",
       "saving": "Saving...",
       "successMessage": "Profile updated successfully."
+    },
+    "invite": {
+      "title": "Team Invite",
+      "description": "Share the code and sign-up link with your team so they can join your workspace.",
+      "codeLabel": "Invite Code",
+      "linkLabel": "Sign-up Link",
+      "copyCode": "Copy code",
+      "copyLink": "Copy link",
+      "copied": "Copied!",
+      "hint": "Employees need both the sign-up link and the invite code to create their account."
     },
     "aws": {
       "title": "AWS Credentials",

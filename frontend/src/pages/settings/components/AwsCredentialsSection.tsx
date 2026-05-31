@@ -1,3 +1,4 @@
+import PasswordField from "@/components/passwordField/PasswordField";
 import { useSubmitAwsCredentials } from "@/hooks/auth.hooks";
 import { useAuth } from "@/context/auth/AuthContext";
 import {
@@ -63,7 +64,7 @@ const AwsCredentialsSection: React.FC = () => {
 
       <SectionDivider />
 
-      {customer?.hasAwsConnected && customer.awsAccessKeyId ? (
+      {customer?.companyAwsAccessKeyId ? (
         <div>
           <Typography variant="caption" color="textSecondary" sx={{ display: "block", marginBottom: 1 }}>
             {t("settings.aws.currentKey")}
@@ -71,7 +72,7 @@ const AwsCredentialsSection: React.FC = () => {
           <CurrentKeyRow>
             <KeyIcon size={theme.iconSize.sm} color={theme.palette.text.secondary} />
             <Typography variant="body2" color="textSecondary" sx={{ fontFamily: theme.typography.fontFamilyMono, fontSize: "12px" }}>
-              {customer.awsAccessKeyId}
+              {customer.companyAwsAccessKeyId}
             </Typography>
           </CurrentKeyRow>
         </div>
@@ -99,9 +100,8 @@ const AwsCredentialsSection: React.FC = () => {
           error={!!errors.accessKeyId}
         />
 
-        <TextField
+        <PasswordField
           label={t("settings.aws.secretAccessKey")}
-          type="password"
           size="small"
           fullWidth
           autoComplete="new-password"

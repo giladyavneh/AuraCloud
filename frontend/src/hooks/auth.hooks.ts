@@ -1,7 +1,17 @@
 import { useAuth } from "@/context/auth/AuthContext";
-import { login, signUp, submitAwsCredentials, updateProfile } from "@/services/auth.service";
+import {
+  fetchCompanyAwsUsers,
+  fetchCompanyBySlug,
+  fetchCompanyInviteCode,
+  linkAwsUser,
+  login,
+  signUp,
+  submitAwsCredentials,
+  updateProfile,
+} from "@/services/auth.service";
 import type { LoginPayload, SignUpPayload, UpdateProfilePayload } from "@/services/types/auth.types";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { QUERY_KEYS } from "@/constants/queryKeys";
 
 export const useSignUp = () => {
   const { setAuth } = useAuth();
@@ -36,6 +46,36 @@ export const useUpdateProfile = () => {
 
   return useMutation({
     mutationFn: (payload: UpdateProfilePayload) => updateProfile(payload),
+    onSuccess: (customer) => updateCustomer(customer),
+  });
+};
+
+export const useCompanyBySlug = (slug: string) =>
+  useQuery({
+    queryKey: QUERY_KEYS.companyBySlug(slug),
+    queryFn: () => fetchCompanyBySlug(slug),
+    enabled: Boolean(slug),
+    retry: false,
+  });
+
+export const useCompanyAwsUsers = (slug: string) =>
+  useQuery({
+    queryKey: QUERY_KEYS.companyAwsUsers(slug),
+    queryFn: () => fetchCompanyAwsUsers(slug),
+    enabled: Boolean(slug),
+  });
+
+export const useCompanyInviteCode = () =>
+  useQuery({
+    queryKey: QUERY_KEYS.companyInviteCode,
+    queryFn: fetchCompanyInviteCode,
+  });
+
+export const useLinkAwsUser = () => {
+  const { updateCustomer } = useAuth();
+
+  return useMutation({
+    mutationFn: (awsUserId: string) => linkAwsUser(awsUserId),
     onSuccess: (customer) => updateCustomer(customer),
   });
 };

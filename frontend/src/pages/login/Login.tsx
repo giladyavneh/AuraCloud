@@ -10,6 +10,7 @@ import {
   LoginForm,
   LoginRoot,
 } from "@/pages/login/components/login.styled";
+import PasswordField from "@/components/passwordField/PasswordField";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -93,9 +94,8 @@ const Login: React.FC = () => {
             error={!!errors.email}
           />
 
-          <TextField
+          <PasswordField
             label={t("login.password")}
-            type="password"
             size="small"
             fullWidth
             {...register("password", { required: true })}

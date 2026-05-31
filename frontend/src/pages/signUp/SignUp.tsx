@@ -1,5 +1,6 @@
 import AuraLogo from "@/components/auraLogo/AuraLogo";
 import PixelBlast from "@/components/pixelBlast/PixelBlast";
+import { useAuth } from "@/context/auth/AuthContext";
 import { useSignUp } from "@/hooks/auth.hooks";
 import {
   BackgroundLayer,
@@ -11,26 +12,37 @@ import {
   SignUpForm,
   SignUpRoot,
 } from "@/pages/signUp/components/signUp.styled";
+import PasswordField from "@/components/passwordField/PasswordField";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
+import InputAdornment from "@mui/material/InputAdornment";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
-import React, { useEffect } from "react";
+import { CheckCircleIcon, ProhibitIcon, WarningCircleIcon } from "@phosphor-icons/react";
+import { QUERY_KEYS } from "@/constants/queryKeys";
+import { fetchCompanyBySlug } from "@/services/auth.service";
+import { useQuery } from "@tanstack/react-query";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/auth/AuthContext";
 
-interface SignUpFormValues {
+interface ManagerSignUpFormValues {
   firstName: string;
   lastName: string;
   email: string;
   companyName: string;
+  companySlug: string;
   roleTitle: string;
   password: string;
 }
+
+/** Converts a company name to a URL-safe slug suggestion. */
+const toSlug = (name: string): string =>
+  name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 const SignUp: React.FC = () => {
   const { t } = useTranslation();
@@ -39,19 +51,53 @@ const SignUp: React.FC = () => {
   const { customer } = useAuth();
   const { mutate: doSignUp, isPending, error } = useSignUp();
 
-  const { register, handleSubmit, formState: { errors } } = useForm<SignUpFormValues>();
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<ManagerSignUpFormValues>();
 
   // Redirect already-authenticated users
   useEffect(() => {
     if (customer) {
-      navigate(customer.hasAwsConnected ? "/dashboard" : "/onboard", { replace: true });
+      navigate('/dashboard', { replace: true });
     }
   }, [customer, navigate]);
 
-  const onSubmit = (values: SignUpFormValues) => {
-    doSignUp(values, {
-      onSuccess: () => navigate("/onboard", { replace: true }),
-    });
+  // Auto-suggest slug from company name
+  const companyNameValue = watch('companyName');
+  const companySlugValue = watch('companySlug');
+  useEffect(() => {
+    if (companyNameValue) {
+      setValue('companySlug', toSlug(companyNameValue), { shouldValidate: false });
+    }
+  }, [companyNameValue, setValue]);
+
+  // Debounce the slug value before firing the availability check
+  const [debouncedSlug, setDebouncedSlug] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSlug(companySlugValue ?? ''), 500);
+    return () => clearTimeout(timer);
+  }, [companySlugValue]);
+
+  const SLUG_PATTERN = /^[a-z0-9-]+$/;
+  const hasPatternError = Boolean(companySlugValue) && !SLUG_PATTERN.test(companySlugValue);
+  const slugToCheck = debouncedSlug && !hasPatternError ? debouncedSlug : '';
+
+  // fetchCompanyBySlug throws on 404 → slug is available (isError = true = free)
+  const {
+    isFetching: isCheckingSlug,
+    isSuccess: slugIsTaken,
+    isError: slugIsAvailable,
+  } = useQuery({
+    queryKey: QUERY_KEYS.slugAvailability(slugToCheck),
+    queryFn: () => fetchCompanyBySlug(slugToCheck),
+    enabled: Boolean(slugToCheck),
+    retry: false,
+    staleTime: 30_000,
+  });
+
+  const onSubmit = (values: ManagerSignUpFormValues) => {
+    doSignUp(
+      { ...values, role: 'manager' },
+      { onSuccess: () => navigate('/onboard', { replace: true }) },
+    );
   };
 
   return (
@@ -66,7 +112,6 @@ const SignUp: React.FC = () => {
           pixelSizeJitter={0.4}
           edgeFade={0.4}
           speed={0.4}
-          // Listen for clicks page-wide so ripples also fire when the card is clicked
           rippleTrigger="window"
         />
       </BackgroundLayer>
@@ -77,10 +122,10 @@ const SignUp: React.FC = () => {
             <AuraLogo size={theme.iconSize.md} />
           </LogoBadge>
           <Typography variant="h5" color="textPrimary">
-            {t("signUp.title")}
+            {t('signUp.title')}
           </Typography>
           <Typography variant="body2" color="textSecondary">
-            {t("signUp.subtitle")}
+            {t('signUp.subtitle')}
           </Typography>
         </HeaderBlock>
 
@@ -89,52 +134,94 @@ const SignUp: React.FC = () => {
         <SignUpForm onSubmit={handleSubmit(onSubmit)} noValidate>
           <NameRow>
             <TextField
-              label={t("signUp.firstName")}
+              label={t('signUp.firstName')}
               size="small"
               fullWidth
-              {...register("firstName", { required: true })}
+              {...register('firstName', { required: true })}
               error={!!errors.firstName}
             />
             <TextField
-              label={t("signUp.lastName")}
+              label={t('signUp.lastName')}
               size="small"
               fullWidth
-              {...register("lastName", { required: true })}
+              {...register('lastName', { required: true })}
               error={!!errors.lastName}
             />
           </NameRow>
 
           <TextField
-            label={t("signUp.email")}
+            label={t('signUp.email')}
             type="email"
             size="small"
             fullWidth
-            {...register("email", { required: true })}
+            {...register('email', { required: true })}
             error={!!errors.email}
           />
 
           <TextField
-            label={t("signUp.companyName")}
+            label={t('signUp.companyName')}
             size="small"
             fullWidth
-            {...register("companyName", { required: true })}
+            {...register('companyName', { required: true })}
             error={!!errors.companyName}
           />
 
           <TextField
-            label={t("signUp.roleTitle")}
+            label={t('signUp.companySlug')}
             size="small"
             fullWidth
-            {...register("roleTitle", { required: true })}
-            error={!!errors.roleTitle}
+            helperText={
+              hasPatternError
+                ? (errors.companySlug?.message ?? t('signUp.companySlugInvalid'))
+                : slugIsTaken
+                  ? t('signUp.companySlugTaken')
+                  : `aura-cloud.com/${companySlugValue || t('signUp.companySlugPlaceholder')}`
+            }
+            slotProps={{
+              inputLabel: { shrink: Boolean(companySlugValue) },
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    {hasPatternError ? (
+                      <Tooltip title={t('signUp.tooltipInvalid')} arrow>
+                        <ProhibitIcon size={theme.iconSize.sm} color={theme.palette.error.main} style={{ cursor: 'default' }} />
+                      </Tooltip>
+                    ) : isCheckingSlug ? (
+                      <CircularProgress size={theme.iconSize.xs} />
+                    ) : slugIsTaken ? (
+                      <Tooltip title={t('signUp.tooltipTaken')} arrow>
+                        <WarningCircleIcon size={theme.iconSize.sm} color={theme.palette.error.main} style={{ cursor: 'default' }} />
+                      </Tooltip>
+                    ) : slugIsAvailable ? (
+                      <Tooltip title={t('signUp.tooltipAvailable', { slug: debouncedSlug })} arrow>
+                        <CheckCircleIcon size={theme.iconSize.sm} color={theme.palette.success.main} style={{ cursor: 'default' }} />
+                      </Tooltip>
+                    ) : null}
+                  </InputAdornment>
+                ),
+              },
+            }}
+            {...register('companySlug', {
+              required: true,
+              pattern: { value: /^[a-z0-9-]+$/, message: t('signUp.companySlugInvalid') },
+              validate: () => !slugIsTaken || (t('signUp.companySlugTaken') as string),
+            })}
+            error={hasPatternError || slugIsTaken}
           />
 
           <TextField
-            label={t("signUp.password")}
-            type="password"
+            label={t('signUp.roleTitle')}
             size="small"
             fullWidth
-            {...register("password", { required: true })}
+            {...register('roleTitle', { required: true })}
+            error={!!errors.roleTitle}
+          />
+
+          <PasswordField
+            label={t('signUp.password')}
+            size="small"
+            fullWidth
+            {...register('password', { required: true })}
             error={!!errors.password}
           />
 
@@ -145,13 +232,13 @@ const SignUp: React.FC = () => {
             disabled={isPending}
             startIcon={isPending && <CircularProgress size={theme.iconSize.xs} color="inherit" />}
           >
-            {isPending ? t("signUp.submitting") : t("signUp.submit")}
+            {isPending ? t('signUp.submitting') : t('signUp.submit')}
           </Button>
         </SignUpForm>
 
-        <Typography variant="body2" color="textSecondary" sx={{ textAlign: "center" }}>
-          {t("signUp.loginPrompt")}{" "}
-          <FooterLink to="/login">{t("signUp.loginLink")}</FooterLink>
+        <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center' }}>
+          {t('signUp.loginPrompt')}{' '}
+          <FooterLink to="/login">{t('signUp.loginLink')}</FooterLink>
         </Typography>
 
       </SignUpCard>

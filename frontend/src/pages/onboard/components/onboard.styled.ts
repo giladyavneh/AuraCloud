@@ -13,6 +13,26 @@ export const OnboardRoot = styled(Box)(({ theme }) => ({
   overflow: "hidden",
 }));
 
+export const OnboardStack = styled(Box)(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: theme.spacing(2),
+  width: "100%",
+  maxWidth: 560,
+  position: "relative",
+  zIndex: 1,
+}));
+
+export const SecondaryCard = styled(Card)(({ theme }) => ({
+  width: "100%",
+  backgroundColor: alpha(theme.palette.surface.base, 0.35),
+  backdropFilter: "blur(24px)",
+  WebkitBackdropFilter: "blur(24px)",
+  border: `1px solid ${alpha(theme.palette.border.strong, 0.3)}`,
+  padding: theme.spacing(1.5, 3),
+}));
+
 // Full-bleed wrapper for the WebGL Pixel Blast background.
 // Pointer events stay enabled so click-ripples on the canvas still fire;
 // the OnboardCard sits above at zIndex 1, so form clicks aren't affected.
@@ -34,8 +54,6 @@ export const OnboardCard = styled(Card)(({ theme }) => ({
   flexDirection: "column",
   gap: theme.spacing(4),
   padding: theme.spacing(5),
-  position: "relative",
-  zIndex: 1,
 }));
 
 export const HeaderBlock = styled(Box)(({ theme }) => ({

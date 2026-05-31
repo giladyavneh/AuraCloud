@@ -63,17 +63,17 @@ async function main() {
         }
 
         await UserPermissionModel.findOneAndUpdate(
-          { userId: user.userId },
+          { userId: findings.userId },
           {
             $set: {
               name: user.name,
-              userId: user.userId,
+              userId: findings.userId,
               permissionsData,
             },
           },
-          { upsert: true, new: true }
+          { upsert: true, returnDocument: 'after' }
         );
-        console.log(`Saved evaluation results for user: ${user.name} (${user.userId})`);
+        console.log(`Saved evaluation results for user: ${user.name} (AWS: ${findings.userId})`);
       }
       console.log(`[${new Date().toLocaleTimeString()}] ✅ Logic Evaluation Cycle Complete`);
     } catch (err: any) {

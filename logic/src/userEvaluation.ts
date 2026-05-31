@@ -1,6 +1,6 @@
-import { attemptDeepParse, type RedisClientType, type UserResourceWatchlist } from 'utils';
+import { attemptDeepParse, type RedisClientType } from 'utils';
 import { RESOURCES } from 'utils/src/consts.js';
-import { getResourceField, getSsoUser } from './dataAccess.js';
+import { type EnrichedWatchlist, getResourceField, getSsoUser } from './dataAccess.js';
 import { evaluate } from './evaluator.js';
 
 export function collectAccessibleAwsAccountIds(userData: {
@@ -51,10 +51,11 @@ async function getAssumedRoleIdForPermissionSets(permissionSets: { Name?: string
   }
 }
 
-export async function evaluateUser(user: UserResourceWatchlist, redis: RedisClientType) {
-  const userData = await getSsoUser(redis, user.userId);
+export async function evaluateUser(user: EnrichedWatchlist, redis: RedisClientType) {
+  // Use the AWS SSO user ID (not the Mongo customer._id) to look up Redis data
+  const userData = await getSsoUser(redis, user.linkedAwsUserId);
   if (!userData) {
-    console.warn(`User data not found in Redis for user ${user.userId}. Actions will be marked as 'stale'.`);
+    console.warn(`User data not found in Redis for AWS user ${user.linkedAwsUserId} (customer: ${user.userId}). Skipping.`);
     return;
   }
 
@@ -90,7 +91,9 @@ export async function evaluateUser(user: UserResourceWatchlist, redis: RedisClie
     }));
     return { [resource.arn]: actionResults };
   });
-  return { userId: user.userId, resources: await Promise.all(resources) };
+  // Return linkedAwsUserId so UserPermission is keyed by the AWS identity ID,
+  // matching what the API server queries when serving /api/user-permissions.
+  return { userId: user.linkedAwsUserId, resources: await Promise.all(resources) };
 }
 
 export function getResourceTypeFromArn(arn: string): RESOURCES | 'unknown' {

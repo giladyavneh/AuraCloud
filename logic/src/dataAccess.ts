@@ -1,7 +1,41 @@
-import { UserResourceWatchlistModel, type RedisClientType, type UserResourceWatchlist } from 'utils';
+import mongoose from 'mongoose';
+import { CustomerModel, UserResourceWatchlistModel, type RedisClientType, type UserResourceWatchlist } from 'utils';
 
-export function getUsersFromMongo(): Promise<UserResourceWatchlist[]> {
-  return UserResourceWatchlistModel.find().lean<UserResourceWatchlist[]>().exec();
+// UserResourceWatchlist enriched with the customer's linked AWS SSO user ID.
+// The watchlist stores customer._id as userId; we need the AWS identity ID
+// to look up the SSO user in Redis and write UserPermission docs correctly.
+export interface EnrichedWatchlist extends UserResourceWatchlist {
+  linkedAwsUserId: string;
+}
+
+// Returns true only when the string is a 24-char hex MongoDB ObjectId.
+function isObjectId(value: string): boolean {
+  return mongoose.Types.ObjectId.isValid(value) && String(new mongoose.Types.ObjectId(value)) === value;
+}
+
+export async function getUsersFromMongo(): Promise<EnrichedWatchlist[]> {
+  const watchlists = await UserResourceWatchlistModel.find().lean<UserResourceWatchlist[]>().exec();
+
+  const enriched: EnrichedWatchlist[] = [];
+  for (const watchlist of watchlists) {
+    const rawUserId = String(watchlist.userId);
+
+    // Legacy watchlists (created before the manager/employee rework) stored the
+    // AWS SSO user ID directly as userId rather than the MongoDB customer._id.
+    // Detect these by checking whether the value is a valid ObjectId.
+    if (!isObjectId(rawUserId)) {
+      enriched.push({ ...watchlist, linkedAwsUserId: rawUserId });
+      continue;
+    }
+
+    const customer = await CustomerModel.findById(rawUserId).lean();
+    if (!customer?.linkedAwsUserId) {
+      console.warn(`[dataAccess] Customer ${rawUserId} has no linkedAwsUserId — skipping watchlist`);
+      continue;
+    }
+    enriched.push({ ...watchlist, linkedAwsUserId: customer.linkedAwsUserId });
+  }
+  return enriched;
 }
 
 export async function getSsoUser(redis: RedisClientType, userId: string) {

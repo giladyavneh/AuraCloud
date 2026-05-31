@@ -9,7 +9,7 @@ const GLOBAL_S3_REGION = "us-east-1";
 export class S3Crawler extends BaseCrawler {
     protected s3Client = new S3Client({ region: this.region, credentials: this.credentials });
     protected stsClient = new STSClient({ region: this.region, credentials: this.credentials });
-    protected intervalMs = 1000;
+    public intervalMs = 1000;
     private regionalClientsCache = new Map<string, S3Client>();
 
     private getRegionalClient(region: string): S3Client {

@@ -15,7 +15,7 @@ import {
   UserPermissionModel,
   CustomerModel,
 } from "./db.js";
-import { AwsResourceModel, ResourceActionModel } from "utils";
+import { AwsResourceModel, ResourceActionModel, encryptSecret } from "utils";
 
 dotenv.config();
 
@@ -300,10 +300,9 @@ app.post("/api/aws/onboard-credentials", requireAuth, async (req, res) => {
       req.customer!.customerId,
       {
         $set: {
-          // TODO: encrypt secretAccessKey before saving (use KMS/libsodium/etc).
           awsCredentials: {
             accessKeyId: accessKeyId.trim(),
-            secretAccessKey: secretAccessKey.trim(),
+            secretAccessKey: encryptSecret(secretAccessKey.trim()),
             status: "connected",
             connectedAt: new Date(),
           },

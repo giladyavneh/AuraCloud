@@ -3,7 +3,7 @@ import { SsoCrawler } from "./ssoCrawler.js";
 import { PermissionSetsCrawler } from "./permissionSetsCrawler.js";
 import { BasicIamCrawler } from "./basicIamCrawler.js";
 import { S3Crawler } from "./s3Crawler.js";
-import { getRedisClient, connectMongo, CustomerModel } from "utils";
+import { getRedisClient, connectMongo, CustomerModel, decryptSecret } from "utils";
 
 async function main() {
   const [redis] = await Promise.all([getRedisClient(), connectMongo()]);
@@ -35,9 +35,18 @@ async function main() {
       );
       continue;
     }
+    let decryptedSecret: string;
+    try {
+      decryptedSecret = decryptSecret(creds.secretAccessKey);
+    } catch (err: any) {
+      console.warn(
+        `⚠️  Customer ${customer._id} secret could not be decrypted (${err.message}) — skipping`,
+      );
+      continue;
+    }
     const credentials = {
       accessKeyId: creds.accessKeyId,
-      secretAccessKey: creds.secretAccessKey,
+      secretAccessKey: decryptedSecret,
     };
     const tag = `${customer.firstName}:${customer._id.toString().slice(-6)}`;
 

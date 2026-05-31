@@ -214,7 +214,7 @@ const customerSchema = new mongoose.Schema(
     passwordHash: { type: String, required: true },
     awsCredentials: {
       accessKeyId:     { type: String },
-      // TODO: encrypt secretAccessKey before persisting (MVP plaintext)
+      // Stored encrypted via encryptSecret() — see utils/src/crypto.ts
       secretAccessKey: { type: String },
       status:          { type: String, enum: ['connected', 'disconnected', 'error'] },
       connectedAt:     { type: Date },
@@ -234,3 +234,4 @@ export const CustomerModel =
 export { mongoose };
 export type { RedisClientType } from 'redis';
 export * from './utils.js';
+export * from './crypto.js';

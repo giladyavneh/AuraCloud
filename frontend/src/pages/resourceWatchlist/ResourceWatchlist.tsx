@@ -6,7 +6,6 @@ import {
 import JsonEditorPanel from "@/pages/resourceWatchlist/components/JsonEditorPanel";
 import ResourceSelectorPanel from "@/pages/resourceWatchlist/components/ResourceSelectorPanel";
 import {
-  EmptyStateBanner,
   PageHeader,
   PageRoot,
   PageTitleBlock,
@@ -19,8 +18,6 @@ import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Snackbar from "@mui/material/Snackbar";
 import Typography from "@mui/material/Typography";
-import { useTheme } from "@mui/material/styles";
-import { ListPlusIcon } from "@phosphor-icons/react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -110,22 +107,6 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
             : t("resourceWatchlist.saveError")}
         </Alert>
       </Snackbar>
-
-      {/* Empty state banner — only shown before the user's first save */}
-      {!watchlist && (
-        <EmptyStateBanner>
-          <ListPlusIcon size={40} color={theme.palette.text.disabled} />
-
-          <Box>
-            <Typography variant="h6" color="textPrimary">
-              {t("resourceWatchlist.emptyState.title")}
-            </Typography>
-            <Typography variant="body2" color="textSecondary" sx={{ marginTop: 1 }}>
-              {t("resourceWatchlist.emptyState.description")}
-            </Typography>
-          </Box>
-        </EmptyStateBanner>
-      )}
 
       <Grid container spacing={4} sx={{ flex: 1, minHeight: 0 }}>
         <Grid size={{ xs: 12, lg: 7 }} sx={{ height: "100%" }}>

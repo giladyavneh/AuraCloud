@@ -25,6 +25,9 @@ const port = Number(process.env.PORT) || 3000;
 const JWT_SECRET = process.env.JWT_SECRET ?? "aura-dev-secret-change-in-production";
 const BCRYPT_ROUNDS = 10;
 
+// Internal Aura infrastructure identities — never exposed as monitorable resources.
+const INTERNAL_RESOURCE_NAMES = ["Aura-SaaS-Crawler"];
+
 app.use(cors());
 app.use(express.json());
 
@@ -347,7 +350,10 @@ app.put("/api/user-resource-watchlist/:id", requireAuth, async (req, res) => {
 
 app.get("/api/resources", requireAuth, async (_req, res) => {
   try {
-    const resources = await AwsResourceModel.find().lean().exec();
+    const resources = await AwsResourceModel
+      .find({ name: { $nin: INTERNAL_RESOURCE_NAMES } })
+      .lean()
+      .exec();
     res.json(resources);
   } catch (err) {
     console.error("GET /api/resources failed:", err);

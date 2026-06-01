@@ -67,8 +67,7 @@
     "actions": "Actions:",
     "moreActions": "{{count}} more >",
     "allActions": "All actions",
-    "errorPrefix": "Error:",
-    "details": "Details"
+    "errorPrefix": "Error:"
   },
   "resourceWatchlist": {
     "title": "Resource Watchlist",

@@ -108,8 +108,8 @@ const SelectAwsUser: React.FC = () => {
             {awsUsers.map((user: AwsUserOption) => (
               <UserItem
                 key={user._id}
-                isSelected={selectedId === user._id}
-                onClick={() => setSelectedId(user._id)}
+                isSelected={selectedId === user.externalId}
+                onClick={() => setSelectedId(user.externalId)}
               >
                 <ListItemText
                   primary={

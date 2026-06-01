@@ -16,7 +16,7 @@ import {
 } from "@/components/resourceCard/helpers/resourceCard.helpers";
 import type { ResourceCardProps } from "@/components/resourceCard/types/resourceCard.types";
 import StatusTag from "@/components/statusTag/StatusTag";
-import { Alert, Button } from "@mui/material";
+import { Alert } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import React from "react";
@@ -87,15 +87,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
         </ResourceList>
 
         {errorMessage && (
-          <Alert
-            severity="error"
-            action={
-              <Button size="small" variant="text" color="inherit">
-                {/* TODO: add functionality */}
-                {t("resourceCard.details")}
-              </Button>
-            }
-          >
+          <Alert severity="error">
             <Typography variant="body2">
               {t("resourceCard.errorPrefix")} {errorMessage}
             </Typography>

@@ -240,7 +240,7 @@ const customerSchema = new mongoose.Schema(
     passwordHash:     { type: String, required: true },
     role:             { type: String, enum: ['manager', 'employee'], required: true },
     companyId:        { type: String, required: true },    // references Company._id
-    linkedAwsUserId:  { type: String, default: null },     // references User._id; null until selected
+    linkedAwsUserId:  { type: String, default: null },     // stores User.externalId (AWS SSO/IAM UserId); null until selected
   },
   { timestamps: true },
 );

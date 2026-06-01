@@ -275,8 +275,14 @@ app.get("/api/auth/me", requireAuth, async (req, res) => {
 
 app.get("/api/user-resource-watchlist", requireAuth, async (req, res) => {
   try {
+    const customer = await CustomerModel.findById(req.customer!.customerId).lean();
+    if (!customer?.linkedAwsUserId) {
+      // No AWS identity linked yet — nothing to watch
+      res.json([]);
+      return;
+    }
     const watchlists = await UserResourceWatchlistModel
-      .find({ userId: req.customer!.customerId })
+      .find({ userId: customer.linkedAwsUserId })
       .lean()
       .exec();
     res.json(watchlists);
@@ -288,8 +294,13 @@ app.get("/api/user-resource-watchlist", requireAuth, async (req, res) => {
 
 app.post("/api/user-resource-watchlist", requireAuth, async (req, res) => {
   try {
+    const customer = await CustomerModel.findById(req.customer!.customerId).lean();
+    if (!customer?.linkedAwsUserId) {
+      res.status(409).json({ message: "Link an AWS user before creating a watchlist" });
+      return;
+    }
     const existing = await UserResourceWatchlistModel.findOne({
-      userId: req.customer!.customerId,
+      userId: customer.linkedAwsUserId,
     });
     if (existing) {
       // Watchlist already exists — return it without creating a duplicate
@@ -297,8 +308,8 @@ app.post("/api/user-resource-watchlist", requireAuth, async (req, res) => {
       return;
     }
     const doc = await UserResourceWatchlistModel.create({
-      userId: req.customer!.customerId,
-      name: "My Watchlist",
+      userId: customer.linkedAwsUserId,
+      name: `${customer.firstName} ${customer.lastName}'s Watchlist`,
       resources: req.body.resources ?? [],
     });
     res.status(201).json(doc);
@@ -310,9 +321,14 @@ app.post("/api/user-resource-watchlist", requireAuth, async (req, res) => {
 
 app.put("/api/user-resource-watchlist/:id", requireAuth, async (req, res) => {
   try {
-    // Ensure the watchlist belongs to the requesting customer
+    // Ensure the watchlist belongs to the requesting customer's linked AWS identity
+    const customer = await CustomerModel.findById(req.customer!.customerId).lean();
+    if (!customer?.linkedAwsUserId) {
+      res.status(404).json({ message: "Watchlist not found" });
+      return;
+    }
     const doc = await UserResourceWatchlistModel.findOneAndUpdate(
-      { _id: req.params.id, userId: req.customer!.customerId },
+      { _id: req.params.id, userId: customer.linkedAwsUserId },
       { resources: req.body.resources },
       { returnDocument: "after" },
     );
@@ -417,8 +433,9 @@ app.put("/api/user/link-aws-user", requireAuth, async (req, res) => {
       return;
     }
 
-    // Verify the AWS user exists in the User collection
-    const awsUser = await UserModel.findById(awsUserId).lean();
+    // awsUserId carries the AWS externalId (SSO/IAM UserId) — the stable identity key.
+    // Verify the AWS identity exists before linking it to the customer.
+    const awsUser = await UserModel.findOne({ externalId: awsUserId }).lean();
     if (!awsUser) {
       res.status(404).json({ message: "AWS user not found" });
       return;

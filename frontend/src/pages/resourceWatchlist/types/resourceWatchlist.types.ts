@@ -1,6 +1,11 @@
+import type { ResourceWatchlistItem } from '@/services/types/resources.types';
 import type { WatchlistResource } from '@/services/resources.service';
 
 export type { WatchlistResource };
+
+export interface ResourceWatchlistContentProps {
+  watchlist: ResourceWatchlistItem | null;
+}
 
 export interface ResourceSelectorPanelProps {
   draftResources: WatchlistResource[];

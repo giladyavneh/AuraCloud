@@ -1,5 +1,8 @@
 import GlowCard from "@/components/glowCard/GlowCard";
+import type { FilterTabValue } from "@/pages/dashboard/types/dashboard.types";
 import ResourceCard from "@/components/resourceCard/ResourceCard";
+
+const FILTER_TABS: FilterTabValue[] = ["all", "iam", "resource", "network", "healthy"];
 import { useUserPermissions, useUserResourceWatchlist } from "@/hooks/resources.hooks";
 import {
   deriveStatusFromArnData,
@@ -28,10 +31,6 @@ import { DatabaseIcon, ArrowRightIcon } from "@phosphor-icons/react";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-
-type FilterTabValue = "all" | "iam" | "resource" | "network" | "healthy";
-
-const FILTER_TABS: FilterTabValue[] = ["all", "iam", "resource", "network", "healthy"];
 
 const ResourceSection: React.FC = () => {
   const { t } = useTranslation();

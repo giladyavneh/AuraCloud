@@ -19,19 +19,11 @@ import CircularProgress from "@mui/material/CircularProgress";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
+import type { EmployeeSignUpFormValues } from "@/pages/companySignUp/types/companySignUp.types";
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
-
-interface EmployeeSignUpFormValues {
-  firstName: string;
-  lastName: string;
-  email: string;
-  roleTitle: string;
-  password: string;
-  inviteCode: string;
-}
 
 const CompanySignUp: React.FC = () => {
   const { t } = useTranslation();

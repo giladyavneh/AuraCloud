@@ -22,27 +22,16 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 import { CheckCircleIcon, ProhibitIcon, WarningCircleIcon } from "@phosphor-icons/react";
+import { AURA_CLOUD_DOMAIN, SLUG_DEBOUNCE_MS } from "@/constants";
 import { QUERY_KEYS } from "@/constants/queryKeys";
+import { toSlug } from "@/pages/signUp/helpers/signUp.helpers";
+import type { ManagerSignUpFormValues } from "@/pages/signUp/types/signUp.types";
 import { fetchCompanyBySlug } from "@/services/auth.service";
 import { useQuery } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-
-interface ManagerSignUpFormValues {
-  firstName: string;
-  lastName: string;
-  email: string;
-  companyName: string;
-  companySlug: string;
-  roleTitle: string;
-  password: string;
-}
-
-/** Converts a company name to a URL-safe slug suggestion. */
-const toSlug = (name: string): string =>
-  name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 const SignUp: React.FC = () => {
   const { t } = useTranslation();
@@ -72,7 +61,7 @@ const SignUp: React.FC = () => {
   // Debounce the slug value before firing the availability check
   const [debouncedSlug, setDebouncedSlug] = useState('');
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSlug(companySlugValue ?? ''), 500);
+    const timer = setTimeout(() => setDebouncedSlug(companySlugValue ?? ''), SLUG_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [companySlugValue]);
 
@@ -175,7 +164,7 @@ const SignUp: React.FC = () => {
                 ? (errors.companySlug?.message ?? t('signUp.companySlugInvalid'))
                 : slugIsTaken
                   ? t('signUp.companySlugTaken')
-                  : `aura-cloud.com/${companySlugValue || t('signUp.companySlugPlaceholder')}`
+                  : `${AURA_CLOUD_DOMAIN}/${companySlugValue || t('signUp.companySlugPlaceholder')}`
             }
             slotProps={{
               inputLabel: { shrink: Boolean(companySlugValue) },

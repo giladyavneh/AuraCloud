@@ -16,14 +16,10 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 import { CheckCircleIcon, KeyIcon } from "@phosphor-icons/react";
+import type { AwsCredentialsFormValues } from "@/pages/settings/types/settings.types";
 import React from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-
-interface AwsCredentialsFormValues {
-  accessKeyId: string;
-  secretAccessKey: string;
-}
 
 const AwsCredentialsSection: React.FC = () => {
   const { t } = useTranslation();
@@ -71,7 +67,7 @@ const AwsCredentialsSection: React.FC = () => {
           </Typography>
           <CurrentKeyRow>
             <KeyIcon size={theme.iconSize.sm} color={theme.palette.text.secondary} />
-            <Typography variant="body2" color="textSecondary" sx={{ fontFamily: theme.typography.fontFamilyMono, fontSize: "12px" }}>
+            <Typography variant="body2" color="textSecondary" sx={{ fontFamily: theme.typography.fontFamilyMono, fontSize: theme.typography.caption.fontSize }}>
               {customer.companyAwsAccessKeyId}
             </Typography>
           </CurrentKeyRow>

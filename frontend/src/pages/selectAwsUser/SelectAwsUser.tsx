@@ -11,39 +11,17 @@ import {
   SignUpCard,
   SignUpRoot,
 } from "@/pages/signUp/components/signUp.styled";
+import { UserItem, UserList } from "@/pages/selectAwsUser/components/selectAwsUser.styled";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
-import List from "@mui/material/List";
-import ListItemButton from "@mui/material/ListItemButton";
 import ListItemText from "@mui/material/ListItemText";
 import Typography from "@mui/material/Typography";
-import { alpha, styled, useTheme } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-
-const UserList = styled(List)(({ theme }) => ({
-  border: `1px solid ${theme.palette.divider}`,
-  borderRadius: theme.shape.borderRadius,
-  maxHeight: 280,
-  overflowY: 'auto',
-  padding: 0,
-}));
-
-const UserItem = styled(ListItemButton, {
-  shouldForwardProp: (prop) => prop !== 'isSelected',
-})<{ isSelected: boolean }>(({ theme, isSelected }) => ({
-  borderBottom: `1px solid ${theme.palette.divider}`,
-  backgroundColor: isSelected ? alpha(theme.palette.primary.main, 0.12) : 'transparent',
-  '&:last-child': { borderBottom: 'none' },
-  '&:hover': {
-    backgroundColor: isSelected
-      ? alpha(theme.palette.primary.main, 0.18)
-      : theme.palette.action.hover,
-  },
-}));
 
 const SelectAwsUser: React.FC = () => {
   const { t } = useTranslation();

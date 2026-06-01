@@ -10,8 +10,7 @@ import {
   PageRoot,
   PageTitleBlock,
 } from "@/pages/resourceWatchlist/components/resourceWatchlist.styled";
-import type { WatchlistResource } from "@/pages/resourceWatchlist/types/resourceWatchlist.types";
-import type { ResourceWatchlistItem } from "@/services/types/resources.types";
+import type { ResourceWatchlistContentProps, WatchlistResource } from "@/pages/resourceWatchlist/types/resourceWatchlist.types";
 import { Grid } from "@mui/material";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -20,15 +19,6 @@ import Snackbar from "@mui/material/Snackbar";
 import Typography from "@mui/material/Typography";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-
-// ─── Inner content component ─────────────────────────────────────────────────
-// Accepts watchlist: ResourceWatchlistItem | null.
-// null = no watchlist doc exists yet → save calls POST (create).
-// non-null = existing doc → save calls PUT (update).
-
-interface ResourceWatchlistContentProps {
-  watchlist: ResourceWatchlistItem | null;
-}
 
 const sortedSnapshot = (resources: WatchlistResource[]) =>
   [...resources].sort((a, b) => a.arn.localeCompare(b.arn)).map((r) => ({ arn: r.arn, actions: r.actions }));

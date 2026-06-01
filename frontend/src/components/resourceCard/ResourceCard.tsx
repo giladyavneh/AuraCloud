@@ -1,3 +1,4 @@
+import { MONO_LABEL_FONT_SIZE } from "@/constants";
 import AwsServiceIcon from "@/components/awsServiceIcon/AwsServiceIcon";
 import {
   CardBody,
@@ -71,7 +72,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
               <Typography
                 variant="body2"
                 color="textSecondary"
-                sx={{ fontFamily: theme.typography.fontFamilyMono, fontSize: "11px" }}
+                sx={{ fontFamily: theme.typography.fontFamilyMono, fontSize: MONO_LABEL_FONT_SIZE }}
               >
                 {action}
               </Typography>

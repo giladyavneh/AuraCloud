@@ -1,3 +1,4 @@
+import { MONO_LABEL_FONT_SIZE } from "@/constants";
 import AwsServiceIcon from "@/components/awsServiceIcon/AwsServiceIcon";
 import { inferServiceFromArn } from "@/helpers/arn.helpers";
 import type { WatchlistResource } from "@/services/resources.service";
@@ -32,7 +33,7 @@ export const useWatchlistTableColumns =
               <Typography
                 variant="body2"
                 color="textPrimary"
-                sx={{ wordBreak: "break-all", fontFamily: theme.typography.fontFamilyMono, fontSize: "11px" }}
+                sx={{ wordBreak: "break-all", fontFamily: theme.typography.fontFamilyMono, fontSize: MONO_LABEL_FONT_SIZE }}
               >
                 {row.original.arn}
               </Typography>

@@ -10,9 +10,10 @@ import ResourceWatchlist from "@/pages/resourceWatchlist/ResourceWatchlist";
 import SelectAwsUser from "@/pages/selectAwsUser/SelectAwsUser";
 import Settings from "@/pages/settings/Settings";
 import SignUp from "@/pages/signUp/SignUp";
+import React from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
-const App = () => (
+const App: React.FC = () => (
   <Routes>
     {/* Public routes */}
     <Route path="/login" element={<Login />} />

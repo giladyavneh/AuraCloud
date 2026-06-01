@@ -1,8 +1,7 @@
+import { MONO_LABEL_FONT_SIZE } from "@/constants";
 import { styled } from "@mui/material/styles";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
-
-const PILL_RADIUS = 99;
 
 export const PageRoot = styled(Box)(({ theme }) => ({
   display: "flex",
@@ -15,8 +14,8 @@ export const StatusSummaryRoot = styled(Box)(({ theme }) => ({
   alignItems: "center",
   justifyContent: "space-between",
   padding: theme.spacing(4, 6),
-  backgroundColor: theme.palette.background.paper,
-  border: `1px solid ${theme.palette.divider}`,
+  backgroundColor: theme.palette.surface.base,
+  border: `1px solid ${theme.palette.border.default}`,
   borderRadius: theme.shape.borderRadius,
 }));
 
@@ -53,8 +52,8 @@ export const FilterTabsRow = styled(Box)(({ theme }) => ({
   display: "flex",
   alignItems: "center",
   gap: theme.spacing(0.5),
-  border: `1px solid ${theme.palette.divider}`,
-  borderRadius: PILL_RADIUS,
+  border: `1px solid ${theme.palette.border.default}`,
+  borderRadius: theme.shape.borderRadius,
   padding: theme.spacing(0.5),
   flexShrink: 0,
 }));
@@ -64,8 +63,8 @@ export const FilterTabCount = styled("span", {
   shouldForwardProp: (prop) => prop !== "isActive",
 })<{ isActive?: boolean }>(({ theme, isActive }) => ({
   marginLeft: theme.spacing(1),
-  fontSize: "11px",
-  fontFamily: theme.typography.fontFamilyMono,
+  fontSize: MONO_LABEL_FONT_SIZE,
+  fontFamily: theme.typography.fontFamily,
   opacity: isActive ? 0.75 : 0.5,
 }));
 
@@ -88,20 +87,21 @@ export const FilterTab = styled(Box, {
   shouldForwardProp: (prop) => prop !== "isActive",
 })<{ isActive?: boolean }>(({ theme, isActive }) => ({
   padding: theme.spacing(1.5, 3),
-  borderRadius: PILL_RADIUS,
+  borderRadius: theme.shape.borderRadius - 2,
   cursor: "pointer",
   fontSize: theme.typography.body2.fontSize,
   fontWeight: 400,
-  color: isActive ? theme.palette.background.default : theme.palette.text.secondary,
-  backgroundColor: isActive ? theme.palette.primary.main : "transparent",
-  transition: "background-color 0.15s ease, color 0.15s ease",
+  color: isActive ? theme.palette.primary.main : theme.palette.text.secondary,
+  backgroundColor: isActive ? theme.palette.surface.glow : "transparent",
+  boxShadow: isActive ? `inset 0 0 0 1px ${theme.palette.border.glow}` : "none",
+  transition: "background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease",
   userSelect: "none",
   whiteSpace: "nowrap",
   outline: "none",
 
   "&:hover": {
-    color: isActive ? theme.palette.background.default : theme.palette.text.primary,
-    backgroundColor: isActive ? theme.palette.primary.main : theme.palette.divider,
+    color: isActive ? theme.palette.primary.main : theme.palette.text.primary,
+    backgroundColor: isActive ? theme.palette.surface.glow : theme.palette.divider,
   },
 
   "&:focus-visible": {

@@ -16,7 +16,8 @@ import {
   StepHeader,
   StepNumber,
 } from "@/pages/onboard/components/onboard.styled";
-import { CLOUDFORMATION_URL } from "@/constants";
+import { CLOUDFORMATION_URL, ONBOARD_REDIRECT_DELAY_MS } from "@/constants";
+import type { OnboardFormValues } from "@/pages/onboard/types/onboard.types";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -30,11 +31,6 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
-interface OnboardFormValues {
-  accessKeyId: string;
-  secretAccessKey: string;
-}
-
 const Onboard: React.FC = () => {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -47,7 +43,7 @@ const Onboard: React.FC = () => {
   const onSubmit = (values: OnboardFormValues) => {
     submitCredentials(values, {
       onSuccess: () => {
-        setTimeout(() => navigate("/dashboard", { replace: true }), 1500);
+        setTimeout(() => navigate("/dashboard", { replace: true }), ONBOARD_REDIRECT_DELAY_MS);
       },
     });
   };

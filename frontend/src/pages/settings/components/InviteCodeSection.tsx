@@ -1,3 +1,9 @@
+import {
+  AURA_CLOUD_DOMAIN,
+  COPY_FEEDBACK_DURATION_MS,
+  INVITE_CODE_FONT_SIZE,
+  INVITE_CODE_LETTER_SPACING,
+} from "@/constants";
 import { useCompanyInviteCode } from "@/hooks/auth.hooks";
 import {
   CurrentKeyRow,
@@ -24,11 +30,11 @@ const InviteCodeSection: React.FC = () => {
   const handleCopy = (text: string, type: 'code' | 'link') => {
     void navigator.clipboard.writeText(text).then(() => {
       setCopied(type);
-      setTimeout(() => setCopied(null), 2000);
+      setTimeout(() => setCopied(null), COPY_FEEDBACK_DURATION_MS);
     });
   };
 
-  const inviteLink = data ? `aura-cloud.com/${data.slug}` : '';
+  const inviteLink = data ? `${AURA_CLOUD_DOMAIN}/${data.slug}` : '';
 
   return (
     <SettingsCard elevation={0}>
@@ -57,7 +63,7 @@ const InviteCodeSection: React.FC = () => {
               <Typography
                 variant="body2"
                 color="textPrimary"
-                sx={{ fontFamily: theme.typography.fontFamilyMono, fontSize: '20px', letterSpacing: '0.25em', flexGrow: 1 }}
+                sx={{ fontFamily: theme.typography.fontFamilyMono, fontSize: INVITE_CODE_FONT_SIZE, letterSpacing: INVITE_CODE_LETTER_SPACING, flexGrow: 1 }}
               >
                 {data?.inviteCode}
               </Typography>
@@ -80,7 +86,7 @@ const InviteCodeSection: React.FC = () => {
               <Typography
                 variant="body2"
                 color="textSecondary"
-                sx={{ fontFamily: theme.typography.fontFamilyMono, fontSize: '12px', flexGrow: 1 }}
+                sx={{ fontFamily: theme.typography.fontFamilyMono, fontSize: theme.typography.caption.fontSize, flexGrow: 1 }}
               >
                 {inviteLink}/sign-up
               </Typography>

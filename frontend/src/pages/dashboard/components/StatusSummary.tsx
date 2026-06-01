@@ -40,15 +40,11 @@ const StatusSummary: React.FC = () => {
   return (
     <StatusSummaryRoot>
       <StatusSummaryLeft>
-        <Typography
-          variant="caption"
-          color="textDisabled"
-          sx={{ textTransform: "uppercase", letterSpacing: "0.1em" }}
-        >
+        <Typography variant="caption" color="textDisabled">
           {t("dashboard.globalStatus")}
         </Typography>
 
-        <Typography variant="h4" color="textPrimary" sx={{ fontWeight: 700 }}>
+        <Typography variant="h4" color="textPrimary">
           {t("dashboard.healthHeadingPrefix")}{" "}
           <Box component="span" sx={{ color: blockerColor }}>
             {activeBlockers}{" "}

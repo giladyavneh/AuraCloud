@@ -17,16 +17,12 @@ import CircularProgress from "@mui/material/CircularProgress";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
+import type { LoginFormValues } from "@/pages/login/types/login.types";
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/auth/AuthContext";
-
-interface LoginFormValues {
-  email: string;
-  password: string;
-}
 
 const Login: React.FC = () => {
   const { t } = useTranslation();

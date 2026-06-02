@@ -47,9 +47,9 @@ const WatchlistTable: React.FC<WatchlistTableProps> = ({
       size: "small",
       variant: "outlined",
       placeholder: t("resourceWatchlist.search"),
-      sx: { width: WATCHLIST_SEARCH_WIDTH },
       slotProps: {
         input: {
+          sx: { width: WATCHLIST_SEARCH_WIDTH },
           startAdornment: (
             <InputAdornment position="start">
               <MagnifyingGlassIcon />

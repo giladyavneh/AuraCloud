@@ -54,7 +54,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
               <StatusTag variant={status} />
             </MetaTopRow>
 
-            <Typography variant="h5" color="textPrimary">
+            <Typography variant="h5" color="textPrimary" sx={{ wordBreak: "break-all" }}>
               {title}
             </Typography>
           </ServiceMeta>
@@ -65,25 +65,33 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
             {t("resourceCard.actions")}
           </Typography>
 
-          {visibleActions.map((action) => (
-            <ResourceItem key={action}>
-              <ResourceDot dotColor={dotColor} />
+          {actions.length === 0 ? (
+            <Typography variant="body2" color="textDisabled">
+              {t("resourceCard.noActions")}
+            </Typography>
+          ) : (
+            <>
+              {visibleActions.map((action) => (
+                <ResourceItem key={action}>
+                  <ResourceDot dotColor={dotColor} />
 
-              <Typography
-                variant="body2"
-                color="textSecondary"
-                sx={{ fontFamily: theme.typography.fontFamilyMono, fontSize: MONO_LABEL_FONT_SIZE }}
-              >
-                {action}
-              </Typography>
-            </ResourceItem>
-          ))}
+                  <Typography
+                    variant="body2"
+                    color="textSecondary"
+                    sx={{ fontFamily: theme.typography.fontFamilyMono, fontSize: MONO_LABEL_FONT_SIZE }}
+                  >
+                    {action}
+                  </Typography>
+                </ResourceItem>
+              ))}
 
-          {remainingActions.length > 0 && (
-            <ResourceCardMoreActions
-              actions={remainingActions}
-              dotColor={dotColor}
-            />
+              {remainingActions.length > 0 && (
+                <ResourceCardMoreActions
+                  actions={remainingActions}
+                  dotColor={dotColor}
+                />
+              )}
+            </>
           )}
         </ResourceList>
 

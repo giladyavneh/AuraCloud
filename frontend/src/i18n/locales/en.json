@@ -65,6 +65,7 @@
   },
   "resourceCard": {
     "actions": "Actions:",
+    "noActions": "No actions configured",
     "moreActions": "{{count}} more >",
     "allActions": "All actions",
     "errorPrefix": "Error:"

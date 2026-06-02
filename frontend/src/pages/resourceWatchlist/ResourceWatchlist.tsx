@@ -90,7 +90,7 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
         onClose={handleSnackbarClose}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} variant="filled">
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} variant="standard">
           {snackbar.severity === "success"
             ? t("resourceWatchlist.saveSuccess")
             : t("resourceWatchlist.saveError")}

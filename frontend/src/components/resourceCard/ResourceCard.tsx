@@ -54,7 +54,11 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
               <StatusTag variant={status} />
             </MetaTopRow>
 
-            <Typography variant="h5" color="textPrimary" sx={{ wordBreak: "break-all" }}>
+            <Typography
+              variant="h5"
+              color="textPrimary"
+              sx={{ wordBreak: "break-word", textWrapStyle: "balance" }}
+            >
               {title}
             </Typography>
           </ServiceMeta>
@@ -78,7 +82,10 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
                   <Typography
                     variant="body2"
                     color="textSecondary"
-                    sx={{ fontFamily: theme.typography.fontFamilyMono, fontSize: MONO_LABEL_FONT_SIZE }}
+                    sx={{
+                      fontFamily: theme.typography.fontFamilyMono,
+                      fontSize: MONO_LABEL_FONT_SIZE,
+                    }}
                   >
                     {action}
                   </Typography>

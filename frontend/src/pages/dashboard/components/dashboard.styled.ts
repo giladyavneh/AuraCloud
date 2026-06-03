@@ -33,7 +33,6 @@ export const StatusSummaryRight = styled(Box)(({ theme }) => ({
   flexShrink: 0,
 }));
 
-
 export const StatsRowContainer = styled(Box)(({ theme }) => ({
   display: "flex",
   gap: theme.spacing(4),
@@ -87,21 +86,24 @@ export const FilterTab = styled(Box, {
   shouldForwardProp: (prop) => prop !== "isActive",
 })<{ isActive?: boolean }>(({ theme, isActive }) => ({
   padding: theme.spacing(1.5, 3),
-  borderRadius: theme.shape.borderRadius - 2,
+  borderRadius: `calc(${theme.shape.borderRadius} - ${theme.spacing(2)})`,
   cursor: "pointer",
   fontSize: theme.typography.body2.fontSize,
   fontWeight: 400,
   color: isActive ? theme.palette.primary.main : theme.palette.text.secondary,
   backgroundColor: isActive ? theme.palette.surface.glow : "transparent",
   boxShadow: isActive ? `inset 0 0 0 1px ${theme.palette.border.glow}` : "none",
-  transition: "background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease",
+  transition:
+    "background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease",
   userSelect: "none",
   whiteSpace: "nowrap",
   outline: "none",
 
   "&:hover": {
     color: isActive ? theme.palette.primary.main : theme.palette.text.primary,
-    backgroundColor: isActive ? theme.palette.surface.glow : theme.palette.divider,
+    backgroundColor: isActive
+      ? theme.palette.surface.glow
+      : theme.palette.divider,
   },
 
   "&:focus-visible": {

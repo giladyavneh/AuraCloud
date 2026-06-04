@@ -5,7 +5,7 @@ export type AwsCredentials = { accessKeyId: string; secretAccessKey: string };
 export abstract class BaseCrawler {
   protected accountId: string;
   protected region: string;
-  protected intervalMs: number;
+  public intervalMs: number;
   protected credentials: AwsCredentials;
 
   constructor(credentials: AwsCredentials, intervalMs: number = 5000) {
@@ -48,6 +48,4 @@ export abstract class BaseCrawler {
   abstract crawl(): Promise<any>;
 
   abstract save(client: any, data: any): Promise<void>;
-
-  abstract saveToMongo(data: unknown): Promise<void>;
 }

@@ -465,7 +465,7 @@ app.put("/api/user/profile", requireAuth, async (req, res) => {
           roleTitle: (roleTitle as string).trim(),
         },
       },
-      { new: true },
+      { returnDocument: 'after' },
     ).lean();
 
     if (!updated) {
@@ -499,7 +499,7 @@ app.put("/api/user/link-aws-user", requireAuth, async (req, res) => {
     const updated = await CustomerModel.findByIdAndUpdate(
       req.customer!.customerId,
       { $set: { linkedAwsUserId: awsUserId } },
-      { new: true },
+      { returnDocument: 'after' },
     ).lean();
 
     if (!updated) {
@@ -555,7 +555,7 @@ app.post("/api/aws/onboard-credentials", requireAuth, async (req, res) => {
           },
         },
       },
-      { new: true },
+      { returnDocument: 'after' },
     ).lean();
 
     if (!updatedCompany) {

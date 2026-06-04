@@ -5,7 +5,7 @@ import { AwsResourceModel } from "utils";
 
 export class SsoCrawler extends BaseCrawler {
     protected region = "eu-central-1";
-    protected intervalMs = 5000;
+    public intervalMs = 5000;
     protected ssoAdminClient = new SSOAdminClient({ region: this.region, credentials: this.credentials });
     protected identityStoreClient = new IdentitystoreClient({ region: this.region, credentials: this.credentials });
 
@@ -125,52 +125,5 @@ export class SsoCrawler extends BaseCrawler {
     async save(redis: any, data: any) {
         for (const user of data.users) await redis.hSet("aura:sso:users", user.UserId, JSON.stringify(user));
         for (const group of data.groups) await redis.hSet("aura:sso:groups", group.GroupId, JSON.stringify(group));
-    }
-
-    async saveToMongo(data: unknown) {
-        const { users, groups } = data as { users: any[]; groups: any[] };
-        const now = new Date();
-
-        // SSO entities have no real AWS ARN — use a synthetic key prefixed with "sso://"
-        for (const user of users) {
-            if (!user.UserId) continue;
-            const arn = `sso://user/${user.UserId}`;
-            await AwsResourceModel.findOneAndUpdate(
-                { arn },
-                {
-                    arn,
-                    resourceType: 'SSOUser',
-                    name: user.UserName ?? user.DisplayName ?? user.UserId,
-                    metadata: {
-                        displayName: user.DisplayName,
-                        emails: user.Emails,
-                        groupMemberships: user.GroupMemberships,
-                        permissionSets: user.PermissionSets,
-                    },
-                    lastSyncedAt: now,
-                },
-                { upsert: true, returnDocument: 'after' },
-            );
-        }
-
-        for (const group of groups) {
-            if (!group.GroupId) continue;
-            const arn = `sso://group/${group.GroupId}`;
-            await AwsResourceModel.findOneAndUpdate(
-                { arn },
-                {
-                    arn,
-                    resourceType: 'SSOGroup',
-                    name: group.DisplayName ?? group.GroupId,
-                    metadata: {
-                        description: group.Description,
-                        permissionSets: group.PermissionSets,
-                    },
-                    lastSyncedAt: now,
-                },
-                { upsert: true, returnDocument: 'after' },
-            );
-        }
-
     }
 }

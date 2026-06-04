@@ -11,7 +11,7 @@ const GLOBAL_S3_REGION = "us-east-1";
 export class S3Crawler extends BaseCrawler {
     protected s3Client = new S3Client({ region: this.region, credentials: this.credentials });
     protected stsClient = new STSClient({ region: this.region, credentials: this.credentials });
-    protected intervalMs = 1000;
+    public intervalMs = 1000;
     private regionalClientsCache = new Map<string, S3Client>();
 
     private getRegionalClient(region: string): S3Client {
@@ -27,10 +27,7 @@ export class S3Crawler extends BaseCrawler {
     }
 
     private async callAwsAndExtract<T, K extends keyof T>(fn: () => Promise<T>, key: K): Promise<T[K]|null> {
-        const response = await this.callAndHandleThrotteling(fn).catch((err) => {
-            console.error(`[S3 CRAWLER] AWS SDK Error:`, err.message || err);
-            return null;
-        });
+        const response = await this.callAndHandleThrotteling(fn);
         return response ? response[key] : null;
     }
 
@@ -71,8 +68,11 @@ export class S3Crawler extends BaseCrawler {
             
             if (isAccessDenied) {
                 return await this.getPermissionsFromAwsConfigFallback(bucketName, region) || null;
+            } else if (err.name === "NoSuchBucketPolicy" || errMsg.includes("The bucket policy does not exist")) {
+                return null;
             } else {
                 console.error(`[S3 CRAWLER] GetBucketPolicy error for ${bucketName} in region ${region}:`, errMsg);
+                return null;
             }
         }
     }
@@ -81,7 +81,10 @@ export class S3Crawler extends BaseCrawler {
         const locationClient = this.getRegionalClient(GLOBAL_S3_REGION);
         const bucketLocation = await this.callAwsAndExtract(
             () => locationClient.send(new GetBucketLocationCommand({ Bucket: bucket.Name! })), "LocationConstraint"
-        ).catch((err) => { console.error(`[S3 CRAWLER] GetBucketLocation error for ${bucket.Name}:`, err.message || err); });
+        ).catch((err) => {
+            console.error(`[S3 CRAWLER] GetBucketLocation error for ${bucket.Name}:`, err.message || err);
+            return null;
+        });
 
         const region = bucketLocation || GLOBAL_S3_REGION;
         const regionalClient = this.getRegionalClient(region);
@@ -92,8 +95,16 @@ export class S3Crawler extends BaseCrawler {
             bucketCors
         ] = await Promise.all([
             this.getBucketPolicies(regionalClient, bucket.Name!, region),
-            this.callAwsAndExtract(() => regionalClient.send(new GetBucketAclCommand({ Bucket: bucket.Name! })), "Grants").catch(() => null),
-            this.callAwsAndExtract(() => regionalClient.send(new GetBucketCorsCommand({ Bucket: bucket.Name! })), "CORSRules").catch(() => null)
+            this.callAwsAndExtract(() => regionalClient.send(new GetBucketAclCommand({ Bucket: bucket.Name! })), "Grants").catch((err) => {
+                console.error(`[S3 CRAWLER] GetBucketAcl error for ${bucket.Name}:`, err.message || err);
+                return null;
+            }),
+            this.callAwsAndExtract(() => regionalClient.send(new GetBucketCorsCommand({ Bucket: bucket.Name! })), "CORSRules").catch((err) => {
+                if (err.name !== "NoSuchCORSConfiguration" && !(err.message || "").includes("The CORS configuration does not exist")) {
+                    console.error(`[S3 CRAWLER] GetBucketCors error for ${bucket.Name}:`, err.message || err);
+                }
+                return null;
+            })
         ]);
 
         extend(bucket, { bucketPolicies, bucketLocation: region, bucketAcl, bucketCors });
@@ -114,46 +125,5 @@ export class S3Crawler extends BaseCrawler {
     
     async save(redis: any, data: any) {
         for (const bucket of data) await redis.hSet("aura:resource:s3buckets", bucket.BucketArn, JSON.stringify(bucket));
-    }
-
-    async saveToMongo(data: unknown) {
-        const buckets = data as any[];
-        const now = new Date();
-
-        for (const bucket of buckets) {
-            // Construct the ARN from the bucket name (ListBucketsCommand does not return an ARN field)
-            const arn = `arn:aws:s3:::${bucket.Name}`;
-
-            await AwsResourceModel.findOneAndUpdate(
-                { arn },
-                {
-                    arn,
-                    resourceType: 'S3Bucket',
-                    name: bucket.Name,
-                    accountId: bucket.accountId,
-                    region: bucket.bucketLocation ?? undefined,
-                    metadata: {
-                        acl: bucket.bucketAcl,
-                        cors: bucket.bucketCors,
-                        creationDate: bucket.CreationDate,
-                    },
-                    lastSyncedAt: now,
-                },
-                { upsert: true, returnDocument: 'after' },
-            );
-
-            // Extract actions from the bucket policy document
-            if (bucket.bucketPolicies) {
-                const actions = extractActionsFromPolicyDocument(bucket.bucketPolicies);
-                for (const actionName of actions) {
-                    await ResourceActionModel.findOneAndUpdate(
-                        { resourceArn: arn, actionName },
-                        { resourceArn: arn, actionName, policySource: 'BucketPolicy', lastSeenAt: now },
-                        { upsert: true, returnDocument: 'after' },
-                    );
-                }
-            }
-        }
-
     }
 }

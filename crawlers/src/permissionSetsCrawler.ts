@@ -33,7 +33,7 @@ function customerManagedPolicyArn(accountId: string, ref: CustomerManagedPolicyR
 
 export class PermissionSetsCrawler extends BaseCrawler {
   protected region = "eu-central-1";
-  protected intervalMs = 5000;
+  public intervalMs = 5000;
   protected ssoAdmin = new SSOAdminClient({ region: this.region, credentials: this.credentials });
   protected iam = new IAMClient({ region: this.region, credentials: this.credentials });
   protected sts = new STSClient({ region: this.region, credentials: this.credentials });
@@ -203,58 +203,5 @@ export class PermissionSetsCrawler extends BaseCrawler {
       if (!arn) continue;
       await redis.hSet("aura:sso:permission-sets", arn, JSON.stringify(ps));
     }
-  }
-
-  async saveToMongo(data: unknown) {
-    const permissionSets = data as any[];
-    const now = new Date();
-
-    for (const ps of permissionSets) {
-      const arn = ps?.PermissionSetArn;
-      if (!arn) continue;
-
-      await AwsResourceModel.findOneAndUpdate(
-        { arn },
-        {
-          arn,
-          resourceType: 'PermissionSet',
-          name: ps.Name ?? arn,
-          metadata: {
-            description: ps.Description,
-            sessionDuration: ps.SessionDuration,
-            relayState: ps.RelayState,
-            awsManagedAttachments: ps.awsManagedAttachments,
-            customerManagedReferences: ps.customerManagedReferences,
-          },
-          lastSyncedAt: now,
-        },
-        { upsert: true, returnDocument: 'after' },
-      );
-
-      // Extract actions from the inline policy
-      const inlineActions = ps.inlinePolicyDocument
-        ? extractActionsFromPolicyDocument(ps.inlinePolicyDocument)
-        : [];
-      for (const actionName of inlineActions) {
-        await ResourceActionModel.findOneAndUpdate(
-          { resourceArn: arn, actionName },
-          { resourceArn: arn, actionName, policySource: 'InlinePolicy', lastSeenAt: now },
-          { upsert: true, returnDocument: 'after' },
-        );
-      }
-
-      // Extract actions from each attached managed policy document
-      for (const policyDoc of ps.attachedIamPolicyDocuments ?? []) {
-        const attachedActions = extractActionsFromPolicyDocument(policyDoc);
-        for (const actionName of attachedActions) {
-          await ResourceActionModel.findOneAndUpdate(
-            { resourceArn: arn, actionName },
-            { resourceArn: arn, actionName, policySource: 'PermissionSet', lastSeenAt: now },
-            { upsert: true, returnDocument: 'after' },
-          );
-        }
-      }
-    }
-
   }
 }

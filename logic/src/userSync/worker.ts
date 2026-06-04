@@ -8,7 +8,7 @@ export interface UserSyncWorkerHandle {
 
 // Starts a background worker that runs the user sync cycle at regular intervals defined by environment variables.
 export function startUserSyncWorker(redis: RedisClient): UserSyncWorkerHandle {
-    const intervalMs = parseInt(process.env.USER_SYNC_INTERVAL_MS ?? '60000', 10);
+    const intervalMs = parseInt(process.env.USER_SYNC_INTERVAL_MS ?? '10000', 10);
     const enabled = (process.env.USER_SYNC_ENABLED ?? 'true').toLowerCase() === 'true';
 
     // When disabled via env var, the worker will never start, sync cycles will be skipped

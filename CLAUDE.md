@@ -10,7 +10,7 @@ Aura Cloud ("NoOps for Developers") is an automated AWS infrastructure monitorin
 | **Crawlers** | Poll AWS for org-level SCPs and resource data | Not yet implemented |
 | **Cache** | Redis/MongoDB — fast storage for AWS configs | Not yet implemented |
 | **Brain (Central Logic Server)** | Cross-references project requirements, user permissions, and cached cloud data | Not yet implemented |
-| **Results DB** | MongoDB Atlas — stores processed results per user | Active |
+| **Results DB** | MongoDB Atlas — stores processed results per user | Active (seeded with mock data) |
 | **API Server** | Delivers processed data from Results DB to UI | Active (`api-server/`) |
 | **Frontend (Audit Dashboard)** | React dashboard showing health/freshness of AWS resources | Active (`frontend/`) |
 
@@ -26,18 +26,17 @@ Aura Cloud ("NoOps for Developers") is an automated AWS infrastructure monitorin
 ### `api-server/`
 - Express server running on port 3000 (configurable via `PORT` env var)
 - Connected to MongoDB Atlas via `MONGO_URI` in `.env`
-- `src/db.ts` — re-exports the shared Mongoose models from `utils` and exposes `connectDB()` (no seeding)
-- `src/index.ts` — Express app: auth, watchlist, resource, permission, and AWS-credential routes
+- `src/db.ts` — defines Mongoose models and seeds mock data on first run
+- `src/index.ts` — Express app with one route: `GET /api/user-resource-watchlist`
 
-### Mongoose Schemas (all defined in `utils/src/index.ts`)
+### Mongoose Schemas (both defined in `src/db.ts`)
 1. **`UserResourceWatchlist`** — frontend-facing processed data
-   - `userId: String` (the linked AWS identity's `externalId`), `name: String`, `resources: [{ arn, actions[] }]`
-2. **`UserPermission`** — Brain/logic evaluation output
-   - `name: String`, `userId: String` (AWS `externalId`), `permissionsData: Mixed` (flexible, pending real data shape)
-3. **`Customer`** / **`Company`** / **`User`** / **`AwsResource`** / **`ResourceAction`** — auth, org, synced AWS identities, and crawled resources
+   - `userId: String`, `name: String`, `resources: [{ arn, actions[] }]`
+2. **`UserPermission`** — raw backend-structured data
+   - `name: String`, `permissionsData: Mixed` (flexible, pending real data shape)
 
-### No mock data
-The system runs on real data only: Customers come from signup, AWS identities/resources come from the crawlers. There is no seeding.
+### Mock Data
+Crawlers and Brain are not implemented yet. `connectDB()` seeds MongoDB with hardcoded mock data if collections are empty.
 
 ## Frontend Structure (`frontend/src/`)
 - **`theme/`** — MUI theme with all Figma tokens; custom palette augmentation in `theme.augment.d.ts`
@@ -56,8 +55,8 @@ The system runs on real data only: Customers come from signup, AWS identities/re
 
 ## Key Decisions & Constraints
 - `permissionsData` uses `Mixed` type intentionally — the real data shape from the Brain is not finalized yet
-- Canonical AWS-identity key is `User.externalId` (AWS SSO/IAM UserId). `Customer.linkedAwsUserId` stores it directly, and watchlist/permission docs are keyed by it — so Redis, logic eval, and stored results all share one key with no translation
-- All code comments must be in English
+- Mock data is only seeded when collections are empty — safe to run repeatedly
+- All code comments must be in English (note: there is one Hebrew comment in `db.ts` line 85 to clean up)
 
 ## graphify
 

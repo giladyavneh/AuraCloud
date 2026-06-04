@@ -5,8 +5,8 @@ export const CardRoot = styled(Box)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
   height: "stretch",
-  backgroundColor: theme.palette.background.paper,
-  border: `1px solid ${theme.palette.divider}`,
+  backgroundColor: theme.palette.surface.base,
+  border: `1px solid ${theme.palette.border.default}`,
   borderRadius: theme.shape.borderRadius,
   overflow: "hidden",
 }));

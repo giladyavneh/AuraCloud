@@ -1,37 +1,42 @@
+// Node 22+/24 defaults to IPv6 DNS (link-local) which causes querySrv ECONNREFUSED
+// on residential routers. Force IPv4 DNS servers before any network call is made.
+import dns from "dns";
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
+
 import "dotenv/config";
 import { SsoCrawler } from "./ssoCrawler.js";
 import { PermissionSetsCrawler } from "./permissionSetsCrawler.js";
 import { BasicIamCrawler } from "./basicIamCrawler.js";
 import { S3Crawler } from "./s3Crawler.js";
-import { getRedisClient, connectMongo, CustomerModel, decryptSecret } from "utils";
+import { getRedisClient, connectMongo, CompanyModel, decryptSecret } from "utils";
 
 async function main() {
   const [redis] = await Promise.all([getRedisClient(), connectMongo()]);
   console.log("🚀 AuraCloud: Identity Sync Initiated");
 
-  const customers = await CustomerModel.find({
+  const companies = await CompanyModel.find({
     "awsCredentials.status": "connected",
   }).lean();
 
-  if (customers.length === 0) {
+  if (companies.length === 0) {
     console.warn(
-      "⚠️  No connected customers found — crawlers idle. Onboard a customer to begin.",
+      "⚠️  No connected companies found — crawlers idle. Onboard a company to begin.",
     );
     return;
   }
 
   // TODO: credentials are captured here at startup and never refreshed. If a
-  // customer rotates their access key, flips status to 'disconnected', or
+  // company rotates their access key, flips status to 'disconnected', or
   // onboards while crawlers are already running, the changes are not picked up
-  // until this process restarts. Fix by moving the customer fetch into the
+  // until this process restarts. Fix by moving the company fetch into the
   // per-tick path inside runCrawler (re-query Mongo each cycle, rebuild the
   // crawler instance when accessKeyId changes or status !== 'connected').
   // Mongo cost is negligible at MVP scale.
-  for (const customer of customers) {
-    const creds = customer.awsCredentials;
+  for (const company of companies) {
+    const creds = company.awsCredentials;
     if (!creds || !creds.accessKeyId || !creds.secretAccessKey) {
       console.warn(
-        `⚠️  Customer ${customer._id} marked connected but missing keys — skipping`,
+        `⚠️  Company ${company._id} marked connected but missing keys — skipping`,
       );
       continue;
     }
@@ -40,7 +45,7 @@ async function main() {
       decryptedSecret = decryptSecret(creds.secretAccessKey);
     } catch (err: any) {
       console.warn(
-        `⚠️  Customer ${customer._id} secret could not be decrypted (${err.message}) — skipping`,
+        `⚠️  Company ${company._id} secret could not be decrypted (${err.message}) — skipping`,
       );
       continue;
     }
@@ -48,7 +53,7 @@ async function main() {
       accessKeyId: creds.accessKeyId,
       secretAccessKey: decryptedSecret,
     };
-    const tag = `${customer.firstName}:${customer._id.toString().slice(-6)}`;
+    const tag = `${company.name}:${company._id.toString().slice(-6)}`;
 
     runCrawler(new SsoCrawler(credentials), `SSO[${tag}]`, redis);
     runCrawler(

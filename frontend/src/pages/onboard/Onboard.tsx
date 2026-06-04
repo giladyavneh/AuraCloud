@@ -1,6 +1,7 @@
 import AuraLogo from "@/components/auraLogo/AuraLogo";
 import PixelBlast from "@/components/pixelBlast/PixelBlast";
 import { useSubmitAwsCredentials } from "@/hooks/auth.hooks";
+import { useAuth } from "@/context/auth/AuthContext";
 import {
   BackgroundLayer,
   Divider,
@@ -9,32 +10,32 @@ import {
   OnboardCard,
   OnboardForm,
   OnboardRoot,
+  OnboardStack,
+  SecondaryCard,
   StepBlock,
   StepHeader,
   StepNumber,
 } from "@/pages/onboard/components/onboard.styled";
-import { CLOUDFORMATION_URL } from "@/constants";
+import { CLOUDFORMATION_URL, ONBOARD_REDIRECT_DELAY_MS } from "@/constants";
+import type { OnboardFormValues } from "@/pages/onboard/types/onboard.types";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
-import { ArrowSquareOutIcon, CheckCircleIcon } from "@phosphor-icons/react";
+import PasswordField from "@/components/passwordField/PasswordField";
+import { ArrowSquareOutIcon, CheckCircleIcon, SignOutIcon } from "@phosphor-icons/react";
 import React from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
-interface OnboardFormValues {
-  accessKeyId: string;
-  secretAccessKey: string;
-}
-
 const Onboard: React.FC = () => {
   const { t } = useTranslation();
   const theme = useTheme();
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const { mutate: submitCredentials, isPending, isSuccess, error } = useSubmitAwsCredentials();
 
   const { register, handleSubmit, formState: { errors } } = useForm<OnboardFormValues>();
@@ -42,7 +43,7 @@ const Onboard: React.FC = () => {
   const onSubmit = (values: OnboardFormValues) => {
     submitCredentials(values, {
       onSuccess: () => {
-        setTimeout(() => navigate("/dashboard", { replace: true }), 1500);
+        setTimeout(() => navigate("/dashboard", { replace: true }), ONBOARD_REDIRECT_DELAY_MS);
       },
     });
   };
@@ -63,6 +64,7 @@ const Onboard: React.FC = () => {
         />
       </BackgroundLayer>
 
+      <OnboardStack>
       <OnboardCard elevation={0}>
         <HeaderBlock>
           <LogoBadge>
@@ -138,9 +140,8 @@ const Onboard: React.FC = () => {
                 error={!!errors.accessKeyId}
               />
 
-              <TextField
+              <PasswordField
                 label={t("onboard.secretAccessKey")}
-                type="password"
                 size="small"
                 fullWidth
                 {...register("secretAccessKey", { required: true })}
@@ -162,6 +163,21 @@ const Onboard: React.FC = () => {
         </StepBlock>
 
       </OnboardCard>
+
+      <SecondaryCard elevation={0}>
+        <Button
+          variant="text"
+          fullWidth
+          color="inherit"
+          startIcon={<SignOutIcon size={theme.iconSize.sm} />}
+          onClick={logout}
+          sx={{ color: 'text.secondary' }}
+        >
+          {t('onboard.signOut')}
+        </Button>
+      </SecondaryCard>
+
+      </OnboardStack>
     </OnboardRoot>
   );
 };

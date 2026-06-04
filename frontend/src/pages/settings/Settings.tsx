@@ -1,4 +1,6 @@
+import { useAuth } from "@/context/auth/AuthContext";
 import AwsCredentialsSection from "@/pages/settings/components/AwsCredentialsSection";
+import InviteCodeSection from "@/pages/settings/components/InviteCodeSection";
 import ProfileSection from "@/pages/settings/components/ProfileSection";
 import {
   SettingsHeader,
@@ -10,21 +12,24 @@ import { useTranslation } from "react-i18next";
 
 const Settings: React.FC = () => {
   const { t } = useTranslation();
+  const { customer } = useAuth();
 
   return (
     <SettingsRoot>
       <SettingsHeader>
         <Typography variant="h5" color="textPrimary">
-          {t("settings.title")}
+          {t('settings.title')}
         </Typography>
         <Typography variant="body2" color="textSecondary">
-          {t("settings.subtitle")}
+          {t('settings.subtitle')}
         </Typography>
       </SettingsHeader>
 
       <ProfileSection />
 
-      <AwsCredentialsSection />
+      {/* Invite code and AWS credentials are company-level — managers only */}
+      {customer?.role === 'manager' && <InviteCodeSection />}
+      {customer?.role === 'manager' && <AwsCredentialsSection />}
 
     </SettingsRoot>
   );

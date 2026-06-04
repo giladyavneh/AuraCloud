@@ -1,3 +1,4 @@
+import { MONO_LABEL_FONT_SIZE } from "@/constants";
 import AwsServiceIcon from "@/components/awsServiceIcon/AwsServiceIcon";
 import {
   CardBody,
@@ -16,7 +17,7 @@ import {
 } from "@/components/resourceCard/helpers/resourceCard.helpers";
 import type { ResourceCardProps } from "@/components/resourceCard/types/resourceCard.types";
 import StatusTag from "@/components/statusTag/StatusTag";
-import { Alert, Button } from "@mui/material";
+import { Alert } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import React from "react";
@@ -53,7 +54,11 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
               <StatusTag variant={status} />
             </MetaTopRow>
 
-            <Typography variant="h5" color="textPrimary">
+            <Typography
+              variant="h5"
+              color="textPrimary"
+              sx={{ wordBreak: "break-word", textWrapStyle: "balance" }}
+            >
               {title}
             </Typography>
           </ServiceMeta>
@@ -64,38 +69,41 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
             {t("resourceCard.actions")}
           </Typography>
 
-          {visibleActions.map((action) => (
-            <ResourceItem key={action}>
-              <ResourceDot dotColor={dotColor} />
+          {actions.length === 0 ? (
+            <Typography variant="body2" color="textDisabled">
+              {t("resourceCard.noActions")}
+            </Typography>
+          ) : (
+            <>
+              {visibleActions.map((action) => (
+                <ResourceItem key={action}>
+                  <ResourceDot dotColor={dotColor} />
 
-              <Typography
-                variant="body2"
-                color="textSecondary"
-                sx={{ fontFamily: theme.typography.fontFamilyMono, fontSize: "11px" }}
-              >
-                {action}
-              </Typography>
-            </ResourceItem>
-          ))}
+                  <Typography
+                    variant="body2"
+                    color="textSecondary"
+                    sx={{
+                      fontFamily: theme.typography.fontFamilyMono,
+                      fontSize: MONO_LABEL_FONT_SIZE,
+                    }}
+                  >
+                    {action}
+                  </Typography>
+                </ResourceItem>
+              ))}
 
-          {remainingActions.length > 0 && (
-            <ResourceCardMoreActions
-              actions={remainingActions}
-              dotColor={dotColor}
-            />
+              {remainingActions.length > 0 && (
+                <ResourceCardMoreActions
+                  actions={remainingActions}
+                  dotColor={dotColor}
+                />
+              )}
+            </>
           )}
         </ResourceList>
 
         {errorMessage && (
-          <Alert
-            severity="error"
-            action={
-              <Button size="small" variant="text" color="inherit">
-                {/* TODO: add functionality */}
-                {t("resourceCard.details")}
-              </Button>
-            }
-          >
+          <Alert severity="error">
             <Typography variant="body2">
               {t("resourceCard.errorPrefix")} {errorMessage}
             </Typography>

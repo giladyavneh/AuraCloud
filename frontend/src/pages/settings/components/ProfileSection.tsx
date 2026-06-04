@@ -32,11 +32,9 @@ const ProfileSection: React.FC = () => {
     formState: { errors, isDirty },
   } = useForm<UpdateProfilePayload>({
     defaultValues: {
-      firstName: customer?.firstName ?? "",
-      lastName: customer?.lastName ?? "",
-      email: customer?.email ?? "",
-      companyName: customer?.companyName ?? "",
-      roleTitle: customer?.roleTitle ?? "",
+      firstName: customer?.firstName ?? '',
+      lastName: customer?.lastName ?? '',
+      roleTitle: customer?.roleTitle ?? '',
     },
   });
 
@@ -53,10 +51,10 @@ const ProfileSection: React.FC = () => {
     <SettingsCard elevation={0}>
       <SectionHeader>
         <Typography variant="subtitle1" color="textPrimary">
-          {t("settings.profile.title")}
+          {t('settings.profile.title')}
         </Typography>
         <Typography variant="body2" color="textSecondary">
-          {t("settings.profile.description")}
+          {t('settings.profile.description')}
         </Typography>
       </SectionHeader>
 
@@ -64,7 +62,7 @@ const ProfileSection: React.FC = () => {
 
       {isSuccess && !isDirty && (
         <Alert severity="success" icon={<CheckCircleIcon size={theme.iconSize.sm} />}>
-          {t("settings.profile.successMessage")}
+          {t('settings.profile.successMessage')}
         </Alert>
       )}
 
@@ -73,46 +71,28 @@ const ProfileSection: React.FC = () => {
       <SettingsForm onSubmit={handleSubmit(onSubmit)} noValidate>
         <FormRow>
           <TextField
-            label={t("settings.profile.firstName")}
+            label={t('settings.profile.firstName')}
             size="small"
             fullWidth
-            {...register("firstName", { required: true })}
+            {...register('firstName', { required: true })}
             error={!!errors.firstName}
           />
           <TextField
-            label={t("settings.profile.lastName")}
+            label={t('settings.profile.lastName')}
             size="small"
             fullWidth
-            {...register("lastName", { required: true })}
+            {...register('lastName', { required: true })}
             error={!!errors.lastName}
           />
         </FormRow>
 
         <TextField
-          label={t("settings.profile.email")}
-          type="email"
+          label={t('settings.profile.roleTitle')}
           size="small"
           fullWidth
-          {...register("email", { required: true })}
-          error={!!errors.email}
+          {...register('roleTitle', { required: true })}
+          error={!!errors.roleTitle}
         />
-
-        <FormRow>
-          <TextField
-            label={t("settings.profile.companyName")}
-            size="small"
-            fullWidth
-            {...register("companyName", { required: true })}
-            error={!!errors.companyName}
-          />
-          <TextField
-            label={t("settings.profile.roleTitle")}
-            size="small"
-            fullWidth
-            {...register("roleTitle", { required: true })}
-            error={!!errors.roleTitle}
-          />
-        </FormRow>
 
         <FormActions>
           <Button
@@ -121,7 +101,7 @@ const ProfileSection: React.FC = () => {
             disabled={isPending || !isDirty}
             startIcon={isPending && <CircularProgress size={theme.iconSize.xs} color="inherit" />}
           >
-            {isPending ? t("settings.profile.saving") : t("settings.profile.save")}
+            {isPending ? t('settings.profile.saving') : t('settings.profile.save')}
           </Button>
         </FormActions>
 

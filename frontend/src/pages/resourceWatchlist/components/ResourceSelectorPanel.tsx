@@ -5,11 +5,13 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 import { useTranslation } from "react-i18next";
+import { ListBulletsIcon } from "@phosphor-icons/react";
 import AddResourceForm from "@/pages/resourceWatchlist/components/AddResourceForm";
 import WatchlistTable from "@/pages/resourceWatchlist/components/WatchlistTable";
 import {
   LeftPanel,
   PanelCard,
+  PanelEmptyState,
 } from "@/pages/resourceWatchlist/components/resourceWatchlist.styled";
 import type {
   ResourceSelectorPanelProps,
@@ -50,7 +52,22 @@ const ResourceSelectorPanel: React.FC<ResourceSelectorPanelProps> = ({
       </PanelCard>
 
       <PanelCard sx={{ flex: 1, overflow: "auto" }}>
-        <WatchlistTable resources={draftResources} onRemove={handleRemove} />
+        {draftResources.length === 0 ? (
+          <PanelEmptyState>
+            <ListBulletsIcon size={36} color={theme.palette.text.disabled} />
+
+            <Box>
+              <Typography variant="subtitle1" color="textPrimary">
+                {t("resourceWatchlist.emptyState.title")}
+              </Typography>
+              <Typography variant="body2" color="textSecondary" sx={{ marginTop: 0.5 }}>
+                {t("resourceWatchlist.emptyState.description")}
+              </Typography>
+            </Box>
+          </PanelEmptyState>
+        ) : (
+          <WatchlistTable resources={draftResources} onRemove={handleRemove} />
+        )}
       </PanelCard>
 
       <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: theme.spacing(2) }}>
@@ -71,6 +88,7 @@ const ResourceSelectorPanel: React.FC<ResourceSelectorPanelProps> = ({
           {isSaving ? t("resourceWatchlist.saving") : t("resourceWatchlist.save")}
         </Button>
       </Box>
+
     </LeftPanel>
   );
 };

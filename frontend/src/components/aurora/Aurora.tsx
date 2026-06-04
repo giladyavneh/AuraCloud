@@ -1,5 +1,6 @@
 import { AuroraContainer } from "@/components/aurora/components/aurora.styled";
 import type { AuroraProps } from "@/components/aurora/types/aurora.types";
+import theme from "@/theme/theme";
 import { Color, Mesh, Program, Renderer, Triangle } from "ogl";
 import React, { useEffect, useRef } from "react";
 
@@ -112,7 +113,7 @@ void main() {
 }
 `;
 
-const DEFAULT_STOPS = ["#5227FF", "#7cff67", "#5227FF"];
+const DEFAULT_STOPS = [theme.palette.primary.main, theme.palette.success.main, theme.palette.primary.main];
 
 const Aurora: React.FC<AuroraProps> = (props) => {
   const { colorStops = DEFAULT_STOPS, amplitude = 1.0, blend = 0.5 } = props;

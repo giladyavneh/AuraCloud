@@ -13,4 +13,6 @@ export const MainContent = styled(Box)(({ theme }) => ({
   padding: theme.spacing(6),
   minWidth: 0,
   maxHeight: "100dvh",
+  backgroundImage: `radial-gradient(circle, ${theme.palette.border.default} 1px, transparent 1px)`,
+  backgroundSize: "28px 28px",
 }));

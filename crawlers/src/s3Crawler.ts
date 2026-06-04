@@ -115,45 +115,4 @@ export class S3Crawler extends BaseCrawler {
     async save(redis: any, data: any) {
         for (const bucket of data) await redis.hSet("aura:resource:s3buckets", bucket.BucketArn, JSON.stringify(bucket));
     }
-
-    async saveToMongo(data: unknown) {
-        const buckets = data as any[];
-        const now = new Date();
-
-        for (const bucket of buckets) {
-            // Construct the ARN from the bucket name (ListBucketsCommand does not return an ARN field)
-            const arn = `arn:aws:s3:::${bucket.Name}`;
-
-            await AwsResourceModel.findOneAndUpdate(
-                { arn },
-                {
-                    arn,
-                    resourceType: 'S3Bucket',
-                    name: bucket.Name,
-                    accountId: bucket.accountId,
-                    region: bucket.bucketLocation ?? undefined,
-                    metadata: {
-                        acl: bucket.bucketAcl,
-                        cors: bucket.bucketCors,
-                        creationDate: bucket.CreationDate,
-                    },
-                    lastSyncedAt: now,
-                },
-                { upsert: true, returnDocument: 'after' },
-            );
-
-            // Extract actions from the bucket policy document
-            if (bucket.bucketPolicies) {
-                const actions = extractActionsFromPolicyDocument(bucket.bucketPolicies);
-                for (const actionName of actions) {
-                    await ResourceActionModel.findOneAndUpdate(
-                        { resourceArn: arn, actionName },
-                        { resourceArn: arn, actionName, policySource: 'BucketPolicy', lastSeenAt: now },
-                        { upsert: true, returnDocument: 'after' },
-                    );
-                }
-            }
-        }
-
-    }
 }

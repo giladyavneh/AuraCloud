@@ -72,7 +72,6 @@ async function runCrawler(crawler: any, name: string, redis: any) {
     try {
       const data = await crawler.crawl();
       await crawler.save(redis, data);
-      await crawler.saveToMongo(data);
       console.log(
         `[${new Date().toLocaleTimeString()}] ✅ ${name} Sync Complete`,
       );

@@ -1,11 +1,9 @@
 {
   "nav": {
     "dashboard": "Dashboard",
-    "resourceWatchList": "Resource Watch List",
+    "resourceWatchList": "Resource Watchlist",
     "settings": "Settings",
-    "signOut": "Sign Out",
-    "profileName": "Mike Wazowski",
-    "profileRole": "Scare Assistant"
+    "signOut": "Sign Out"
   },
   "app": {
     "name": "Aura Cloud",
@@ -13,24 +11,147 @@
   },
   "dashboard": {
     "globalStatus": "Global Infrastructure Status",
-    "healthHeading": "Healthy with 1 active blocker",
+    "healthHeadingPrefix": "Healthy with",
     "refresh": "Refresh",
+    "activeBlockersSuffix_one": "active blocker",
+    "activeBlockersSuffix_other": "active blockers",
+    "focusCueBadge": "Focus Cue",
+    "focusCueAllHealthy": "All monitored resources are healthy.",
+    "focusCueBlockers_one": "{{count}} resource is blocked — check IAM permissions.",
+    "focusCueBlockers_other": "{{count}} resources are blocked — check IAM permissions.",
+    "focueCueStaleOnly_one": "{{count}} resource is stale. Hit Refresh to update.",
+    "focueCueStaleOnly_other": "{{count}} resources are stale. Hit Refresh to update.",
+    "focusCueMixed": "{{blockers}} blocked, {{stale}} stale — immediate attention needed.",
+    "focusCueNoData": "Waiting for Brain to analyse resources — they will show as stale until the first scan.",
     "resourceStatus": "Resource Status",
     "resourceStatusDescription": "Single source of truth for live infrastructure checks and blockers.",
-    "focusCueLabel": "Focus cue:",
-    "focusCueText": "1 blocker requires IAM fix. Resource code paths appear healthy for all other monitored services.",
+    "filterTabs": {
+      "all": "All",
+      "iam": "IAM",
+      "resource": "Resource",
+      "network": "Network",
+      "healthy": "Healthy"
+    },
+    "permissionsLoadError": "Could not load user permissions.",
+    "noResourcesYet": "No resources to monitor yet. Add resources to your watchlist to start monitoring.",
+    "noResourcesForFilter": "No resources match this filter.",
     "stats": {
       "totalResources": "Total Resources Monitored",
       "activeBlockers": "Active Blockers",
       "staleResources": "Stale Resources",
       "healthScore": "Infrastructure Health Score"
+    },
+    "timeAgo": {
+      "unknown": "Unknown",
+      "lessThanMinute": "< 1 min ago",
+      "minutesAgo": "{{count}} min ago",
+      "oneHourAgo": "1 hour ago",
+      "hoursAgo": "{{count}} hours ago",
+      "oneHourAndMinutesAgo": "1 hour, {{minutes}} min ago",
+      "hoursAndMinutesAgo": "{{hours}} hours, {{minutes}} min ago",
+      "oneDayAgo": "1 day ago",
+      "daysAgo": "{{count}} days ago",
+      "oneDayAndHoursAgo": "1 day, {{hours}} hour ago",
+      "daysAndHoursAgo": "{{days}} days, {{hours}} hour ago"
     }
   },
   "resourceCard": {
     "actions": "Actions:",
     "moreActions": "{{count}} more >",
+    "allActions": "All actions",
     "errorPrefix": "Error:",
     "details": "Details"
+  },
+  "resourceWatchlist": {
+    "title": "Resource Watchlist",
+    "subtitle": "Choose the AWS resources and actions you want to monitor. Changes take effect after saving.",
+    "save": "Save",
+    "saving": "Saving...",
+    "addResource": "Add Resource",
+    "selectResource": "Select a resource",
+    "selectActions": "Select actions",
+    "add": "Add",
+    "noResources": "No resources added yet",
+    "noWatchlist": "No watchlist found. Start by adding resources to monitor.",
+    "unsavedChanges": "Unsaved changes",
+    "saveSuccess": "Watchlist saved successfully.",
+    "saveError": "Failed to save watchlist. Please try again.",
+    "search": "Search resources or actions...",
+    "remove": "Remove",
+    "jsonEditor": "JSON Editor",
+    "download": "Download JSON",
+    "upload": "Upload JSON",
+    "jsonParseError": "Invalid JSON — fix the syntax to sync changes",
+    "columns": {
+      "resource": "Resource",
+      "actions": "Actions"
+    }
+  },
+  "signUp": {
+    "title": "Create your account",
+    "subtitle": "Start monitoring your AWS infrastructure in minutes.",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "email": "Work Email",
+    "companyName": "Company Name",
+    "roleTitle": "Role Title",
+    "password": "Password",
+    "submit": "Create Account",
+    "submitting": "Creating account...",
+    "loginPrompt": "Already have an account?",
+    "loginLink": "Sign in"
+  },
+  "login": {
+    "title": "Welcome back",
+    "subtitle": "Sign in to your Aura Cloud account.",
+    "email": "Work Email",
+    "password": "Password",
+    "submit": "Sign In",
+    "submitting": "Signing in...",
+    "signUpPrompt": "Don't have an account?",
+    "signUpLink": "Sign up"
+  },
+  "onboard": {
+    "title": "Connect your AWS account",
+    "subtitle": "Aura needs read-only access to your AWS account to start monitoring your infrastructure.",
+    "step1Title": "Deploy the Aura stack",
+    "step1Description": "Click the button below to open AWS CloudFormation. It will deploy a read-only IAM role in your account and generate the credentials you need.",
+    "step1Button": "Open AWS CloudFormation",
+    "step2Title": "Enter your credentials",
+    "step2Description": "Once the stack is deployed, copy the Access Key ID and Secret Access Key from the CloudFormation outputs and paste them below.",
+    "accessKeyId": "Access Key ID",
+    "secretAccessKey": "Secret Access Key",
+    "submit": "Connect AWS Account",
+    "submitting": "Connecting...",
+    "successTitle": "You're connected!",
+    "successDescription": "Your AWS account is now linked. Taking you to your dashboard..."
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your profile and AWS connection.",
+    "profile": {
+      "title": "Profile",
+      "description": "Update your personal and company information.",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Work Email",
+      "companyName": "Company Name",
+      "roleTitle": "Role Title",
+      "save": "Save Changes",
+      "saving": "Saving...",
+      "successMessage": "Profile updated successfully."
+    },
+    "aws": {
+      "title": "AWS Credentials",
+      "description": "Rotate your AWS access keys. Enter new credentials and save to update.",
+      "currentKey": "Current Access Key ID",
+      "notConnected": "No AWS account connected yet.",
+      "accessKeyId": "New Access Key ID",
+      "secretAccessKey": "New Secret Access Key",
+      "save": "Update Credentials",
+      "saving": "Updating...",
+      "successMessage": "AWS credentials updated successfully."
+    }
   },
   "status": {
     "healthy": "Healthy",

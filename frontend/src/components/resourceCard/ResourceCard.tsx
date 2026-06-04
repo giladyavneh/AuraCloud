@@ -3,12 +3,13 @@ import {
   CardBody,
   CardHeader,
   CardRoot,
+  MetaTopRow,
   ResourceDot,
   ResourceItem,
   ResourceList,
-  ServiceInfo,
   ServiceMeta,
 } from "@/components/resourceCard/components/resourceCard.styled";
+import ResourceCardMoreActions from "@/components/resourceCard/components/ResourceCardMoreActions";
 import {
   getResourceDotColor,
   MAX_VISIBLE_ACTIONS,
@@ -34,25 +35,28 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
   const theme = useTheme();
 
   const visibleActions = actions.slice(0, maxVisibleActions);
-  const remainingCount = actions.length - maxVisibleActions;
+  const remainingActions = actions.slice(maxVisibleActions);
   const dotColor = getResourceDotColor(theme.palette, status);
 
   return (
     <CardRoot>
       <CardBody>
         <CardHeader>
-          <ServiceInfo>
-            <AwsServiceIcon service={service} size={46} />
-            <ServiceMeta>
+          <AwsServiceIcon service={service} size={theme.iconSize.xl} />
+
+          <ServiceMeta>
+            <MetaTopRow>
               <Typography variant="caption" color="textDisabled">
                 {lastUpdated}
               </Typography>
-              <Typography variant="h5" color="textPrimary">
-                {title}
-              </Typography>
-            </ServiceMeta>
-          </ServiceInfo>
-          <StatusTag variant={status} />
+
+              <StatusTag variant={status} />
+            </MetaTopRow>
+
+            <Typography variant="h5" color="textPrimary">
+              {title}
+            </Typography>
+          </ServiceMeta>
         </CardHeader>
 
         <ResourceList>
@@ -63,20 +67,22 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
           {visibleActions.map((action) => (
             <ResourceItem key={action}>
               <ResourceDot dotColor={dotColor} />
-              <Typography variant="body2" color="textSecondary">
+
+              <Typography
+                variant="body2"
+                color="textSecondary"
+                sx={{ fontFamily: theme.typography.fontFamilyMono, fontSize: "11px" }}
+              >
                 {action}
               </Typography>
             </ResourceItem>
           ))}
 
-          {remainingCount > 0 && (
-            <Typography
-              variant="body2"
-              color="primary"
-              sx={{ cursor: "pointer", "&:hover": { opacity: 0.8 } }}
-            >
-              {t("resourceCard.moreActions", { count: remainingCount })}
-            </Typography>
+          {remainingActions.length > 0 && (
+            <ResourceCardMoreActions
+              actions={remainingActions}
+              dotColor={dotColor}
+            />
           )}
         </ResourceList>
 

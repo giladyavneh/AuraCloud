@@ -1,3 +1,39 @@
+/**
+ * Extracts IAM action strings from a policy document.
+ * Handles both string form ("s3:GetObject") and array form (["s3:GetObject", ...]).
+ * Accepts either a parsed object or a raw JSON string.
+ */
+export function extractActionsFromPolicyDocument(
+  policy: string | Record<string, unknown>,
+): string[] {
+  let doc: Record<string, unknown>;
+  if (typeof policy === 'string') {
+    try {
+      doc = JSON.parse(decodeURIComponent(policy)) as Record<string, unknown>;
+    } catch {
+      return [];
+    }
+  } else {
+    doc = policy;
+  }
+
+  const statements = (doc.Statement as Array<Record<string, unknown>>) ?? [];
+  const actions = new Set<string>();
+
+  for (const statement of statements) {
+    const action = statement.Action;
+    if (typeof action === 'string') {
+      actions.add(action);
+    } else if (Array.isArray(action)) {
+      for (const a of action) {
+        if (typeof a === 'string') actions.add(a);
+      }
+    }
+  }
+
+  return [...actions];
+}
+
 export function attemptDeepParse(data: any): any {
     if (typeof data === 'string') {
         try {

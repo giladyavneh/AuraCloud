@@ -23,6 +23,7 @@ const SideMenu: React.FC = () => {
           <MenuItem
             key={item.path}
             label={t(item.labelKey)}
+            icon={item.icon}
             state={location.pathname === item.path ? 'active' : 'default'}
             onClick={() => navigate(item.path)}
           />

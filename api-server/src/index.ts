@@ -1,61 +1,309 @@
-import express from "express";
+// Node 22+/24 defaults to IPv6 DNS (link-local) which causes querySrv ECONNREFUSED
+// on residential routers that don't handle DNS-over-IPv6. Force IPv4 DNS servers
+// before any network call is made.
+import dns from "dns";
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
+
+import express, { type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { connectDB, UserResourceWatchlistModel, UserPermissionModel, CustomerModel } from "./db.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import {
+  connectDB,
+  UserResourceWatchlistModel,
+  UserPermissionModel,
+  CustomerModel,
+} from "./db.js";
+import { AwsResourceModel, ResourceActionModel, encryptSecret } from "utils";
 
 dotenv.config();
 
 const app = express();
 const port = Number(process.env.PORT) || 3000;
+const JWT_SECRET = process.env.JWT_SECRET ?? "aura-dev-secret-change-in-production";
+const BCRYPT_ROUNDS = 10;
 
 app.use(cors());
 app.use(express.json());
 
-app.get('/api/user-resource-watchlist', async (_req, res) => {
-  try {
-    const statuses = await UserResourceWatchlistModel.find().lean().exec();
-    res.json(statuses);
-  } catch (err) {
-    console.error('GET /api/user-resource-watchlist failed:', err);
-    res.status(500).json({ message: 'Server Error' });
-  }
-});
+// ── Auth middleware ────────────────────────────────────────────────────────────
 
-app.get("/api/user-permissions/:userId", async (req, res) => {
+interface JwtPayload {
+  customerId: string;
+  email: string;
+}
+
+// Extends Express Request so downstream handlers can read req.customer
+declare global {
+  namespace Express {
+    interface Request {
+      customer?: JwtPayload;
+    }
+  }
+}
+
+function requireAuth(req: Request, res: Response, next: NextFunction): void {
+  const header = req.headers.authorization;
+  if (!header?.startsWith("Bearer ")) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
   try {
-    const permission = await UserPermissionModel.findOne({ userId: req.params.userId });
-    if (!permission) {
-      res.status(404).json({ message: "User permissions not found" });
+    const token = header.slice(7);
+    req.customer = jwt.verify(token, JWT_SECRET) as JwtPayload;
+    next();
+  } catch {
+    res.status(401).json({ message: "Invalid or expired token" });
+  }
+}
+
+function signToken(payload: JwtPayload): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+}
+
+// Builds the safe customer object sent to the frontend.
+// awsAccessKeyId is included (not secret) so the UI can display which key is active.
+// awsSecretAccessKey is never included.
+function toCustomerResponse(customer: {
+  _id: unknown;
+  firstName: string;
+  lastName: string;
+  email: string;
+  companyName: string;
+  roleTitle: string;
+  awsCredentials?: { accessKeyId?: string | null; status?: string | null } | null;
+}) {
+  const connected = customer.awsCredentials?.status === "connected";
+  return {
+    _id: customer._id,
+    firstName: customer.firstName,
+    lastName: customer.lastName,
+    email: customer.email,
+    companyName: customer.companyName,
+    roleTitle: customer.roleTitle,
+    hasAwsConnected: connected,
+    ...(connected && customer.awsCredentials?.accessKeyId
+      ? { awsAccessKeyId: customer.awsCredentials.accessKeyId }
+      : {}),
+  };
+}
+
+// ── Auth routes ────────────────────────────────────────────────────────────────
+
+app.post("/api/auth/signup", async (req, res) => {
+  try {
+    const { firstName, lastName, email, companyName, roleTitle, password } = req.body ?? {};
+
+    if (!firstName || !lastName || !email || !companyName || !roleTitle || !password) {
+      res.status(400).json({ message: "All fields are required" });
       return;
     }
-    res.json(permission);
-  } catch (error) {
+
+    const existing = await CustomerModel.findOne({ email: email.toLowerCase().trim() }).lean();
+    if (existing) {
+      res.status(409).json({ message: "An account with this email already exists" });
+      return;
+    }
+
+    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    const customer = await CustomerModel.create({
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: email.toLowerCase().trim(),
+      companyName: companyName.trim(),
+      roleTitle: roleTitle.trim(),
+      passwordHash,
+    });
+
+    const token = signToken({ customerId: customer._id.toString(), email: customer.email });
+    res.status(201).json({ token, customer: toCustomerResponse(customer) });
+  } catch (err) {
+    console.error("POST /api/auth/signup failed:", err);
     res.status(500).json({ message: "Server Error" });
   }
 });
 
-app.post('/api/aws/onboard-credentials', async (req, res) => {
+app.post("/api/auth/login", async (req, res) => {
   try {
-    const { customerId, accessKeyId, secretAccessKey } = req.body ?? {};
+    const { email, password } = req.body ?? {};
 
-    if (
-      typeof customerId !== 'string' || !customerId.trim() ||
-      typeof accessKeyId !== 'string' || !accessKeyId.trim() ||
-      typeof secretAccessKey !== 'string' || !secretAccessKey.trim()
-    ) {
-      res.status(400).json({ message: 'Missing required fields' });
+    if (!email || !password) {
+      res.status(400).json({ message: "Email and password are required" });
+      return;
+    }
+
+    const customer = await CustomerModel.findOne({ email: email.toLowerCase().trim() });
+    if (!customer) {
+      res.status(401).json({ message: "Invalid email or password" });
+      return;
+    }
+
+    const valid = await bcrypt.compare(password, customer.passwordHash);
+    if (!valid) {
+      res.status(401).json({ message: "Invalid email or password" });
+      return;
+    }
+
+    const token = signToken({ customerId: customer._id.toString(), email: customer.email });
+    res.json({ token, customer: toCustomerResponse(customer) });
+  } catch (err) {
+    console.error("POST /api/auth/login failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+app.get("/api/auth/me", requireAuth, async (req, res) => {
+  try {
+    const customer = await CustomerModel.findById(req.customer!.customerId).lean();
+    if (!customer) {
+      res.status(404).json({ message: "Customer not found" });
+      return;
+    }
+    res.json(toCustomerResponse(customer));
+  } catch (err) {
+    console.error("GET /api/auth/me failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+// ── Existing routes ────────────────────────────────────────────────────────────
+
+app.get("/api/user-resource-watchlist", requireAuth, async (req, res) => {
+  try {
+    const watchlists = await UserResourceWatchlistModel
+      .find({ userId: req.customer!.customerId })
+      .lean()
+      .exec();
+    res.json(watchlists);
+  } catch (err) {
+    console.error("GET /api/user-resource-watchlist failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+app.get("/api/resources", requireAuth, async (_req, res) => {
+  try {
+    const resources = await AwsResourceModel.find().lean().exec();
+    res.json(resources);
+  } catch (err) {
+    console.error("GET /api/resources failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+app.get("/api/resources/:arn/actions", requireAuth, async (req, res) => {
+  try {
+    // ARN is URL-encoded since it contains colons and slashes
+    const rawArn = req.params.arn;
+    const arn = decodeURIComponent(Array.isArray(rawArn) ? rawArn[0] : rawArn);
+    const actions = await ResourceActionModel.find({ resourceArn: arn }).lean().exec();
+    res.json(actions);
+  } catch (err) {
+    console.error("GET /api/resources/:arn/actions failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+app.put("/api/user-resource-watchlist/:id", requireAuth, async (req, res) => {
+  try {
+    // Ensure the watchlist belongs to the requesting customer
+    const doc = await UserResourceWatchlistModel.findOneAndUpdate(
+      { _id: req.params.id, userId: req.customer!.customerId },
+      { resources: req.body.resources },
+      { returnDocument: "after" },
+    );
+    if (!doc) {
+      res.status(404).json({ message: "Watchlist not found" });
+      return;
+    }
+    res.json(doc);
+  } catch (err) {
+    console.error("PUT /api/user-resource-watchlist/:id failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+app.get("/api/user-permissions", requireAuth, async (req, res) => {
+  try {
+    const permission = await UserPermissionModel.findOne({
+      userId: req.customer!.customerId,
+    });
+    if (!permission) {
+      res.status(404).json({ message: "No permissions data yet" });
+      return;
+    }
+    res.json(permission);
+  } catch {
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+app.put("/api/user/profile", requireAuth, async (req, res) => {
+  try {
+    const { firstName, lastName, email, companyName, roleTitle } = req.body ?? {};
+
+    if (!firstName || !lastName || !email || !companyName || !roleTitle) {
+      res.status(400).json({ message: "All fields are required" });
+      return;
+    }
+
+    // Guard against email being taken by a different account
+    const emailConflict = await CustomerModel.findOne({
+      email: (email as string).toLowerCase().trim(),
+      _id: { $ne: req.customer!.customerId },
+    }).lean();
+    if (emailConflict) {
+      res.status(409).json({ message: "An account with this email already exists" });
       return;
     }
 
     const updated = await CustomerModel.findByIdAndUpdate(
-      customerId,
+      req.customer!.customerId,
       {
         $set: {
-          // TODO: encrypt secretAccessKey before saving (use KMS/libsodium/etc).
+          firstName: (firstName as string).trim(),
+          lastName: (lastName as string).trim(),
+          email: (email as string).toLowerCase().trim(),
+          companyName: (companyName as string).trim(),
+          roleTitle: (roleTitle as string).trim(),
+        },
+      },
+      { new: true },
+    ).lean();
+
+    if (!updated) {
+      res.status(404).json({ message: "Customer not found" });
+      return;
+    }
+
+    res.json(toCustomerResponse(updated));
+  } catch (err) {
+    console.error("PUT /api/user/profile failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+app.post("/api/aws/onboard-credentials", requireAuth, async (req, res) => {
+  try {
+    const { accessKeyId, secretAccessKey } = req.body ?? {};
+
+    if (
+      typeof accessKeyId !== "string" || !accessKeyId.trim() ||
+      typeof secretAccessKey !== "string" || !secretAccessKey.trim()
+    ) {
+      res.status(400).json({ message: "Missing required fields" });
+      return;
+    }
+
+    const updated = await CustomerModel.findByIdAndUpdate(
+      req.customer!.customerId,
+      {
+        $set: {
           awsCredentials: {
-            accessKeyId,
-            secretAccessKey,
-            status: 'connected',
+            accessKeyId: accessKeyId.trim(),
+            secretAccessKey: encryptSecret(secretAccessKey.trim()),
+            status: "connected",
             connectedAt: new Date(),
           },
         },
@@ -64,27 +312,18 @@ app.post('/api/aws/onboard-credentials', async (req, res) => {
     ).lean();
 
     if (!updated) {
-      res.status(404).json({ message: 'Customer not found' });
+      res.status(404).json({ message: "Customer not found" });
       return;
     }
 
-    const sanitized = {
-      ...updated,
-      awsCredentials: updated.awsCredentials
-        ? {
-            accessKeyId: updated.awsCredentials.accessKeyId,
-            status: updated.awsCredentials.status,
-            connectedAt: updated.awsCredentials.connectedAt,
-          }
-        : undefined,
-    };
-
-    res.json(sanitized);
+    res.json(toCustomerResponse(updated));
   } catch (err) {
-    console.error('POST /api/aws/onboard-credentials failed:', err);
-    res.status(500).json({ message: 'Server Error' });
+    console.error("POST /api/aws/onboard-credentials failed:", err);
+    res.status(500).json({ message: "Server Error" });
   }
 });
+
+// ── Start ──────────────────────────────────────────────────────────────────────
 
 connectDB()
   .then(() => {
@@ -93,7 +332,7 @@ connectDB()
       console.log(`API Server is running on ${publicUrl}`);
     });
   })
-  .catch((err: any) => {
-    console.error('Failed to connect to database:', err);
+  .catch((err: unknown) => {
+    console.error("Failed to connect to database:", err);
     process.exit(1);
   });

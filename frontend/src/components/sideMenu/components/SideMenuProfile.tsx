@@ -2,26 +2,42 @@ import React from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Avatar from '@mui/material/Avatar';
-import { useTranslation } from 'react-i18next';
+import { useCurrentUser } from '@/hooks/user.hooks';
 import { ProfileRow } from '@/components/sideMenu/components/sideMenu.styled';
 
 const SideMenuProfile: React.FC = () => {
-  const { t } = useTranslation();
+  const { data: user } = useCurrentUser();
+
+  const initials = user?.name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join('') ?? '';
 
   return (
     <ProfileRow>
       <Avatar
-        src=""
-        alt={t('nav.profileName')}
-        sx={(theme) => ({ width: 48, height: 48, bgcolor: theme.palette.divider })}
-      />
+        src={user?.avatarUrl}
+        alt={user?.name}
+        sx={(theme) => ({
+          width: 48,
+          height: 48,
+          bgcolor: theme.palette.primary.main,
+          color: theme.palette.primary.contrastText,
+          fontSize: theme.typography.body1.fontSize,
+          fontWeight: theme.typography.fontWeightBold,
+        })}
+      >
+        {!user?.avatarUrl && initials}
+      </Avatar>
 
       <Box>
         <Typography variant="body1" color="textPrimary" noWrap>
-          {t('nav.profileName')}
+          {user?.name}
         </Typography>
         <Typography variant="body2" color="textDisabled" noWrap>
-          {t('nav.profileRole')}
+          {user?.role}
         </Typography>
       </Box>
     </ProfileRow>

@@ -5,7 +5,7 @@ import {
   type User, type Role, type Group
 } from "@aws-sdk/client-iam";
 import { BaseCrawler } from "./crawlerBase.js";
-import { AwsResourceModel, ResourceActionModel } from "utils";
+import { AwsResourceModel } from "utils";
 
 export class BasicIamCrawler extends BaseCrawler {
     public intervalMs = 1000;
@@ -107,13 +107,6 @@ export class BasicIamCrawler extends BaseCrawler {
                 },
                 { upsert: true, returnDocument: 'after' },
             );
-            for (const policy of user.AttachedPolicies ?? []) {
-                await ResourceActionModel.findOneAndUpdate(
-                    { resourceArn: arn, actionName: policy.PolicyName },
-                    { resourceArn: arn, actionName: policy.PolicyName, policySource: 'AttachedPolicy', policyArn: policy.PolicyArn, lastSeenAt: now },
-                    { upsert: true, returnDocument: 'after' },
-                );
-            }
         }
 
         for (const role of roles) {
@@ -148,13 +141,6 @@ export class BasicIamCrawler extends BaseCrawler {
                 },
                 { upsert: true, returnDocument: 'after' },
             );
-            for (const policy of group.AttachedPolicies ?? []) {
-                await ResourceActionModel.findOneAndUpdate(
-                    { resourceArn: arn, actionName: policy.PolicyName },
-                    { resourceArn: arn, actionName: policy.PolicyName, policySource: 'AttachedPolicy', policyArn: policy.PolicyArn, lastSeenAt: now },
-                    { upsert: true, returnDocument: 'after' },
-                );
-            }
         }
 
     }

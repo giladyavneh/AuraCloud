@@ -1,8 +1,7 @@
 import { GetBucketAclCommand, GetBucketCorsCommand, GetBucketLocationCommand, GetBucketPolicyCommand, ListBucketsCommand, S3Client } from "@aws-sdk/client-s3";
 import { GetCallerIdentityCommand, STSClient } from "@aws-sdk/client-sts";
 import { BaseCrawler } from "./crawlerBase.js";
-import { AwsResourceModel, ResourceActionModel } from "utils";
-import { extractActionsFromPolicyDocument } from "./utils.js";
+import { AwsResourceModel } from "utils";
 import extend from "extend";
 import { ConfigServiceClient, GetResourceConfigHistoryCommand } from "@aws-sdk/client-config-service";
 
@@ -142,17 +141,7 @@ export class S3Crawler extends BaseCrawler {
                 { upsert: true, returnDocument: 'after' },
             );
 
-            // Extract actions from the bucket policy document
-            if (bucket.bucketPolicies) {
-                const actions = extractActionsFromPolicyDocument(bucket.bucketPolicies);
-                for (const actionName of actions) {
-                    await ResourceActionModel.findOneAndUpdate(
-                        { resourceArn: arn, actionName },
-                        { resourceArn: arn, actionName, policySource: 'BucketPolicy', lastSeenAt: now },
-                        { upsert: true, returnDocument: 'after' },
-                    );
-                }
-            }
+
         }
 
     }

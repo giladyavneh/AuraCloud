@@ -12,8 +12,7 @@ import {
 import { GetPolicyCommand, GetPolicyVersionCommand, IAMClient } from "@aws-sdk/client-iam";
 import { GetCallerIdentityCommand, STSClient } from "@aws-sdk/client-sts";
 import { BaseCrawler } from "./crawlerBase.js";
-import { print, AwsResourceModel, ResourceActionModel } from "utils";
-import { extractActionsFromPolicyDocument } from "./utils.js";
+import { AwsResourceModel } from "utils";
 
 function parseInlinePolicy(policyText: string | undefined): Record<string, unknown> | undefined {
   if (!policyText?.trim()) return undefined;
@@ -231,29 +230,7 @@ export class PermissionSetsCrawler extends BaseCrawler {
         { upsert: true, returnDocument: 'after' },
       );
 
-      // Extract actions from the inline policy
-      const inlineActions = ps.inlinePolicyDocument
-        ? extractActionsFromPolicyDocument(ps.inlinePolicyDocument)
-        : [];
-      for (const actionName of inlineActions) {
-        await ResourceActionModel.findOneAndUpdate(
-          { resourceArn: arn, actionName },
-          { resourceArn: arn, actionName, policySource: 'InlinePolicy', lastSeenAt: now },
-          { upsert: true, returnDocument: 'after' },
-        );
-      }
 
-      // Extract actions from each attached managed policy document
-      for (const policyDoc of ps.attachedIamPolicyDocuments ?? []) {
-        const attachedActions = extractActionsFromPolicyDocument(policyDoc);
-        for (const actionName of attachedActions) {
-          await ResourceActionModel.findOneAndUpdate(
-            { resourceArn: arn, actionName },
-            { resourceArn: arn, actionName, policySource: 'PermissionSet', lastSeenAt: now },
-            { upsert: true, returnDocument: 'after' },
-          );
-        }
-      }
     }
 
   }

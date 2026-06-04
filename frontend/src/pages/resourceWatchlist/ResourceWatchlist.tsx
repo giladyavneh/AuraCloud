@@ -1,4 +1,5 @@
 import {
+  useCreateWatchlist,
   useUpdateWatchlist,
   useUserResourceWatchlist,
 } from "@/hooks/resources.hooks";
@@ -9,8 +10,7 @@ import {
   PageRoot,
   PageTitleBlock,
 } from "@/pages/resourceWatchlist/components/resourceWatchlist.styled";
-import type { WatchlistResource } from "@/pages/resourceWatchlist/types/resourceWatchlist.types";
-import type { ResourceWatchlistItem } from "@/services/types/resources.types";
+import type { ResourceWatchlistContentProps, WatchlistResource } from "@/pages/resourceWatchlist/types/resourceWatchlist.types";
 import { Grid } from "@mui/material";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -20,16 +20,6 @@ import Typography from "@mui/material/Typography";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-// ─── Inner content component ─────────────────────────────────────────────────
-// Receives a guaranteed watchlist document so useState can be seeded
-// synchronously from the prop — no useEffect needed.
-// The key={watchlist._id} on this component (set by the shell below) ensures
-// state resets automatically if the watchlist document ever changes.
-
-interface ResourceWatchlistContentProps {
-  watchlist: ResourceWatchlistItem;
-}
-
 const sortedSnapshot = (resources: WatchlistResource[]) =>
   [...resources].sort((a, b) => a.arn.localeCompare(b.arn)).map((r) => ({ arn: r.arn, actions: r.actions }));
 
@@ -37,10 +27,16 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
   watchlist,
 }) => {
   const { t } = useTranslation();
+
   const { mutate: save, isPending: isSaving, isSuccess: isSaved, isError: hasSaveError } = useUpdateWatchlist();
+  const { mutate: create, isPending: isCreating, isSuccess: isCreated, isError: hasCreateError } = useCreateWatchlist();
+
+  const isPending = isSaving || isCreating;
+  const isSuccess = isSaved || isCreated;
+  const isError = hasSaveError || hasCreateError;
 
   const [draftResources, setDraftResources] = useState<WatchlistResource[]>(
-    watchlist.resources,
+    watchlist?.resources ?? [],
   );
   const [snackbar, setSnackbar] = useState<{ open: boolean; severity: "success" | "error" }>({
     open: false,
@@ -48,12 +44,18 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
   });
 
   const isDirty = useMemo(
-    () => JSON.stringify(sortedSnapshot(draftResources)) !== JSON.stringify(sortedSnapshot(watchlist.resources)),
-    [draftResources, watchlist.resources],
+    () =>
+      JSON.stringify(sortedSnapshot(draftResources)) !==
+      JSON.stringify(sortedSnapshot(watchlist?.resources ?? [])),
+    [draftResources, watchlist],
   );
 
   const handleSave = () => {
-    save({ id: watchlist._id, resources: draftResources });
+    if (watchlist) {
+      save({ id: watchlist._id, resources: draftResources });
+    } else {
+      create(draftResources);
+    }
   };
 
   const handleSnackbarClose = () => setSnackbar((prev) => ({ ...prev, open: false }));
@@ -61,12 +63,12 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
   // Detect when a pending save settles so the toast fires reliably
   const wasPending = useRef(false);
   useEffect(() => {
-    if (wasPending.current && !isSaving) {
-      if (isSaved) setSnackbar({ open: true, severity: "success" });
-      if (hasSaveError) setSnackbar({ open: true, severity: "error" });
+    if (wasPending.current && !isPending) {
+      if (isSuccess) setSnackbar({ open: true, severity: "success" });
+      if (isError) setSnackbar({ open: true, severity: "error" });
     }
-    wasPending.current = isSaving;
-  }, [isSaving, isSaved, hasSaveError]);
+    wasPending.current = isPending;
+  }, [isPending, isSuccess, isError]);
 
   return (
     <PageRoot>
@@ -88,7 +90,7 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
         onClose={handleSnackbarClose}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} variant="filled">
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} variant="standard">
           {snackbar.severity === "success"
             ? t("resourceWatchlist.saveSuccess")
             : t("resourceWatchlist.saveError")}
@@ -101,7 +103,7 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
             draftResources={draftResources}
             onDraftChange={setDraftResources}
             onSave={handleSave}
-            isSaving={isSaving}
+            isSaving={isPending}
             isDirty={isDirty}
           />
         </Grid>
@@ -113,18 +115,18 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
           />
         </Grid>
       </Grid>
+
     </PageRoot>
   );
 };
 
 // ─── Shell component ──────────────────────────────────────────────────────────
-// Fetches the watchlist and waits until data is available before rendering
-// the content. key={watchlist._id} resets child state if the document changes.
+// Fetches the watchlist and renders content once loading settles.
+// watchlist may be null — content handles that gracefully.
 
 const ResourceWatchlist: React.FC = () => {
-  const { t } = useTranslation();
   const { data: watchlistItems = [], isLoading } = useUserResourceWatchlist();
-  const watchlist = watchlistItems[0];
+  const watchlist = watchlistItems[0] ?? null;
 
   if (isLoading) {
     return (
@@ -134,17 +136,7 @@ const ResourceWatchlist: React.FC = () => {
     );
   }
 
-  if (!watchlist) {
-    return (
-      <Box sx={{ paddingBlock: 8, paddingInline: 4 }}>
-        <Typography variant="body2" color="textSecondary">
-          {t("resourceWatchlist.noWatchlist")}
-        </Typography>
-      </Box>
-    );
-  }
-
-  return <ResourceWatchlistContent key={watchlist._id} watchlist={watchlist} />;
+  return <ResourceWatchlistContent key={watchlist?._id ?? "new"} watchlist={watchlist} />;
 };
 
 export default ResourceWatchlist;

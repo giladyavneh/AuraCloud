@@ -6,6 +6,20 @@ import type {
   UpdateProfilePayload,
 } from "@/services/types/auth.types";
 
+export interface CompanyInfo {
+  _id: string;
+  name: string;
+  slug: string;
+}
+
+export interface AwsUserOption {
+  _id: string;
+  name: string;
+  source: 'IAM' | 'SSO';
+  externalId: string;
+  arn: string | null;
+}
+
 const API_BASE = "http://localhost:3000/api";
 
 const AUTH_TOKEN_KEY = "aura_auth_token";
@@ -88,6 +102,56 @@ export const submitAwsCredentials = async (payload: {
   });
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: "Failed to save credentials" }));
+    throw new Error((error as { message: string }).message);
+  }
+  return response.json() as Promise<AuthCustomer>;
+};
+
+export interface CompanyInviteInfo {
+  inviteCode: string;
+  slug: string;
+}
+
+export const fetchCompanyInviteCode = async (): Promise<CompanyInviteInfo> => {
+  const response = await fetch(`${API_BASE}/company/invite-code`, {
+    headers: authHeaders(),
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Failed to fetch invite code' }));
+    throw new Error((error as { message: string }).message);
+  }
+  return response.json() as Promise<CompanyInviteInfo>;
+};
+
+export const fetchCompanyBySlug = async (slug: string): Promise<CompanyInfo> => {
+  const response = await fetch(`${API_BASE}/companies/${encodeURIComponent(slug)}`);
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: "Company not found" }));
+    throw new Error((error as { message: string }).message);
+  }
+  return response.json() as Promise<CompanyInfo>;
+};
+
+export const fetchCompanyAwsUsers = async (slug: string): Promise<AwsUserOption[]> => {
+  const response = await fetch(`${API_BASE}/companies/${encodeURIComponent(slug)}/aws-users`);
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: "Failed to fetch users" }));
+    throw new Error((error as { message: string }).message);
+  }
+  return response.json() as Promise<AwsUserOption[]>;
+};
+
+export const linkAwsUser = async (awsUserId: string): Promise<AuthCustomer> => {
+  const response = await fetch(`${API_BASE}/user/link-aws-user`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify({ awsUserId }),
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: "Failed to link AWS user" }));
     throw new Error((error as { message: string }).message);
   }
   return response.json() as Promise<AuthCustomer>;

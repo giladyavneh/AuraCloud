@@ -1,3 +1,8 @@
+// Node 22+/24 defaults to IPv6 DNS (link-local) which causes querySrv ECONNREFUSED
+// on residential routers. Force IPv4 DNS servers before any network call is made.
+import dns from "dns";
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
+
 import "dotenv/config";
 import { SsoCrawler } from "./ssoCrawler.js";
 import { PermissionSetsCrawler } from "./permissionSetsCrawler.js";
@@ -6,78 +11,78 @@ import { S3Crawler } from "./s3Crawler.js";
 import {
   getRedisClient,
   connectMongo,
-  CustomerModel,
+  CompanyModel,
   decryptSecret,
 } from "utils";
 import type { BaseCrawler, AwsCredentials } from "./crawlerBase.js";
 
 type CrawlerCtor = new (credentials: AwsCredentials) => BaseCrawler;
 
-// Customers we've already spawned crawler loops for. Loops live forever
+// Companies we've already spawned crawler loops for. Loops live forever
 // (paused via runCrawler when status flips), so we only need to track who
 // already has a loop, not their current credentials — runCrawler handles that.
-const activeCustomers = new Set<string>();
+const activeCompanies = new Set<string>();
 
-// How often the reconciler re-queries Mongo to spot newly-onboarded customers.
+// How often the reconciler re-queries Mongo to spot newly-onboarded companies.
 const RECONCILE_INTERVAL_MS = 30_000;
 
 async function main() {
   const [redis] = await Promise.all([getRedisClient(), connectMongo()]);
   console.log("🚀 AuraCloud: Identity Sync Initiated");
 
-  await reconcileCustomers(redis);
+  await reconcileCompanies(redis);
   setInterval(() => {
-    void reconcileCustomers(redis);
+    void reconcileCompanies(redis);
   }, RECONCILE_INTERVAL_MS);
 }
 
-async function reconcileCustomers(redis: any) {
+async function reconcileCompanies(redis: any) {
   try {
-    const customers = await CustomerModel.find({
+    const companies = await CompanyModel.find({
       "awsCredentials.status": "connected",
     }).lean();
 
-    for (const customer of customers) {
-      const customerId = customer._id.toString();
-      if (activeCustomers.has(customerId)) continue;
-      activeCustomers.add(customerId);
+    for (const company of companies) {
+      const companyId = company._id.toString();
+      if (activeCompanies.has(companyId)) continue;
+      activeCompanies.add(companyId);
 
-      const tag = `${customer.firstName}:${customerId.slice(-6)}`;
+      const tag = `${company.name}:${companyId.slice(-6)}`;
       console.log(`🆕 Starting crawlers for ${tag}`);
 
-      runCrawler(SsoCrawler, customerId, `SSO[${tag}]`, redis);
+      runCrawler(SsoCrawler, companyId, `SSO[${tag}]`, redis);
       runCrawler(
         PermissionSetsCrawler,
-        customerId,
+        companyId,
         `PermissionSets[${tag}]`,
         redis,
       );
-      runCrawler(BasicIamCrawler, customerId, `IAM[${tag}]`, redis);
-      runCrawler(S3Crawler, customerId, `S3[${tag}]`, redis);
+      runCrawler(BasicIamCrawler, companyId, `IAM[${tag}]`, redis);
+      runCrawler(S3Crawler, companyId, `S3[${tag}]`, redis);
     }
   } catch (err: any) {
-    console.error("reconcileCustomers failed:", err.message);
+    console.error("reconcileCompanies failed:", err.message);
   }
 }
 
 async function runCrawler(
   Ctor: CrawlerCtor,
-  customerId: string,
+  companyId: string,
   name: string,
   redis: any,
 ) {
   let crawler: BaseCrawler | null = null;
   let cachedFingerprint: string | undefined;
   // Fallback poll interval used when there is no crawler instance yet (e.g.,
-  // customer disconnected before we ever built one). Once a crawler exists we
+  // company disconnected before we ever built one). Once a crawler exists we
   // use its own intervalMs.
   const idleSleepMs = 5000;
 
   while (true) {
     const start = Date.now();
     try {
-      const customer = await CustomerModel.findById(customerId).lean();
-      const creds = customer?.awsCredentials;
+      const company = await CompanyModel.findById(companyId).lean();
+      const creds = company?.awsCredentials;
 
       if (
         !creds ||
@@ -87,7 +92,7 @@ async function runCrawler(
       ) {
         if (crawler) {
           console.warn(
-            `⏸️  ${name}: customer not connected — pausing until credentials are restored`,
+            `⏸️  ${name}: company not connected — pausing until credentials are restored`,
           );
           crawler = null;
           cachedFingerprint = undefined;

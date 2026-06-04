@@ -13,8 +13,8 @@ export const CardInner = styled(Box)(({ theme }) => ({
   flexDirection: 'column',
   gap: theme.spacing(2),
   padding: theme.spacing(4, 6),
-  backgroundColor: theme.palette.background.paper,
-  border: `1px solid ${theme.palette.divider}`,
+  backgroundColor: theme.palette.surface.base,
+  border: `1px solid ${theme.palette.border.default}`,
   borderRadius: theme.shape.borderRadius,
   height: '100%',
 }));

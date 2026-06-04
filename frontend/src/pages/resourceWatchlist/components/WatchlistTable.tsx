@@ -10,6 +10,7 @@ import {
   useMaterialReactTable,
 } from "material-react-table";
 import React from "react";
+import { WATCHLIST_SEARCH_WIDTH } from "@/constants";
 import { useTranslation } from "react-i18next";
 
 const WatchlistTable: React.FC<WatchlistTableProps> = ({
@@ -46,9 +47,9 @@ const WatchlistTable: React.FC<WatchlistTableProps> = ({
       size: "small",
       variant: "outlined",
       placeholder: t("resourceWatchlist.search"),
-      sx: { width: 260 },
       slotProps: {
         input: {
+          sx: { width: WATCHLIST_SEARCH_WIDTH },
           startAdornment: (
             <InputAdornment position="start">
               <MagnifyingGlassIcon />

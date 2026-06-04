@@ -5,7 +5,7 @@ import Typography from '@mui/material/Typography';
 import { useTheme } from '@mui/material/styles';
 import { DownloadSimpleIcon, UploadSimpleIcon } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
-import { WATCHLIST_DOWNLOAD_FILENAME } from '@/constants';
+import { EDITOR_FONT_SIZE, EDITOR_PADDING, WATCHLIST_DOWNLOAD_FILENAME } from '@/constants';
 import {
   parseWatchlistJson,
   watchlistToJson,
@@ -120,14 +120,14 @@ const JsonEditorPanel: React.FC<JsonEditorPanelProps> = ({
           onChange={handleEditorChange}
           options={{
             minimap: { enabled: false },
-            fontSize: 13,
+            fontSize: EDITOR_FONT_SIZE,
             scrollBeyondLastLine: false,
             wordWrap: 'on',
             lineNumbers: 'on',
             renderLineHighlight: 'none',
             overviewRulerBorder: false,
             hideCursorInOverviewRuler: true,
-            padding: { top: 12, bottom: 12 },
+            padding: { top: EDITOR_PADDING, bottom: EDITOR_PADDING },
           }}
         />
       </EditorWrapper>

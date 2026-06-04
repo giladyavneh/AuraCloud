@@ -1,3 +1,4 @@
+import { MONO_LABEL_FONT_SIZE } from "@/constants";
 import AwsServiceIcon from "@/components/awsServiceIcon/AwsServiceIcon";
 import { inferServiceFromArn } from "@/helpers/arn.helpers";
 import type { WatchlistResource } from "@/services/resources.service";
@@ -32,7 +33,12 @@ export const useWatchlistTableColumns =
               <Typography
                 variant="body2"
                 color="textPrimary"
-                sx={{ wordBreak: "break-all", fontFamily: theme.typography.fontFamilyMono, fontSize: "11px" }}
+                sx={{
+                  wordBreak: "break-word",
+                  textWrapStyle: "balance",
+                  fontFamily: theme.typography.fontFamilyMono,
+                  fontSize: MONO_LABEL_FONT_SIZE,
+                }}
               >
                 {row.original.arn}
               </Typography>
@@ -53,7 +59,14 @@ export const useWatchlistTableColumns =
             const overflow = actions.length - MAX_VISIBLE_CHIPS;
 
             return (
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, paddingBlock: 1 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 1.5,
+                  paddingBlock: 1,
+                }}
+              >
                 {actions.length === 0 ? (
                   <Typography variant="caption" color="textDisabled">
                     —
@@ -66,7 +79,14 @@ export const useWatchlistTableColumns =
                     {overflow > 0 && (
                       <Tooltip
                         title={
-                          <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, paddingBlock: 0.5 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 1.5,
+                              paddingBlock: 0.5,
+                            }}
+                          >
                             {actions.slice(MAX_VISIBLE_CHIPS).map((action) => (
                               <Typography key={action} variant="caption">
                                 {action}
@@ -76,7 +96,12 @@ export const useWatchlistTableColumns =
                         }
                         arrow
                       >
-                        <Chip label={`+${overflow}`} size="small" variant="outlined" sx={{ cursor: "pointer" }} />
+                        <Chip
+                          label={`+${overflow}`}
+                          size="small"
+                          variant="outlined"
+                          sx={{ cursor: "pointer" }}
+                        />
                       </Tooltip>
                     )}
                   </>

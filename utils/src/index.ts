@@ -202,16 +202,13 @@ export const ResourceActionModel =
   mongoose.model<ResourceAction>('ResourceAction', resourceActionSchema);
 
 // ==========================================
-// Customer — a company that has onboarded to Aura
+// Company — an organisation that has onboarded to Aura
 // ==========================================
-const customerSchema = new mongoose.Schema(
+const companySchema = new mongoose.Schema(
   {
-    firstName:    { type: String, required: true },
-    lastName:     { type: String, required: true },
-    email:        { type: String, required: true },
-    companyName:  { type: String, required: true },
-    roleTitle:    { type: String, required: true },
-    passwordHash: { type: String, required: true },
+    name:       { type: String, required: true },
+    slug:       { type: String, required: true },          // URL-safe identifier, e.g. "acme"
+    inviteCode: { type: String, required: true },          // 6-digit code required for employee signup
     awsCredentials: {
       accessKeyId:     { type: String },
       // Stored encrypted via encryptSecret() — see utils/src/crypto.ts
@@ -222,7 +219,33 @@ const customerSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+companySchema.index({ slug: 1 }, { unique: true });
+
+export type Company = InferSchemaType<typeof companySchema>;
+export type CompanyDoc = HydratedDocument<Company>;
+
+export const CompanyModel =
+  (mongoose.models.Company as mongoose.Model<Company>) ??
+  mongoose.model<Company>('Company', companySchema);
+
+// ==========================================
+// Customer — an individual user belonging to a Company
+// ==========================================
+const customerSchema = new mongoose.Schema(
+  {
+    firstName:        { type: String, required: true },
+    lastName:         { type: String, required: true },
+    email:            { type: String, required: true },
+    roleTitle:        { type: String, required: true },
+    passwordHash:     { type: String, required: true },
+    role:             { type: String, enum: ['manager', 'employee'], required: true },
+    companyId:        { type: String, required: true },    // references Company._id
+    linkedAwsUserId:  { type: String, default: null },     // stores User.externalId (AWS SSO/IAM UserId); null until selected
+  },
+  { timestamps: true },
+);
 customerSchema.index({ email: 1 }, { unique: true });
+customerSchema.index({ companyId: 1 });
 
 export type Customer = InferSchemaType<typeof customerSchema>;
 export type CustomerDoc = HydratedDocument<Customer>;

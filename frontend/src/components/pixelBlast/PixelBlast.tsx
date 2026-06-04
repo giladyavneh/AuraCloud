@@ -1,4 +1,5 @@
 import { PixelBlastContainer } from "@/components/pixelBlast/components/pixelBlast.styled";
+import theme from "@/theme/theme";
 import type {
   PixelBlastProps,
   PixelBlastVariant,
@@ -325,7 +326,7 @@ const MAX_CLICKS = 10;
 const PixelBlast: React.FC<PixelBlastProps> = ({
   variant = "square",
   pixelSize = 3,
-  color = "#B497CF",
+  color = theme.palette.primary.main,
   className,
   style,
   antialias = true,

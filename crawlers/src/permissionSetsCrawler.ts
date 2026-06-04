@@ -12,7 +12,8 @@ import {
 import { GetPolicyCommand, GetPolicyVersionCommand, IAMClient } from "@aws-sdk/client-iam";
 import { GetCallerIdentityCommand, STSClient } from "@aws-sdk/client-sts";
 import { BaseCrawler } from "./crawlerBase.js";
-import { AwsResourceModel } from "utils";
+import { print, AwsResourceModel, ResourceActionModel } from "utils";
+import { extractActionsFromPolicyDocument } from "./utils.js";
 
 function parseInlinePolicy(policyText: string | undefined): Record<string, unknown> | undefined {
   if (!policyText?.trim()) return undefined;
@@ -202,36 +203,5 @@ export class PermissionSetsCrawler extends BaseCrawler {
       if (!arn) continue;
       await redis.hSet("aura:sso:permission-sets", arn, JSON.stringify(ps));
     }
-  }
-
-  async saveToMongo(data: unknown) {
-    const permissionSets = data as any[];
-    const now = new Date();
-
-    for (const ps of permissionSets) {
-      const arn = ps?.PermissionSetArn;
-      if (!arn) continue;
-
-      await AwsResourceModel.findOneAndUpdate(
-        { arn },
-        {
-          arn,
-          resourceType: 'PermissionSet',
-          name: ps.Name ?? arn,
-          metadata: {
-            description: ps.Description,
-            sessionDuration: ps.SessionDuration,
-            relayState: ps.RelayState,
-            awsManagedAttachments: ps.awsManagedAttachments,
-            customerManagedReferences: ps.customerManagedReferences,
-          },
-          lastSyncedAt: now,
-        },
-        { upsert: true, returnDocument: 'after' },
-      );
-
-
-    }
-
   }
 }

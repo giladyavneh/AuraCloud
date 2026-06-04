@@ -8,11 +8,13 @@ import { connectMongo, disconnectMongo, disconnectRedis, getRedisClient, print, 
 import { getUsersFromMongo } from './dataAccess.js';
 import { evaluateUser } from './userEvaluation.js';
 import { startUserSyncWorker } from './userSync/worker.js';
+import { startResourceSyncWorker } from './resourceSync/worker.js';
 
 
 async function main() {
   const [, redis] = await Promise.all([connectMongo(), getRedisClient()]);
   startUserSyncWorker(redis);
+  startResourceSyncWorker(redis);
 
   const intervalMs = 10000; // Run every 10 seconds
 
@@ -71,7 +73,7 @@ async function main() {
               permissionsData,
             },
           },
-          { upsert: true, new: true }
+          { upsert: true, returnDocument: 'after' }
         );
         console.log(`Saved evaluation results for user: ${user.name} (${user.userId})`);
       }

@@ -14,10 +14,7 @@ import { useTranslation } from "react-i18next";
 
 const AUTOCOMPLETE_MIN_WIDTH = 280;
 
-const AddResourceForm: React.FC<AddResourceFormProps> = ({
-  onAdd,
-  existingArns,
-}) => {
+const AddResourceForm: React.FC<AddResourceFormProps> = ({ onAdd }) => {
   const { t } = useTranslation();
   const [selectedResource, setSelectedResource] = useState<AwsResource | null>(
     null,
@@ -28,10 +25,6 @@ const AddResourceForm: React.FC<AddResourceFormProps> = ({
     useAllResources();
   const { data: actions = [], isLoading: actionsLoading } = useResourceActions(
     selectedResource?.arn ?? null,
-  );
-
-  const availableResources = resources.filter(
-    (r) => !existingArns.includes(r.arn),
   );
 
   const handleResourceChange = (
@@ -64,7 +57,7 @@ const AddResourceForm: React.FC<AddResourceFormProps> = ({
   return (
     <FormRow>
       <Autocomplete<AwsResource>
-        options={availableResources}
+        options={resources}
         value={selectedResource}
         onChange={handleResourceChange}
         loading={resourcesLoading}

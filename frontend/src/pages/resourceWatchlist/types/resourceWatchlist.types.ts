@@ -1,5 +1,5 @@
-import type { ResourceWatchlistItem } from '@/services/types/resources.types';
-import type { WatchlistResource } from '@/services/resources.service';
+import type { ResourceWatchlistItem } from "@/services/types/resources.types";
+import type { WatchlistResource } from "@/services/resources.service";
 
 export type { WatchlistResource };
 
@@ -27,5 +27,4 @@ export interface WatchlistTableProps {
 
 export interface AddResourceFormProps {
   onAdd: (resource: WatchlistResource) => void;
-  existingArns: string[];
 }

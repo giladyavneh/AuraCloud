@@ -10,35 +10,41 @@ import {
   PageRoot,
   PageTitleBlock,
 } from "@/pages/resourceWatchlist/components/resourceWatchlist.styled";
-import type { ResourceWatchlistContentProps, WatchlistResource } from "@/pages/resourceWatchlist/types/resourceWatchlist.types";
+import type {
+  ResourceWatchlistContentProps,
+  WatchlistResource,
+} from "@/pages/resourceWatchlist/types/resourceWatchlist.types";
 import { Grid } from "@mui/material";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Snackbar from "@mui/material/Snackbar";
 import Typography from "@mui/material/Typography";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const sortedSnapshot = (resources: WatchlistResource[]) =>
-  [...resources].sort((a, b) => a.arn.localeCompare(b.arn)).map((r) => ({ arn: r.arn, actions: r.actions }));
+  [...resources]
+    .sort((a, b) => a.arn.localeCompare(b.arn))
+    .map((r) => ({ arn: r.arn, actions: r.actions }));
 
 const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
   watchlist,
 }) => {
   const { t } = useTranslation();
 
-  const { mutate: save, isPending: isSaving, isSuccess: isSaved, isError: hasSaveError } = useUpdateWatchlist();
-  const { mutate: create, isPending: isCreating, isSuccess: isCreated, isError: hasCreateError } = useCreateWatchlist();
+  const { mutate: save, isPending: isSaving } = useUpdateWatchlist();
+  const { mutate: create, isPending: isCreating } = useCreateWatchlist();
 
   const isPending = isSaving || isCreating;
-  const isSuccess = isSaved || isCreated;
-  const isError = hasSaveError || hasCreateError;
 
   const [draftResources, setDraftResources] = useState<WatchlistResource[]>(
     watchlist?.resources ?? [],
   );
-  const [snackbar, setSnackbar] = useState<{ open: boolean; severity: "success" | "error" }>({
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    severity: "success" | "error";
+  }>({
     open: false,
     severity: "success",
   });
@@ -50,25 +56,21 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
     [draftResources, watchlist],
   );
 
+  const mutationCallbacks = {
+    onSuccess: () => setSnackbar({ open: true, severity: "success" }),
+    onError: () => setSnackbar({ open: true, severity: "error" }),
+  };
+
   const handleSave = () => {
     if (watchlist) {
-      save({ id: watchlist._id, resources: draftResources });
+      save({ id: watchlist._id, resources: draftResources }, mutationCallbacks);
     } else {
-      create(draftResources);
+      create(draftResources, mutationCallbacks);
     }
   };
 
-  const handleSnackbarClose = () => setSnackbar((prev) => ({ ...prev, open: false }));
-
-  // Detect when a pending save settles so the toast fires reliably
-  const wasPending = useRef(false);
-  useEffect(() => {
-    if (wasPending.current && !isPending) {
-      if (isSuccess) setSnackbar({ open: true, severity: "success" });
-      if (isError) setSnackbar({ open: true, severity: "error" });
-    }
-    wasPending.current = isPending;
-  }, [isPending, isSuccess, isError]);
+  const handleSnackbarClose = () =>
+    setSnackbar((prev) => ({ ...prev, open: false }));
 
   return (
     <PageRoot>
@@ -90,7 +92,11 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
         onClose={handleSnackbarClose}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} variant="standard">
+        <Alert
+          onClose={handleSnackbarClose}
+          severity={snackbar.severity}
+          variant="standard"
+        >
           {snackbar.severity === "success"
             ? t("resourceWatchlist.saveSuccess")
             : t("resourceWatchlist.saveError")}
@@ -115,7 +121,6 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
           />
         </Grid>
       </Grid>
-
     </PageRoot>
   );
 };
@@ -136,7 +141,12 @@ const ResourceWatchlist: React.FC = () => {
     );
   }
 
-  return <ResourceWatchlistContent key={watchlist?._id ?? "new"} watchlist={watchlist} />;
+  return (
+    <ResourceWatchlistContent
+      key={watchlist?._id ?? "new"}
+      watchlist={watchlist}
+    />
+  );
 };
 
 export default ResourceWatchlist;

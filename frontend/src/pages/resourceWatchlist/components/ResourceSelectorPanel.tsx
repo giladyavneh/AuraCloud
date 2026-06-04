@@ -29,14 +29,24 @@ const ResourceSelectorPanel: React.FC<ResourceSelectorPanelProps> = ({
   const theme = useTheme();
 
   const handleAdd = (resource: WatchlistResource) => {
-    onDraftChange([...draftResources, resource]);
+    const existing = draftResources.find((r) => r.arn === resource.arn);
+
+    if (existing) {
+      // Merge incoming actions into the existing entry, deduplicating
+      const mergedActions = [...new Set([...existing.actions, ...resource.actions])];
+      onDraftChange(
+        draftResources.map((r) =>
+          r.arn === resource.arn ? { ...r, actions: mergedActions } : r,
+        ),
+      );
+    } else {
+      onDraftChange([...draftResources, resource]);
+    }
   };
 
   const handleRemove = (arn: string) => {
     onDraftChange(draftResources.filter((r) => r.arn !== arn));
   };
-
-  const existingArns = draftResources.map((r) => r.arn);
 
   return (
     <LeftPanel>
@@ -45,10 +55,7 @@ const ResourceSelectorPanel: React.FC<ResourceSelectorPanelProps> = ({
           {t("resourceWatchlist.addResource")}
         </Typography>
 
-        <AddResourceForm
-          onAdd={handleAdd}
-          existingArns={existingArns}
-        />
+        <AddResourceForm onAdd={handleAdd} />
       </PanelCard>
 
       <PanelCard sx={{ flex: 1, overflow: "auto" }}>
@@ -60,7 +67,11 @@ const ResourceSelectorPanel: React.FC<ResourceSelectorPanelProps> = ({
               <Typography variant="subtitle1" color="textPrimary">
                 {t("resourceWatchlist.emptyState.title")}
               </Typography>
-              <Typography variant="body2" color="textSecondary" sx={{ marginTop: 0.5 }}>
+              <Typography
+                variant="body2"
+                color="textSecondary"
+                sx={{ marginTop: 0.5 }}
+              >
                 {t("resourceWatchlist.emptyState.description")}
               </Typography>
             </Box>
@@ -70,7 +81,14 @@ const ResourceSelectorPanel: React.FC<ResourceSelectorPanelProps> = ({
         )}
       </PanelCard>
 
-      <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: theme.spacing(2) }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "center",
+          gap: theme.spacing(2),
+        }}
+      >
         {isDirty && (
           <Typography variant="caption" color="warning.main">
             {t("resourceWatchlist.unsavedChanges")}
@@ -83,12 +101,17 @@ const ResourceSelectorPanel: React.FC<ResourceSelectorPanelProps> = ({
           onClick={onSave}
           disabled={isSaving}
           size="medium"
-          startIcon={isSaving ? <CircularProgress size={theme.iconSize.xs} color="inherit" /> : undefined}
+          startIcon={
+            isSaving ? (
+              <CircularProgress size={theme.iconSize.xs} color="inherit" />
+            ) : undefined
+          }
         >
-          {isSaving ? t("resourceWatchlist.saving") : t("resourceWatchlist.save")}
+          {isSaving
+            ? t("resourceWatchlist.saving")
+            : t("resourceWatchlist.save")}
         </Button>
       </Box>
-
     </LeftPanel>
   );
 };

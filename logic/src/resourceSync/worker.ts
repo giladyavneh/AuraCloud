@@ -7,7 +7,7 @@ export interface ResourceSyncWorkerHandle {
 }
 
 export function startResourceSyncWorker(redis: RedisClient): ResourceSyncWorkerHandle {
-    const intervalMs = parseInt(process.env.RESOURCE_SYNC_INTERVAL_MS ?? '60000', 10);
+    const intervalMs = parseInt(process.env.RESOURCE_SYNC_INTERVAL_MS ?? '10000', 10);
     const enabled = (process.env.RESOURCE_SYNC_ENABLED ?? 'true').toLowerCase() === 'true';
 
     if (!enabled) {

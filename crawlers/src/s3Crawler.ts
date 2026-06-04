@@ -27,10 +27,7 @@ export class S3Crawler extends BaseCrawler {
     }
 
     private async callAwsAndExtract<T, K extends keyof T>(fn: () => Promise<T>, key: K): Promise<T[K]|null> {
-        const response = await this.callAndHandleThrotteling(fn).catch((err) => {
-            console.error(`[S3 CRAWLER] AWS SDK Error:`, err.message || err);
-            return null;
-        });
+        const response = await this.callAndHandleThrotteling(fn);
         return response ? response[key] : null;
     }
 
@@ -71,8 +68,11 @@ export class S3Crawler extends BaseCrawler {
             
             if (isAccessDenied) {
                 return await this.getPermissionsFromAwsConfigFallback(bucketName, region) || null;
+            } else if (err.name === "NoSuchBucketPolicy" || errMsg.includes("The bucket policy does not exist")) {
+                return null;
             } else {
                 console.error(`[S3 CRAWLER] GetBucketPolicy error for ${bucketName} in region ${region}:`, errMsg);
+                return null;
             }
         }
     }
@@ -81,7 +81,10 @@ export class S3Crawler extends BaseCrawler {
         const locationClient = this.getRegionalClient(GLOBAL_S3_REGION);
         const bucketLocation = await this.callAwsAndExtract(
             () => locationClient.send(new GetBucketLocationCommand({ Bucket: bucket.Name! })), "LocationConstraint"
-        ).catch((err) => { console.error(`[S3 CRAWLER] GetBucketLocation error for ${bucket.Name}:`, err.message || err); });
+        ).catch((err) => {
+            console.error(`[S3 CRAWLER] GetBucketLocation error for ${bucket.Name}:`, err.message || err);
+            return null;
+        });
 
         const region = bucketLocation || GLOBAL_S3_REGION;
         const regionalClient = this.getRegionalClient(region);
@@ -92,8 +95,16 @@ export class S3Crawler extends BaseCrawler {
             bucketCors
         ] = await Promise.all([
             this.getBucketPolicies(regionalClient, bucket.Name!, region),
-            this.callAwsAndExtract(() => regionalClient.send(new GetBucketAclCommand({ Bucket: bucket.Name! })), "Grants").catch(() => null),
-            this.callAwsAndExtract(() => regionalClient.send(new GetBucketCorsCommand({ Bucket: bucket.Name! })), "CORSRules").catch(() => null)
+            this.callAwsAndExtract(() => regionalClient.send(new GetBucketAclCommand({ Bucket: bucket.Name! })), "Grants").catch((err) => {
+                console.error(`[S3 CRAWLER] GetBucketAcl error for ${bucket.Name}:`, err.message || err);
+                return null;
+            }),
+            this.callAwsAndExtract(() => regionalClient.send(new GetBucketCorsCommand({ Bucket: bucket.Name! })), "CORSRules").catch((err) => {
+                if (err.name !== "NoSuchCORSConfiguration" && !(err.message || "").includes("The CORS configuration does not exist")) {
+                    console.error(`[S3 CRAWLER] GetBucketCors error for ${bucket.Name}:`, err.message || err);
+                }
+                return null;
+            })
         ]);
 
         extend(bucket, { bucketPolicies, bucketLocation: region, bucketAcl, bucketCors });

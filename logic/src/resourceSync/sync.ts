@@ -1,4 +1,4 @@
-import { AwsResourceModel, getRedisClient } from 'utils';
+import { AwsResourceModel, getRedisClient, print } from 'utils';
 
 type RedisClient = Awaited<ReturnType<typeof getRedisClient>>;
 
@@ -22,7 +22,12 @@ export async function runResourceSyncCycle(redis: RedisClient): Promise<void> {
     const cycleStartDate = new Date();
 
     try {
-        const rawResources = await redis.hGetAll("aura:resource");
+        const keys = await redis.keys("aura:resource:*");
+        const rawResources: Record<string, string> = {};
+        for (const key of keys) {
+            const hash = await redis.hGetAll(key);
+            Object.assign(rawResources, hash);
+        }
         const resourceRecords = [];
 
         for (const [arn, value] of Object.entries(rawResources)) {
@@ -47,7 +52,7 @@ export async function runResourceSyncCycle(redis: RedisClient): Promise<void> {
         let deletedCount = 0;
 
         if (resourceRecords.length === 0) {
-            console.warn('runResourceSyncCycle: no resource records read from Redis key "aura:resource", skipping delete');
+            console.warn('runResourceSyncCycle: no resource records read from Redis pattern "aura:resource:*", skipping delete');
         } else {
             const resourceOps = resourceRecords.map(record => ({
                 updateOne: {

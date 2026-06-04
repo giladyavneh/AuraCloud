@@ -73,7 +73,7 @@ async function main() {
               permissionsData,
             },
           },
-          { upsert: true, new: true }
+          { upsert: true, returnDocument: 'after' }
         );
         console.log(`Saved evaluation results for user: ${user.name} (${user.userId})`);
       }

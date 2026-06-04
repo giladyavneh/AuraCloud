@@ -184,7 +184,7 @@ export const AwsResourceModel =
 // ==========================================
 const resourceActionSchema = new mongoose.Schema(
   {
-    resourceArn: { type: String, required: true, index: true },
+    resourceType: { type: String, required: true, index: true },
     actionName: { type: String, required: true },
     policySource: { type: String }, // 'BucketPolicy' | 'AttachedPolicy' | 'InlinePolicy' | 'PermissionSet'
     policyArn: { type: String },
@@ -192,7 +192,7 @@ const resourceActionSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
-resourceActionSchema.index({ resourceArn: 1, actionName: 1 }, { unique: true });
+resourceActionSchema.index({ resourceType: 1, actionName: 1 }, { unique: true });
 
 export type ResourceAction = InferSchemaType<typeof resourceActionSchema>;
 export type ResourceActionDoc = HydratedDocument<ResourceAction>;

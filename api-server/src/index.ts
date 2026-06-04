@@ -411,9 +411,38 @@ app.get("/api/resources/:arn/actions", requireAuth, async (req, res) => {
     // ARN is URL-encoded since it contains colons and slashes
     const rawArn = req.params.arn;
     const arn = decodeURIComponent(Array.isArray(rawArn) ? rawArn[0] : rawArn);
-    const actions = await ResourceActionModel.find({ resourceArn: arn })
-      .lean()
-      .exec();
+
+    // Look up the resource to find its resourceType
+    const resource = await AwsResourceModel.findOne({ arn }).lean().exec();
+    const resourceType = resource?.resourceType;
+
+    // Map resourceType to service key
+    let serviceKey = "";
+    if (resourceType) {
+      const lowerType = resourceType.toLowerCase();
+      if (lowerType.includes("s3")) {
+        serviceKey = "s3";
+      } else if (lowerType.includes("iam")) {
+        serviceKey = "iam";
+      } else if (lowerType.includes("sso") || lowerType.includes("permissionset")) {
+        serviceKey = "sso";
+      }
+    }
+
+    // Fallback to ARN-based service key if database lookup didn't yield a type
+    if (!serviceKey) {
+      const parts = arn.split(":");
+      if (parts.length > 2) {
+        serviceKey = parts[2].toLowerCase();
+      }
+    }
+
+    // Fetch actions for this resourceType from database
+    const dbActions = await ResourceActionModel.find({ resourceType: serviceKey }).lean().exec();
+    const actions = dbActions.map((action) => ({
+      ...action,
+      resourceArn: arn,
+    }));
     res.json(actions);
   } catch (err) {
     console.error("GET /api/resources/:arn/actions failed:", err);

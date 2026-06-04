@@ -1,1 +1,0 @@
-{"root":["./src/basiciamcrawler.ts","./src/calleridentifier.ts","./src/crawlerbase.ts","./src/index.ts","./src/managedpolicyresolver.ts","./src/s3crawler.ts","./src/ssocrawler.ts","./src/utils.ts"],"version":"6.0.3"}

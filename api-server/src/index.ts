@@ -4,15 +4,6 @@
 import dns from "dns";
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
-import { readFileSync } from "fs";
-import { join } from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = join(__filename, "..");
-const possibleActionsPath = join(__dirname, "possibleActions.json");
-const possibleActions = JSON.parse(readFileSync(possibleActionsPath, "utf-8"));
-
 import express, { type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
 import dotenv from "dotenv";

@@ -33,7 +33,7 @@ function customerManagedPolicyArn(accountId: string, ref: CustomerManagedPolicyR
 
 export class PermissionSetsCrawler extends BaseCrawler {
   protected region = "eu-central-1";
-  protected intervalMs = 5000;
+  public intervalMs = 5000;
   protected ssoAdmin = new SSOAdminClient({ region: this.region, credentials: this.credentials });
   protected iam = new IAMClient({ region: this.region, credentials: this.credentials });
   protected sts = new STSClient({ region: this.region, credentials: this.credentials });

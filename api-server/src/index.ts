@@ -35,6 +35,12 @@ const JWT_SECRET =
   process.env.JWT_SECRET ?? "aura-dev-secret-change-in-production";
 const BCRYPT_ROUNDS = 10;
 
+// Internal Aura infrastructure identities — never exposed as linkable AWS users.
+const INTERNAL_AWS_USER_ARNS = [
+  "arn:aws:iam::589523296424:user/Aura-Crawlers-Sevice",
+  "arn:aws:iam::589523296424:user/Aura-SaaS-Crawler",
+];
+
 app.use(cors());
 app.use(express.json());
 
@@ -151,9 +157,9 @@ app.get("/api/companies/:slug/aws-users", async (req, res) => {
       res.status(404).json({ message: "Company not found" });
       return;
     }
-    // Return discovered AWS (IAM + SSO) users — no credentials exposed
+    // Return discovered AWS (IAM + SSO) users — no credentials exposed, internal identities excluded
     const users = await UserModel.find(
-      {},
+      { arn: { $nin: INTERNAL_AWS_USER_ARNS } },
       { name: 1, source: 1, externalId: 1, arn: 1 },
     ).lean();
     res.json(users);

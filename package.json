@@ -6,6 +6,7 @@
     "logic",
     "crawlers",
     "api-server",
+    "mcp-server",
     "frontend"
   ],
   "scripts": {
@@ -17,6 +18,7 @@
     "start:logic": "npm run dev -w logic",
     "start:crawlers": "npm run dev -w crawlers",
     "start:api-server": "npm run dev -w api-server",
+    "start:mcp-server": "npm run dev -w mcp-server",
     "start:all": "npx concurrently -n crawlers,logic,api,frontend -c blue,magenta,green,cyan \"npm run dev -w crawlers\" \"npm run dev -w logic\" \"npm run dev -w api-server\" \"npm run dev -w frontend\"",
     "redis:up": "npm run redis:up -w utils"
   }

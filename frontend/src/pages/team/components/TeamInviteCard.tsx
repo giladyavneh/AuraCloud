@@ -5,6 +5,7 @@ import {
   INVITE_CODE_LETTER_SPACING,
 } from "@/constants";
 import { useCompanyInviteCode } from "@/hooks/auth.hooks";
+import { useSpotlight } from "@/components/spotlightCard/hooks/spotlightCard.hooks";
 import {
   InviteCard,
   InviteFieldsGrid,
@@ -34,6 +35,9 @@ const TeamInviteCard: React.FC = () => {
   const theme = useTheme();
   const { data, isLoading, isError, refetch } = useCompanyInviteCode();
 
+  // Cursor-following spotlight, same wiring the dashboard resource cards use.
+  const { ref, onMouseMove } = useSpotlight<HTMLDivElement>();
+
   const [copied, setCopied] = useState<CopiedField>(null);
 
   const handleCopy = (text: string, field: Exclude<CopiedField, null>) => {
@@ -46,7 +50,7 @@ const TeamInviteCard: React.FC = () => {
   const inviteLink = data ? `${AURA_CLOUD_DOMAIN}/${data.slug}/sign-up` : "";
 
   return (
-    <InviteCard elevation={0}>
+    <InviteCard elevation={0} ref={ref} onMouseMove={onMouseMove}>
       <InviteHeaderRow>
         <InviteIconBadge>
           <UserPlusIcon size={theme.iconSize.sm} color={theme.palette.primary.main} aria-hidden />

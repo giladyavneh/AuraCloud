@@ -206,9 +206,9 @@ export const TeamMembersPanelRoot = styled(Box)(({ theme }) => ({
 
 export const TeamMemberRow = styled(Box)(({ theme }) => ({
   display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
+  alignItems: 'baseline',
   gap: theme.spacing(2),
+  paddingBlock: theme.spacing(0.5),
 }));
 
 export const TeamPresetLine = styled(Box)(({ theme }) => ({
@@ -256,7 +256,7 @@ export const EditorActionsRow = styled(Box)(({ theme }) => ({
 // dashboard FilterTabs: a bordered pill container with an inset active fill.
 // Kept compact (small) so it aligns beside the scope Autocomplete on one row.
 export const ScopeToggleGroup = styled(ToggleButtonGroup)(({ theme }) => ({
-  border: `1px solid ${theme.palette.border.default}`,
+  border: `2px solid ${theme.palette.border.strong}`,
   borderRadius: theme.shape.borderRadius,
   padding: theme.spacing(0.5),
   gap: theme.spacing(0.5),

@@ -1,4 +1,3 @@
-import StatusTag from "@/components/statusTag/StatusTag";
 import {
   TeamMemberRow,
   TeamMembersPanelRoot,
@@ -6,7 +5,6 @@ import {
 } from "@/pages/team/components/team.styled";
 import type { TeamMembersPanelProps } from "@/pages/team/types/team.types";
 import Box from "@mui/material/Box";
-import Chip from "@mui/material/Chip";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 import { SparkleIcon } from "@phosphor-icons/react";
@@ -52,40 +50,13 @@ const TeamMembersPanel: React.FC<TeamMembersPanelProps> = ({ members, preset, pr
       ) : (
         members.map((member) => (
           <TeamMemberRow key={member._id}>
-            <Box>
-              <Typography variant="body2" color="textPrimary">
-                {member.firstName} {member.lastName}
-              </Typography>
-              <Typography variant="caption" color="textSecondary">
-                {member.roleTitle}
-              </Typography>
-            </Box>
+            <Typography variant="body2" color="textPrimary">
+              {member.firstName} {member.lastName}
+            </Typography>
 
-            <Box sx={{ display: "flex", alignItems: "center", gap: theme.spacing(1.5) }}>
-              <Chip
-                label={
-                  member.role === "manager"
-                    ? t("team.employees.roleManager")
-                    : t("team.employees.roleEmployee")
-                }
-                size="small"
-                variant="outlined"
-                sx={{
-                  borderColor:
-                    member.role === "manager"
-                      ? theme.palette.primary.main
-                      : theme.palette.border.default,
-                  color:
-                    member.role === "manager"
-                      ? theme.palette.primary.main
-                      : theme.palette.text.secondary,
-                }}
-              />
-
-              {member.hasAwsConnected && (
-                <StatusTag variant="healthy" label={t("team.employees.linked")} />
-              )}
-            </Box>
+            <Typography variant="caption" color="textSecondary">
+              {member.roleTitle}
+            </Typography>
           </TeamMemberRow>
         ))
       )}

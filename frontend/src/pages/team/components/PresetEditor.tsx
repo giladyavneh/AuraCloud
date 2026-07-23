@@ -19,10 +19,10 @@ import {
 } from "@/pages/resourceWatchlist/components/resourceWatchlist.styled";
 import type { Employee, PresetScopeType, Team } from "@/pages/team/types/team.types";
 import type { WatchlistResource } from "@/services/resources.service";
+import { CurrentKeyRow } from "@/pages/settings/components/settings.styled";
 import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Grid from "@mui/material/Grid";
 import IconButton from "@mui/material/IconButton";
@@ -197,6 +197,14 @@ const PresetEditor: React.FC<PresetEditorProps> = ({
                   )}
                 />
               )}
+
+              <TextField
+                sx={{ flexGrow: 1 }}
+                label={t("team.presets.nameFieldLabel")}
+                size="small"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+              />
             </Box>
 
             {scopeType === "team" && eligibleTeams.length === 0 && (
@@ -211,28 +219,30 @@ const PresetEditor: React.FC<PresetEditorProps> = ({
             )}
           </>
         ) : (
-          <Box>
-            <Chip
-              icon={
-                preset.scopeType === "team" ? (
+          <Box sx={{ display: "flex", alignItems: "center", gap: theme.spacing(2) }}>
+            <CurrentKeyRow sx={{ flexGrow: 1 }}>
+              <Box sx={{ display: "flex", flexShrink: 0 }}>
+                {preset.scopeType === "team" ? (
                   <UsersIcon size={theme.iconSize.xs} />
                 ) : (
                   <UserIcon size={theme.iconSize.xs} />
-                )
-              }
-              label={scopeLabel}
-              variant="outlined"
+                )}
+              </Box>
+
+              <Typography variant="body2" color="textPrimary">
+                {scopeLabel}
+              </Typography>
+            </CurrentKeyRow>
+
+            <TextField
+              sx={{ flexGrow: 1 }}
+              label={t("team.presets.nameFieldLabel")}
+              size="small"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
             />
           </Box>
         )}
-
-        <TextField
-          label={t("team.presets.nameFieldLabel")}
-          size="small"
-          fullWidth
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-        />
       </EditorSection>
 
       <Grid container spacing={4} sx={{ flex: 1, minHeight: 0 }}>

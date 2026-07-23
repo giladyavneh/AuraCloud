@@ -158,16 +158,16 @@ const theme = createTheme({
         followCursor: true,
       },
     },
-    MuiTableBody: {
+    MuiTableHead: {
       styleOverrides: {
-        // Round the two outer corners of the table body so the first row's edge
-        // cells match the app's rounded-surface language. Applied globally so
-        // every data table (employees, presets, watchlist) gets it for free.
+        // Round the two outer corners of the table header so its edge cells match
+        // the app's rounded-surface language. Applied globally so every data table
+        // (employees, presets, watchlist) gets it for free.
         root: ({ theme }) => ({
-          "& tr:first-of-type td:first-of-type": {
+          "& tr:first-of-type th:first-of-type": {
             borderTopLeftRadius: theme.shape.borderRadius,
           },
-          "& tr:first-of-type td:last-of-type": {
+          "& tr:first-of-type th:last-of-type": {
             borderTopRightRadius: theme.shape.borderRadius,
           },
         }),

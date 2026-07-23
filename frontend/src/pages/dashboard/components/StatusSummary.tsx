@@ -8,7 +8,10 @@ import { ArrowsClockwiseIcon } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUserPermissions } from "@/hooks/resources.hooks";
 import { QUERY_KEYS } from "@/constants/queryKeys";
-import { deriveStatusFromArnData } from "@/pages/dashboard/helpers/dashboard.helpers";
+import {
+  deriveStatusFromArnData,
+  deriveSystemStatus,
+} from "@/pages/dashboard/helpers/dashboard.helpers";
 import type { ArnPermissionData } from "@/services/types/resources.types";
 import StatusTag from "@/components/statusTag/StatusTag";
 import { useSpotlight } from "@/components/spotlightCard/hooks/spotlightCard.hooks";
@@ -22,7 +25,12 @@ const StatusSummary: React.FC = () => {
   const { t } = useTranslation();
   const theme = useTheme();
   const queryClient = useQueryClient();
-  const { data: permission } = useUserPermissions();
+  const {
+    data: permission,
+    isLoading: isPermissionLoading,
+    isError: isPermissionError,
+    error: permissionError,
+  } = useUserPermissions();
 
   // Cursor-following spotlight, same wiring the dashboard resource cards use.
   const { ref, onMouseMove } = useSpotlight<HTMLDivElement>();
@@ -36,10 +44,16 @@ const StatusSummary: React.FC = () => {
     (permission?.permissionsData as Record<string, ArnPermissionData>) ?? {},
   )
     .map(deriveStatusFromArnData)
-    .filter((s) => s === "blocked").length;
+    .filter((status) => status === "blocked").length;
 
   const blockerColor =
     activeBlockers > 0 ? theme.palette.error.main : theme.palette.success.main;
+
+  const systemStatus = deriveSystemStatus(
+    isPermissionLoading,
+    isPermissionError,
+    permissionError?.message,
+  );
 
   return (
     <StatusSummaryRoot ref={ref} onMouseMove={onMouseMove}>
@@ -58,9 +72,10 @@ const StatusSummary: React.FC = () => {
       </StatusSummaryLeft>
 
       <StatusSummaryRight>
-        {/* TODO: replace hardcoded "online" with real system-health data once the
-            Brain/health-check endpoint is implemented. */}
-        <StatusTag variant="online" />
+        <StatusTag
+          variant={systemStatus.variant}
+          label={systemStatus.labelKey ? t(systemStatus.labelKey) : undefined}
+        />
 
         <Button
           variant="outlined"

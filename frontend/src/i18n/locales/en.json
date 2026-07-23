@@ -62,6 +62,11 @@
       "daysAgo": "{{count}} days ago",
       "oneDayAndHoursAgo": "1 day, {{hours}} hour ago",
       "daysAndHoursAgo": "{{days}} days, {{hours}} hour ago"
+    },
+    "systemStatus": {
+      "checking": "Checking system…",
+      "awaitingData": "Awaiting first scan",
+      "degraded": "Data unavailable"
     }
   },
   "resourceCard": {

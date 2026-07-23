@@ -22,9 +22,9 @@ const StatsRow: React.FC = () => {
     deriveStatusFromArnData,
   );
   const hasPermissionData = arnStatuses.length > 0;
-  const activeBlockers = arnStatuses.filter((s) => s === "blocked").length;
-  const staleResources = arnStatuses.filter((s) => s === "stale").length;
-  const healthyCount = arnStatuses.filter((s) => s === "healthy").length;
+  const activeBlockers = arnStatuses.filter((status) => status === "blocked").length;
+  const staleResources = arnStatuses.filter((status) => status === "stale").length;
+  const healthyCount = arnStatuses.filter((status) => status === "healthy").length;
   const healthScore = hasPermissionData
     ? `${Math.round((healthyCount / arnStatuses.length) * 100)}%`
     : "—";

@@ -1,8 +1,8 @@
 import PasswordField from "@/components/passwordField/PasswordField";
+import { KeyValueRow } from "@/components/keyValueRow/components/keyValueRow.styled";
 import { useSubmitAwsCredentials } from "@/hooks/auth.hooks";
 import { useAuth } from "@/context/auth/AuthContext";
 import {
-  CurrentKeyRow,
   FormActions,
   SectionDivider,
   SectionHeader,
@@ -65,12 +65,12 @@ const AwsCredentialsSection: React.FC = () => {
           <Typography variant="caption" color="textSecondary" sx={{ display: "block", marginBottom: 1 }}>
             {t("settings.aws.currentKey")}
           </Typography>
-          <CurrentKeyRow>
+          <KeyValueRow>
             <KeyIcon size={theme.iconSize.sm} color={theme.palette.text.secondary} />
             <Typography variant="body2" color="textSecondary" sx={{ fontFamily: theme.typography.fontFamilyMono, fontSize: theme.typography.caption.fontSize }}>
               {customer.companyAwsAccessKeyId}
             </Typography>
-          </CurrentKeyRow>
+          </KeyValueRow>
         </div>
       ) : (
         <Typography variant="body2" color="textSecondary">

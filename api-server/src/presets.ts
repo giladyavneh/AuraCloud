@@ -14,17 +14,23 @@ export function mergeResourceLists(
   existing: WatchlistResource[],
   incoming: WatchlistResource[],
 ): WatchlistResource[] {
-  const merged = existing.map((r) => ({ arn: r.arn, actions: [...r.actions] }));
+  const merged = existing.map((resource) => ({
+    arn: resource.arn,
+    actions: [...resource.actions],
+  }));
+
   for (const { arn, actions } of incoming) {
-    const target = merged.find((r) => r.arn === arn);
-    if (target) {
+    const existingResource = merged.find((resource) => resource.arn === arn);
+
+    if (existingResource) {
       for (const action of actions) {
-        if (!target.actions.includes(action)) target.actions.push(action);
+        if (!existingResource.actions.includes(action)) existingResource.actions.push(action);
       }
     } else {
       merged.push({ arn, actions: [...actions] });
     }
   }
+
   return merged;
 }
 
@@ -56,8 +62,8 @@ export async function resolveMemberPresetResources(customerId: string): Promise<
 
 /**
  * Copies a member's team preset and/or individual preset (if any) into
- * their real UserResourceWatchlist doc, additively (see SPEC §3). Called
- * from both the team-assign handler and the link-aws-user handler.
+ * their real UserResourceWatchlist doc, additively. Called from both the
+ * team-assign handler and the link-aws-user handler.
  *
  * No-op if the customer doesn't exist or has no applicable presets. Never
  * retracts existing resources — only unions new ones in.

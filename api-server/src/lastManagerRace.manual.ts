@@ -1,15 +1,11 @@
-// MANUAL integration check — not part of the unit test run (presets.test.ts).
-// Needs a live MONGO_URI (replica set) AND a running api-server:
+// MANUAL integration check. Needs a live MONGO_URI (replica set) and a running server:
 //
 //   PORT=3999 npx tsx api-server/src/index.ts &
 //   npx tsx api-server/src/lastManagerRace.manual.ts
 //
-// Guards the last-manager write-skew race: two concurrent demotes, each targeting
-// the other manager, must not leave the company with zero managers. Regressing this
-// locks a company out of its own account permanently, and it is invisible to any
-// sequential test — which is why this check exists separately.
-// Also covers the CastError-to-500 paths (malformed :id, empty-string teamId).
-// Creates and fully deletes its own throwaway company.
+// Asserts that two concurrent demotes, each targeting the other manager, cannot
+// leave a company with zero managers — a race no sequential test can catch.
+// Also checks that malformed ids return 404 rather than 500.
 import assert from 'node:assert';
 import { connectMongo, CompanyModel, CustomerModel, mongoose } from 'utils';
 

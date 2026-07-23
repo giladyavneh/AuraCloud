@@ -1,4 +1,10 @@
-import type { Employee, PresetResource, Team, WatchlistPreset } from '@/pages/team/types/team.types';
+import type {
+  Employee,
+  PresetResource,
+  PresetScopeType,
+  Team,
+  WatchlistPreset,
+} from '@/pages/team/types/team.types';
 import type { WatchlistResource } from '@/services/resources.service';
 
 /** Number of managers among the given employees — used to pre-empt last-manager 409s. */
@@ -35,14 +41,14 @@ export const resolvePresetScopeLabel = (
   if (preset.scopeType === 'team') {
     return teams.find((team) => team._id === preset.scopeId)?.name ?? removedEmployeeLabel;
   }
-  const employee = employees.find((e) => e._id === preset.scopeId);
+  const employee = employees.find((candidate) => candidate._id === preset.scopeId);
   return employee ? `${employee.firstName} ${employee.lastName}` : removedEmployeeLabel;
 };
 
 /** Resolves a preset's `createdBy` Customer id to a display name; null if the creator was removed. */
 export const resolveCreatedByName = (preset: WatchlistPreset, employees: Employee[]): string | null => {
   if (!preset.createdBy) return null;
-  const employee = employees.find((e) => e._id === preset.createdBy);
+  const employee = employees.find((candidate) => candidate._id === preset.createdBy);
   return employee ? `${employee.firstName} ${employee.lastName}` : null;
 };
 
@@ -53,3 +59,53 @@ export const toPresetResourcePayload = (resources: WatchlistResource[]): PresetR
 /** Loads a preset's API resources (no `_id`) into the shape the shared resource-picker components expect. */
 export const fromPresetResources = (resources: PresetResource[]): WatchlistResource[] =>
   resources.map(({ arn, actions }) => ({ arn, actions, _id: arn }));
+
+/** Teams that don't already have a preset — one preset per scope is a hard constraint. */
+export const getEligibleTeams = (teams: Team[], presets: WatchlistPreset[]): Team[] =>
+  teams.filter(
+    (team) =>
+      !presets.some((preset) => preset.scopeType === 'team' && preset.scopeId === team._id),
+  );
+
+/** Employees that don't already have an individual preset. */
+export const getEligibleEmployees = (
+  employees: Employee[],
+  presets: WatchlistPreset[],
+): Employee[] =>
+  employees.filter(
+    (employee) =>
+      !presets.some(
+        (preset) => preset.scopeType === 'individual' && preset.scopeId === employee._id,
+      ),
+  );
+
+/** Display name for a scope selection, or an empty string when nothing is selected yet. */
+export const resolveScopeLabel = (
+  scopeType: PresetScopeType,
+  scopeId: string | null,
+  teams: Team[],
+  employees: Employee[],
+): string => {
+  if (!scopeId) return '';
+
+  if (scopeType === 'team') {
+    return teams.find((team) => team._id === scopeId)?.name ?? '';
+  }
+
+  const employee = employees.find((candidate) => candidate._id === scopeId);
+  return employee ? `${employee.firstName} ${employee.lastName}` : '';
+};
+
+/** Stable serialisation of a preset's resources, for dirty-checking a draft. */
+export const toComparablePresetResources = (
+  resources: { arn: string; actions: string[] }[],
+): string =>
+  JSON.stringify(
+    [...resources]
+      .map(({ arn, actions }) => ({ arn, actions }))
+      .sort((first, second) => first.arn.localeCompare(second.arn)),
+  );
+
+/** An employee's display name. */
+export const getEmployeeFullName = (employee: Employee): string =>
+  `${employee.firstName} ${employee.lastName}`;

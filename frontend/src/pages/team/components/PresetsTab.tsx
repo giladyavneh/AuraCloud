@@ -1,4 +1,5 @@
 import ConfirmDialog from "@/components/confirmDialog/ConfirmDialog";
+import ErrorRetryRow from "@/components/errorRetryRow/ErrorRetryRow";
 import {
   useDeleteWatchlistPreset,
   useEmployees,
@@ -14,7 +15,6 @@ import {
 import PresetEditor from "@/pages/team/components/PresetEditor";
 import {
   EmptyStateCard,
-  ErrorRow,
   LoadingBox,
   SectionCard,
   TabHeaderRow,
@@ -36,7 +36,6 @@ import {
   TrashIcon,
   UserIcon,
   UsersIcon,
-  WarningCircleIcon,
 } from "@phosphor-icons/react";
 import {
   MaterialReactTable,
@@ -276,15 +275,11 @@ const PresetsTab: React.FC = () => {
       )}
 
       {!isLoading && presetsError && (
-        <ErrorRow>
-          <WarningCircleIcon size={theme.iconSize.sm} color={theme.palette.error.main} />
-          <Typography variant="body2" color="error">
-            {t("team.presets.loadError", { error: presetsQueryError?.message ?? "" })}
-          </Typography>
-          <Button variant="text" onClick={() => void refetchPresets()}>
-            {t("team.presets.retry")}
-          </Button>
-        </ErrorRow>
+        <ErrorRetryRow
+          message={t("team.presets.loadError", { error: presetsQueryError?.message ?? "" })}
+          retryLabel={t("team.presets.retry")}
+          onRetry={() => void refetchPresets()}
+        />
       )}
 
       {!isLoading && !presetsError && presets.length === 0 && (

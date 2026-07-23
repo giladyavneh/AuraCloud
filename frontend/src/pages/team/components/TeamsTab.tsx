@@ -1,4 +1,5 @@
 import ConfirmDialog from "@/components/confirmDialog/ConfirmDialog";
+import ErrorRetryRow from "@/components/errorRetryRow/ErrorRetryRow";
 import {
   useCreateTeam,
   useDeleteTeam,
@@ -12,7 +13,6 @@ import TeamCard from "@/pages/team/components/TeamCard";
 import TeamDialog from "@/pages/team/components/TeamDialog";
 import {
   EmptyStateCard,
-  ErrorRow,
   LoadingBox,
   TabHeaderRow,
   TeamsGrid,
@@ -25,7 +25,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Snackbar from "@mui/material/Snackbar";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
-import { PlusIcon, UsersThreeIcon, WarningCircleIcon } from "@phosphor-icons/react";
+import { PlusIcon, UsersThreeIcon } from "@phosphor-icons/react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -121,15 +121,11 @@ const TeamsTab: React.FC = () => {
       )}
 
       {!isLoading && teamsError && (
-        <ErrorRow>
-          <WarningCircleIcon size={theme.iconSize.sm} color={theme.palette.error.main} />
-          <Typography variant="body2" color="error">
-            {t("team.teams.loadError", { error: teamsQueryError?.message ?? "" })}
-          </Typography>
-          <Button variant="text" onClick={() => void refetchTeams()}>
-            {t("team.teams.retry")}
-          </Button>
-        </ErrorRow>
+        <ErrorRetryRow
+          message={t("team.teams.loadError", { error: teamsQueryError?.message ?? "" })}
+          retryLabel={t("team.teams.retry")}
+          onRetry={() => void refetchTeams()}
+        />
       )}
 
       {!isLoading && !teamsError && teams.length === 0 && (

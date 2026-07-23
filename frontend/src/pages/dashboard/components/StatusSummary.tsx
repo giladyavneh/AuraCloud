@@ -11,6 +11,7 @@ import { QUERY_KEYS } from "@/constants/queryKeys";
 import { deriveStatusFromArnData } from "@/pages/dashboard/helpers/dashboard.helpers";
 import type { ArnPermissionData } from "@/services/types/resources.types";
 import StatusTag from "@/components/statusTag/StatusTag";
+import { useSpotlight } from "@/components/spotlightCard/hooks/spotlightCard.hooks";
 import {
   StatusSummaryLeft,
   StatusSummaryRight,
@@ -22,6 +23,9 @@ const StatusSummary: React.FC = () => {
   const theme = useTheme();
   const queryClient = useQueryClient();
   const { data: permission } = useUserPermissions();
+
+  // Cursor-following spotlight, same wiring the dashboard resource cards use.
+  const { ref, onMouseMove } = useSpotlight<HTMLDivElement>();
 
   const handleRefresh = () => {
     void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.userPermissions });
@@ -38,7 +42,7 @@ const StatusSummary: React.FC = () => {
     activeBlockers > 0 ? theme.palette.error.main : theme.palette.success.main;
 
   return (
-    <StatusSummaryRoot>
+    <StatusSummaryRoot ref={ref} onMouseMove={onMouseMove}>
       <StatusSummaryLeft>
         <Typography variant="caption" color="textDisabled">
           {t("dashboard.globalStatus")}

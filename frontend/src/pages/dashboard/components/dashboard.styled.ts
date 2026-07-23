@@ -1,4 +1,5 @@
 import { MONO_LABEL_FONT_SIZE } from "@/constants";
+import { spotlightOverlayStyles } from "@/components/spotlightCard/components/spotlightCard.styled";
 import { styled } from "@mui/material/styles";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
@@ -17,6 +18,7 @@ export const StatusSummaryRoot = styled(Box)(({ theme }) => ({
   backgroundColor: theme.palette.surface.base,
   border: `1px solid ${theme.palette.border.default}`,
   borderRadius: theme.shape.borderRadius,
+  ...spotlightOverlayStyles(theme),
 }));
 
 export const StatusSummaryLeft = styled(Box)(({ theme }) => ({

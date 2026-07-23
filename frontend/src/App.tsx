@@ -10,6 +10,7 @@ import ResourceWatchlist from "@/pages/resourceWatchlist/ResourceWatchlist";
 import SelectAwsUser from "@/pages/selectAwsUser/SelectAwsUser";
 import Settings from "@/pages/settings/Settings";
 import SignUp from "@/pages/signUp/SignUp";
+import Team from "@/pages/team/Team";
 import React from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
@@ -37,6 +38,11 @@ const App: React.FC = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/resource-watch-list" element={<ResourceWatchlist />} />
           <Route path="/settings" element={<Settings />} />
+
+          {/* Manager-only: guarded inside Team.tsx itself, not just via nav visibility */}
+          <Route path="/team" element={<Team />} />
+          <Route path="/team/teams" element={<Team />} />
+          <Route path="/team/presets" element={<Team />} />
         </Route>
       </Route>
     </Route>

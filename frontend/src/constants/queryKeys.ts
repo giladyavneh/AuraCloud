@@ -7,4 +7,7 @@ export const QUERY_KEYS = {
   companyAwsUsers: (slug: string) => ['companyAwsUsers', slug],
   slugAvailability: (slug: string) => ['slugAvailability', slug],
   companyInviteCode: ['companyInviteCode'],
+  employees: ['employees'],
+  teams: ['teams'],
+  watchlistPresets: ['watchlistPresets'],
 } as const;

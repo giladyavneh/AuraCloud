@@ -21,7 +21,7 @@ export const SLUG_DEBOUNCE_MS = 500;
 export const ONBOARD_REDIRECT_DELAY_MS = 1500;
 
 // External links / domain
-export const AURA_CLOUD_DOMAIN = "aura-cloud.com";
+export const AURA_CLOUD_DOMAIN = "https://aura-cloud.com";
 
 /**
  * Base URL of the api-server.

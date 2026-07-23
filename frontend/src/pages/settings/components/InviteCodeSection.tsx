@@ -12,19 +12,20 @@ import {
   SettingsCard,
 } from "@/pages/settings/components/settings.styled";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
-import { CopyIcon, CheckIcon } from "@phosphor-icons/react";
+import { CopyIcon, CheckIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const InviteCodeSection: React.FC = () => {
   const { t } = useTranslation();
   const theme = useTheme();
-  const { data, isLoading } = useCompanyInviteCode();
+  const { data, isLoading, isError, refetch } = useCompanyInviteCode();
   const [copied, setCopied] = useState<'code' | 'link' | null>(null);
 
   const handleCopy = (text: string, type: 'code' | 'link') => {
@@ -51,6 +52,16 @@ const InviteCodeSection: React.FC = () => {
 
       {isLoading ? (
         <CircularProgress size={theme.iconSize.sm} />
+      ) : isError ? (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <WarningCircleIcon size={theme.iconSize.sm} color={theme.palette.error.main} />
+          <Typography variant="body2" color="error">
+            {t('settings.invite.loadError')}
+          </Typography>
+          <Button variant="text" onClick={() => void refetch()}>
+            {t('settings.invite.retry')}
+          </Button>
+        </Box>
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
 

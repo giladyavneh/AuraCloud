@@ -19,13 +19,18 @@ import {
   UserPermissionModel,
   CustomerModel,
   CompanyModel,
+  TeamModel,
+  WatchlistPresetModel,
 } from "./db.js";
 import {
   AwsResourceModel,
   ResourceActionModel,
   UserModel,
   encryptSecret,
+  mongoose,
+  type CustomerDoc,
 } from "utils";
+import { applyPresetsToMember } from "./presets.js";
 
 dotenv.config();
 
@@ -44,6 +49,17 @@ const INTERNAL_AWS_USER_ARNS = [
 app.use(cors());
 app.use(express.json());
 
+// A malformed :id would otherwise reach Mongoose and throw a CastError, which the
+// route-level catch blocks turn into a 500. Reject it here as a 404 so a bad id is
+// indistinguishable from a nonexistent one, for every route that takes an :id.
+app.param("id", (_req, res, next, value: string) => {
+  if (!mongoose.Types.ObjectId.isValid(value)) {
+    res.status(404).json({ message: "Not found" });
+    return;
+  }
+  next();
+});
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 /** Generates a random 6-digit numeric invite code. */
@@ -60,6 +76,51 @@ function toSlug(name: string): string {
     .replace(/^-|-$/g, "");
 }
 
+/** True when `err` is a MongoDB duplicate-key error (code 11000). */
+function isDuplicateKeyError(err: unknown): boolean {
+  return typeof err === "object" && err !== null && "code" in err && (err as { code: unknown }).code === 11000;
+}
+
+/** True when `resources` matches the shared UserResourceWatchlist/WatchlistPreset shape. */
+function isValidResourcesShape(resources: unknown): resources is { arn: string; actions: string[] }[] {
+  return (
+    Array.isArray(resources) &&
+    resources.every(
+      (r) =>
+        typeof r === "object" &&
+        r !== null &&
+        typeof (r as { arn?: unknown }).arn === "string" &&
+        Array.isArray((r as { actions?: unknown }).actions) &&
+        (r as { actions: unknown[] }).actions.every((a) => typeof a === "string"),
+    )
+  );
+}
+
+/** Builds the row shape returned by the employees endpoints. */
+function toEmployeeResponse(customer: {
+  _id: unknown;
+  firstName: string;
+  lastName: string;
+  email: string;
+  roleTitle: string;
+  role: string;
+  teamId?: string | null;
+  linkedAwsUserId?: string | null;
+  createdAt?: Date;
+}) {
+  return {
+    _id: customer._id,
+    firstName: customer.firstName,
+    lastName: customer.lastName,
+    email: customer.email,
+    roleTitle: customer.roleTitle,
+    role: customer.role,
+    teamId: customer.teamId ?? null,
+    hasAwsConnected: Boolean(customer.linkedAwsUserId),
+    createdAt: customer.createdAt,
+  };
+}
+
 // ── Auth middleware ────────────────────────────────────────────────────────────
 
 interface JwtPayload {
@@ -67,11 +128,12 @@ interface JwtPayload {
   email: string;
 }
 
-// Extends Express Request so downstream handlers can read req.customer
+// Extends Express Request so downstream handlers can read req.customer / req.managerCustomer
 declare global {
   namespace Express {
     interface Request {
       customer?: JwtPayload;
+      managerCustomer?: CustomerDoc;
     }
   }
 }
@@ -88,6 +150,26 @@ function requireAuth(req: Request, res: Response, next: NextFunction): void {
     next();
   } catch {
     res.status(401).json({ message: "Invalid or expired token" });
+  }
+}
+
+/** Runs after requireAuth: loads the Customer, attaches it as req.managerCustomer, 403s if not a manager. */
+async function requireManager(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const customer = await CustomerModel.findById(req.customer!.customerId);
+    if (!customer) {
+      res.status(404).json({ message: "Customer not found" });
+      return;
+    }
+    if (customer.role !== "manager") {
+      res.status(403).json({ message: "Managers only" });
+      return;
+    }
+    req.managerCustomer = customer;
+    next();
+  } catch (err) {
+    console.error("requireManager failed:", err);
+    res.status(500).json({ message: "Server Error" });
   }
 }
 
@@ -542,6 +624,9 @@ app.put("/api/user/link-aws-user", requireAuth, async (req, res) => {
       return;
     }
 
+    // Seed the new watchlist with the member's team + individual presets, if any (§3)
+    await applyPresetsToMember(req.customer!.customerId, awsUserId);
+
     res.json(await toCustomerResponse(updated));
   } catch (err) {
     console.error("PUT /api/user/link-aws-user failed:", err);
@@ -551,21 +636,9 @@ app.put("/api/user/link-aws-user", requireAuth, async (req, res) => {
 
 // ── AWS credential routes (manager only) ──────────────────────────────────────
 
-app.post("/api/aws/onboard-credentials", requireAuth, async (req, res) => {
+app.post("/api/aws/onboard-credentials", requireAuth, requireManager, async (req, res) => {
   try {
-    const customer = await CustomerModel.findById(
-      req.customer!.customerId,
-    ).lean();
-    if (!customer) {
-      res.status(404).json({ message: "Customer not found" });
-      return;
-    }
-    if (customer.role !== "manager") {
-      res
-        .status(403)
-        .json({ message: "Only managers can update AWS credentials" });
-      return;
-    }
+    const customer = req.managerCustomer!;
 
     const { accessKeyId, secretAccessKey } = req.body ?? {};
     if (
@@ -606,22 +679,9 @@ app.post("/api/aws/onboard-credentials", requireAuth, async (req, res) => {
 });
 
 // Manager-only: get the company invite code (for sharing with employees)
-app.get("/api/company/invite-code", requireAuth, async (req, res) => {
+app.get("/api/company/invite-code", requireAuth, requireManager, async (req, res) => {
   try {
-    const customer = await CustomerModel.findById(
-      req.customer!.customerId,
-    ).lean();
-    if (!customer) {
-      res.status(404).json({ message: "Customer not found" });
-      return;
-    }
-    if (customer.role !== "manager") {
-      res
-        .status(403)
-        .json({ message: "Only managers can view the invite code" });
-      return;
-    }
-    const company = await CompanyModel.findById(customer.companyId, {
+    const company = await CompanyModel.findById(req.managerCustomer!.companyId, {
       inviteCode: 1,
       slug: 1,
     }).lean();
@@ -632,6 +692,350 @@ app.get("/api/company/invite-code", requireAuth, async (req, res) => {
     res.json({ inviteCode: company.inviteCode, slug: company.slug });
   } catch (err) {
     console.error("GET /api/company/invite-code failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+// ── Employee routes (manager only) ─────────────────────────────────────────────
+
+app.get("/api/employees", requireAuth, requireManager, async (req, res) => {
+  try {
+    const employees = await CustomerModel.find({
+      companyId: req.managerCustomer!.companyId,
+    }).lean();
+    res.json(employees.map(toEmployeeResponse));
+  } catch (err) {
+    console.error("GET /api/employees failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+/** Thrown inside withLastManagerGuard; translated to a 409 by the caller. */
+class LastManagerError extends Error {}
+
+/**
+ * Runs `mutate` only if the company still has at least one manager without `target`.
+ * Returns false (and mutates nothing) when `target` is the last manager.
+ *
+ * Replaces a count-then-write pattern that was a write-skew race: two concurrent
+ * demote/remove requests each counted the *other* manager, both passed the check,
+ * and the company was left with zero managers and no way back in. A transaction
+ * alone does NOT fix this — the two requests write different Customer documents,
+ * so snapshot isolation finds no conflict and both commit. The unconditional $inc
+ * on the shared Company document materialises the conflict, so MongoDB aborts and
+ * retries one of the two; the retry then reads the committed result of the first
+ * and correctly rejects.
+ *
+ * ponytail: requires a replica set (Atlas provides one). On a standalone mongod
+ * startSession/withTransaction throws — if local standalone dev is ever needed,
+ * fall back to an atomic $inc guard on a denormalised Company.managerCount.
+ */
+async function withLastManagerGuard(
+  companyId: string,
+  target: CustomerDoc,
+  mutate: (session: mongoose.ClientSession) => Promise<void>,
+): Promise<boolean> {
+  const session = await mongoose.startSession();
+  try {
+    await session.withTransaction(async () => {
+      await CompanyModel.updateOne(
+        { _id: companyId },
+        { $inc: { managerOpsSeq: 1 } },
+        { session },
+      );
+      const otherManagers = await CustomerModel.countDocuments(
+        { companyId, role: "manager", _id: { $ne: target._id } },
+        { session },
+      );
+      if (otherManagers < 1) throw new LastManagerError();
+      await mutate(session);
+    });
+    return true;
+  } catch (err) {
+    if (err instanceof LastManagerError) return false;
+    throw err;
+  } finally {
+    await session.endSession();
+  }
+}
+
+app.delete("/api/employees/:id", requireAuth, requireManager, async (req, res) => {
+  try {
+    const manager = req.managerCustomer!;
+    const targetId = req.params.id;
+
+    if (targetId === manager._id.toString()) {
+      res.status(400).json({ message: "You cannot remove your own account" });
+      return;
+    }
+
+    const target = await CustomerModel.findOne({ _id: targetId, companyId: manager.companyId });
+    if (!target) {
+      res.status(404).json({ message: "Employee not found" });
+      return;
+    }
+
+    if (target.role === "manager") {
+      const removed = await withLastManagerGuard(manager.companyId, target, (session) =>
+        CustomerModel.deleteOne({ _id: target._id }, { session }).then(() => undefined),
+      );
+      if (!removed) {
+        res.status(409).json({ message: "Cannot remove the last manager" });
+        return;
+      }
+    } else {
+      await CustomerModel.deleteOne({ _id: target._id });
+    }
+
+    res.status(204).send();
+  } catch (err) {
+    console.error("DELETE /api/employees/:id failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+app.put("/api/employees/:id/role", requireAuth, requireManager, async (req, res) => {
+  try {
+    const manager = req.managerCustomer!;
+    const { role } = req.body ?? {};
+    if (role !== "manager" && role !== "employee") {
+      res.status(400).json({ message: "role must be 'manager' or 'employee'" });
+      return;
+    }
+
+    const target = await CustomerModel.findOne({ _id: req.params.id, companyId: manager.companyId });
+    if (!target) {
+      res.status(404).json({ message: "Employee not found" });
+      return;
+    }
+
+    if (target.role === "manager" && role === "employee") {
+      const demoted = await withLastManagerGuard(manager.companyId, target, (session) =>
+        CustomerModel.updateOne({ _id: target._id }, { $set: { role } }, { session }).then(
+          () => undefined,
+        ),
+      );
+      if (!demoted) {
+        res.status(409).json({ message: "Cannot demote the last manager" });
+        return;
+      }
+      target.role = role;
+    } else {
+      target.role = role;
+      await target.save();
+    }
+
+    res.json(toEmployeeResponse(target));
+  } catch (err) {
+    console.error("PUT /api/employees/:id/role failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+app.put("/api/employees/:id/team", requireAuth, requireManager, async (req, res) => {
+  try {
+    const manager = req.managerCustomer!;
+    const { teamId } = req.body ?? {};
+    // An empty string passes a bare typeof check and then CastErrors in Mongoose —
+    // treat any non-ObjectId value as an explicit unassign rather than a 500.
+    if (teamId !== null && typeof teamId !== "string") {
+      res.status(400).json({ message: "teamId must be a string or null" });
+      return;
+    }
+    if (teamId !== null && !mongoose.Types.ObjectId.isValid(teamId)) {
+      res.status(404).json({ message: "Team not found" });
+      return;
+    }
+
+    const target = await CustomerModel.findOne({ _id: req.params.id, companyId: manager.companyId });
+    if (!target) {
+      res.status(404).json({ message: "Employee not found" });
+      return;
+    }
+
+    if (teamId !== null) {
+      const team = await TeamModel.exists({ _id: teamId, companyId: manager.companyId });
+      if (!team) {
+        res.status(404).json({ message: "Team not found" });
+        return;
+      }
+    }
+
+    target.teamId = teamId;
+    await target.save();
+
+    // Team assignment triggers preset application, but only if already AWS-linked (§3)
+    if (teamId !== null && target.linkedAwsUserId) {
+      await applyPresetsToMember(target._id.toString(), target.linkedAwsUserId);
+    }
+
+    res.json(toEmployeeResponse(target));
+  } catch (err) {
+    console.error("PUT /api/employees/:id/team failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+// ── Team routes (manager only) ─────────────────────────────────────────────────
+
+app.get("/api/teams", requireAuth, requireManager, async (req, res) => {
+  try {
+    const teams = await TeamModel.find(
+      { companyId: req.managerCustomer!.companyId },
+      { name: 1, createdAt: 1 },
+    ).lean();
+    res.json(teams);
+  } catch (err) {
+    console.error("GET /api/teams failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+app.post("/api/teams", requireAuth, requireManager, async (req, res) => {
+  try {
+    const { name } = req.body ?? {};
+    if (typeof name !== "string" || !name.trim()) {
+      res.status(400).json({ message: "name is required" });
+      return;
+    }
+
+    const team = await TeamModel.create({
+      companyId: req.managerCustomer!.companyId,
+      name: name.trim(),
+    });
+    res.status(201).json(team);
+  } catch (err) {
+    if (isDuplicateKeyError(err)) {
+      res.status(409).json({ message: "A team with this name already exists" });
+      return;
+    }
+    console.error("POST /api/teams failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+app.put("/api/teams/:id", requireAuth, requireManager, async (req, res) => {
+  try {
+    const { name } = req.body ?? {};
+    if (typeof name !== "string" || !name.trim()) {
+      res.status(400).json({ message: "name is required" });
+      return;
+    }
+
+    const team = await TeamModel.findOneAndUpdate(
+      { _id: req.params.id, companyId: req.managerCustomer!.companyId },
+      { name: name.trim() },
+      { returnDocument: "after" },
+    );
+    if (!team) {
+      res.status(404).json({ message: "Team not found" });
+      return;
+    }
+    res.json(team);
+  } catch (err) {
+    if (isDuplicateKeyError(err)) {
+      res.status(409).json({ message: "A team with this name already exists" });
+      return;
+    }
+    console.error("PUT /api/teams/:id failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+app.delete("/api/teams/:id", requireAuth, requireManager, async (req, res) => {
+  try {
+    const team = await TeamModel.findOneAndDelete({
+      _id: req.params.id,
+      companyId: req.managerCustomer!.companyId,
+    });
+    if (!team) {
+      res.status(404).json({ message: "Team not found" });
+      return;
+    }
+
+    const teamId = team._id.toString();
+    await CustomerModel.updateMany({ teamId }, { teamId: null });
+    await WatchlistPresetModel.deleteOne({ scopeType: "team", scopeId: teamId });
+
+    res.status(204).send();
+  } catch (err) {
+    console.error("DELETE /api/teams/:id failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+// ── Watchlist preset routes (manager only) ─────────────────────────────────────
+
+app.get("/api/watchlist-presets", requireAuth, requireManager, async (req, res) => {
+  try {
+    const presets = await WatchlistPresetModel.find({
+      companyId: req.managerCustomer!.companyId,
+    }).lean();
+    res.json(presets);
+  } catch (err) {
+    console.error("GET /api/watchlist-presets failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+app.put("/api/watchlist-presets", requireAuth, requireManager, async (req, res) => {
+  try {
+    const { scopeType, scopeId, name, resources } = req.body ?? {};
+    if (scopeType !== "team" && scopeType !== "individual") {
+      res.status(400).json({ message: "scopeType must be 'team' or 'individual'" });
+      return;
+    }
+    if (typeof scopeId !== "string" || !mongoose.Types.ObjectId.isValid(scopeId)) {
+      res.status(400).json({ message: "scopeId is required" });
+      return;
+    }
+    if (!isValidResourcesShape(resources)) {
+      res.status(400).json({ message: "resources must be an array of {arn, actions[]}" });
+      return;
+    }
+
+    const companyId = req.managerCustomer!.companyId;
+    const scopeExists =
+      scopeType === "team"
+        ? await TeamModel.exists({ _id: scopeId, companyId })
+        : await CustomerModel.exists({ _id: scopeId, companyId });
+    if (!scopeExists) {
+      res.status(404).json({ message: scopeType === "team" ? "Team not found" : "Employee not found" });
+      return;
+    }
+
+    const preset = await WatchlistPresetModel.findOneAndUpdate(
+      { scopeType, scopeId },
+      {
+        companyId,
+        scopeType,
+        scopeId,
+        name: typeof name === "string" ? name : undefined,
+        resources,
+        createdBy: req.managerCustomer!._id.toString(),
+      },
+      { upsert: true, returnDocument: "after" },
+    );
+    res.json(preset);
+  } catch (err) {
+    console.error("PUT /api/watchlist-presets failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+app.delete("/api/watchlist-presets/:id", requireAuth, requireManager, async (req, res) => {
+  try {
+    const preset = await WatchlistPresetModel.findOneAndDelete({
+      _id: req.params.id,
+      companyId: req.managerCustomer!.companyId,
+    });
+    if (!preset) {
+      res.status(404).json({ message: "Preset not found" });
+      return;
+    }
+    res.status(204).send();
+  } catch (err) {
+    console.error("DELETE /api/watchlist-presets/:id failed:", err);
     res.status(500).json({ message: "Server Error" });
   }
 });

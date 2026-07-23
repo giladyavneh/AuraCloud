@@ -31,24 +31,23 @@ const ResourceSelectorPanel: React.FC<ResourceSelectorPanelProps> = ({
   const { t } = useTranslation();
   const theme = useTheme();
 
-  const handleAdd = (resource: WatchlistResource) => {
-    const existing = draftResources.find((r) => r.arn === resource.arn);
+  const handleAdd = (incoming: WatchlistResource) => {
+    const existing = draftResources.find((resource) => resource.arn === incoming.arn);
 
     if (existing) {
-      // Merge incoming actions into the existing entry, deduplicating
-      const mergedActions = [...new Set([...existing.actions, ...resource.actions])];
+      const mergedActions = [...new Set([...existing.actions, ...incoming.actions])];
       onDraftChange(
-        draftResources.map((r) =>
-          r.arn === resource.arn ? { ...r, actions: mergedActions } : r,
+        draftResources.map((resource) =>
+          resource.arn === incoming.arn ? { ...resource, actions: mergedActions } : resource,
         ),
       );
     } else {
-      onDraftChange([...draftResources, resource]);
+      onDraftChange([...draftResources, incoming]);
     }
   };
 
   const handleRemove = (arn: string) => {
-    onDraftChange(draftResources.filter((r) => r.arn !== arn));
+    onDraftChange(draftResources.filter((resource) => resource.arn !== arn));
   };
 
   return (

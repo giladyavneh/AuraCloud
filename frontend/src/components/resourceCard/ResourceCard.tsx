@@ -1,16 +1,14 @@
-import { MONO_LABEL_FONT_SIZE, SPOTLIGHT_TINT_ALPHA } from "@/constants";
+import { SPOTLIGHT_TINT_ALPHA } from "@/constants";
 import AwsServiceIcon from "@/components/awsServiceIcon/AwsServiceIcon";
 import {
   CardBody,
   CardHeader,
   CardRoot,
   MetaTopRow,
-  ResourceDot,
-  ResourceItem,
   ResourceList,
   ServiceMeta,
 } from "@/components/resourceCard/components/resourceCard.styled";
-import ResourceCardMoreActions from "@/components/resourceCard/components/ResourceCardMoreActions";
+import ResourceCardActionList from "@/components/resourceCard/components/ResourceCardActionList";
 import {
   getResourceDotColor,
   MAX_VISIBLE_ACTIONS,
@@ -76,37 +74,11 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
             {t("resourceCard.actions")}
           </Typography>
 
-          {actions.length === 0 ? (
-            <Typography variant="body2" color="textDisabled">
-              {t("resourceCard.noActions")}
-            </Typography>
-          ) : (
-            <>
-              {visibleActions.map((action) => (
-                <ResourceItem key={action}>
-                  <ResourceDot dotColor={dotColor} />
-
-                  <Typography
-                    variant="body2"
-                    color="textSecondary"
-                    sx={{
-                      fontFamily: theme.typography.fontFamilyMono,
-                      fontSize: MONO_LABEL_FONT_SIZE,
-                    }}
-                  >
-                    {action}
-                  </Typography>
-                </ResourceItem>
-              ))}
-
-              {remainingActions.length > 0 && (
-                <ResourceCardMoreActions
-                  actions={remainingActions}
-                  dotColor={dotColor}
-                />
-              )}
-            </>
-          )}
+          <ResourceCardActionList
+            visibleActions={visibleActions}
+            remainingActions={remainingActions}
+            dotColor={dotColor}
+          />
         </ResourceList>
 
         {errorMessage && (

@@ -10,3 +10,9 @@ export interface ResourceCardProps {
   errorMessage?: string;
   maxVisibleActions?: number;
 }
+
+export interface ResourceCardActionListProps {
+  visibleActions: string[];
+  remainingActions: string[];
+  dotColor: string;
+}

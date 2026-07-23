@@ -50,7 +50,7 @@ const AddResourceForm: React.FC<AddResourceFormProps> = ({ onAdd }) => {
 
     onAdd({
       arn: selectedResource.arn,
-      actions: selectedActions.map((a) => a.actionName),
+      actions: selectedActions.map((action) => action.actionName),
       _id: "",
     });
     setSelectedResource(null);
@@ -85,10 +85,6 @@ const AddResourceForm: React.FC<AddResourceFormProps> = ({ onAdd }) => {
         disabled={!selectedResource}
         getOptionLabel={(option) => option.actionName}
         isOptionEqualToValue={(option, value) => option._id === value._id}
-        // Fixed width, not minWidth: the field used to widen with every chip
-        // added, shoving the Add button across the row. Collapsing to "+N" while
-        // unfocused keeps it to one line; MUI reveals every chip again on focus,
-        // so selections stay reviewable and removable before adding.
         limitTags={WATCHLIST_ACTIONS_VISIBLE_TAGS}
         sx={{ width: WATCHLIST_ACTIONS_SELECT_WIDTH }}
         renderValue={(values, getItemProps) =>

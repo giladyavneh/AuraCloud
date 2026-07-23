@@ -17,6 +17,25 @@ import { useTranslation } from "react-i18next";
 
 type MenuView = "actions" | "assignTeam";
 
+// One row in the assign-team list. Reserves a fixed-width leading slot (check when
+// selected, empty otherwise) so every option's label left-aligns, and bolds the
+// currently-assigned option.
+const SelectableOption: React.FC<{ selected: boolean; label: string }> = ({ selected, label }) => {
+  const theme = useTheme();
+
+  return (
+    <Box sx={{ display: "flex", alignItems: "center", gap: theme.spacing(2) }}>
+      <Box sx={{ width: theme.iconSize.xs, display: "flex", flexShrink: 0 }}>
+        {selected && <CheckIcon size={theme.iconSize.xs} />}
+      </Box>
+
+      <Box component="span" sx={{ fontWeight: selected ? 600 : 400 }}>
+        {label}
+      </Box>
+    </Box>
+  );
+};
+
 const EmployeeRowMenu: React.FC<EmployeeRowMenuProps> = ({
   employee,
   teams,
@@ -146,17 +165,11 @@ const EmployeeRowMenu: React.FC<EmployeeRowMenuProps> = ({
                 </Box>
               </MenuItem>,
               <MenuItem key="none" onClick={() => handleAssignTeam(null)}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: theme.spacing(2) }}>
-                  {employee.teamId === null && <CheckIcon size={theme.iconSize.xs} />}
-                  {t("team.employees.noTeamOption")}
-                </Box>
+                <SelectableOption selected={employee.teamId === null} label={t("team.employees.noTeamOption")} />
               </MenuItem>,
               ...teams.map((team) => (
                 <MenuItem key={team._id} onClick={() => handleAssignTeam(team._id)}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: theme.spacing(2) }}>
-                    {employee.teamId === team._id && <CheckIcon size={theme.iconSize.xs} />}
-                    {team.name}
-                  </Box>
+                  <SelectableOption selected={employee.teamId === team._id} label={team.name} />
                 </MenuItem>
               )),
             ]}

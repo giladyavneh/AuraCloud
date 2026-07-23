@@ -7,7 +7,7 @@
     "dashboard": "Dashboard",
     "resourceWatchList": "Resource Watchlist",
     "settings": "Settings",
-    "team": "Team",
+    "team": "Teams",
     "signOut": "Sign Out"
   },
   "app": {
@@ -217,7 +217,7 @@
     "online": "System Online"
   },
   "team": {
-    "title": "Team",
+    "title": "Teams",
     "subtitle": "Manage employees, teams, and watchlist presets for {{companyName}}.",
     "tabsAriaLabel": "Team sections",
     "tabs": {

@@ -5,6 +5,7 @@ import {
   EditorHeaderRow,
   EditorSection,
   PresetEditorRoot,
+  ScopeToggleGroup,
   StalenessNotice,
 } from "@/pages/team/components/team.styled";
 import type { PresetEditorProps } from "@/pages/team/types/team.types";
@@ -27,7 +28,6 @@ import Grid from "@mui/material/Grid";
 import IconButton from "@mui/material/IconButton";
 import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 import {
@@ -156,44 +156,48 @@ const PresetEditor: React.FC<PresetEditorProps> = ({
 
         {isCreateMode ? (
           <>
-            <ToggleButtonGroup
-              value={scopeType}
-              exclusive
-              onChange={handleScopeTypeChange}
-              aria-label={t("team.presets.scopeLabel")}
-              size="small"
-            >
-              <ToggleButton value="team">{t("team.presets.scopeTeam")}</ToggleButton>
-              <ToggleButton value="individual">{t("team.presets.scopeIndividual")}</ToggleButton>
-            </ToggleButtonGroup>
+            <Box sx={{ display: "flex", alignItems: "center", gap: theme.spacing(2) }}>
+              <ScopeToggleGroup
+                value={scopeType}
+                exclusive
+                onChange={handleScopeTypeChange}
+                aria-label={t("team.presets.scopeLabel")}
+                size="small"
+              >
+                <ToggleButton value="team">{t("team.presets.scopeTeam")}</ToggleButton>
+                <ToggleButton value="individual">{t("team.presets.scopeIndividual")}</ToggleButton>
+              </ScopeToggleGroup>
 
-            {scopeType === "team" ? (
-              <Autocomplete
-                options={eligibleTeams}
-                value={eligibleTeams.find((team) => team._id === scopeId) ?? null}
-                onChange={(_, value) => setScopeId(value?._id ?? null)}
-                getOptionLabel={(option) => option.name}
-                isOptionEqualToValue={(option, value) => option._id === value._id}
-                renderInput={(params) => (
-                  <TextField {...params} label={t("team.presets.scopeTargetLabel")} size="small" />
-                )}
-              />
-            ) : (
-              <Autocomplete
-                options={eligibleEmployees}
-                value={eligibleEmployees.find((employee) => employee._id === scopeId) ?? null}
-                onChange={(_, value) => setScopeId(value?._id ?? null)}
-                getOptionLabel={(option) => `${option.firstName} ${option.lastName}`}
-                isOptionEqualToValue={(option, value) => option._id === value._id}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label={t("team.presets.scopeTargetLabelIndividual")}
-                    size="small"
-                  />
-                )}
-              />
-            )}
+              {scopeType === "team" ? (
+                <Autocomplete
+                  sx={{ flexGrow: 1 }}
+                  options={eligibleTeams}
+                  value={eligibleTeams.find((team) => team._id === scopeId) ?? null}
+                  onChange={(_, value) => setScopeId(value?._id ?? null)}
+                  getOptionLabel={(option) => option.name}
+                  isOptionEqualToValue={(option, value) => option._id === value._id}
+                  renderInput={(params) => (
+                    <TextField {...params} label={t("team.presets.scopeTargetLabel")} size="small" />
+                  )}
+                />
+              ) : (
+                <Autocomplete
+                  sx={{ flexGrow: 1 }}
+                  options={eligibleEmployees}
+                  value={eligibleEmployees.find((employee) => employee._id === scopeId) ?? null}
+                  onChange={(_, value) => setScopeId(value?._id ?? null)}
+                  getOptionLabel={(option) => `${option.firstName} ${option.lastName}`}
+                  isOptionEqualToValue={(option, value) => option._id === value._id}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label={t("team.presets.scopeTargetLabelIndividual")}
+                      size="small"
+                    />
+                  )}
+                />
+              )}
+            </Box>
 
             {scopeType === "team" && eligibleTeams.length === 0 && (
               <Typography variant="caption" color="textSecondary">

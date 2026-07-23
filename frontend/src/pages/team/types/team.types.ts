@@ -21,9 +21,17 @@ export interface EmployeeRowMenuProps {
 
 export interface TeamCardProps {
   team: Team;
-  memberCount: number;
+  members: Employee[];
+  preset: WatchlistPreset | undefined;
+  presetsLoading: boolean;
   onRename: () => void;
   onDelete: () => void;
+}
+
+export interface TeamMembersPanelProps {
+  members: Employee[];
+  preset: WatchlistPreset | undefined;
+  presetsLoading: boolean;
 }
 
 export interface TeamDialogProps {

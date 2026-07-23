@@ -195,7 +195,9 @@
       "copyCode": "Copy code",
       "copyLink": "Copy link",
       "copied": "Copied!",
-      "hint": "Employees need both the sign-up link and the invite code to create their account."
+      "hint": "Employees need both the sign-up link and the invite code to create their account.",
+      "loadError": "Couldn't load your invite code.",
+      "retry": "Retry"
     },
     "aws": {
       "title": "AWS Credentials",
@@ -226,8 +228,6 @@
       "presets": "Presets"
     },
     "employees": {
-      "inviteToggleShow": "Invite employees",
-      "inviteToggleHide": "Hide invite details",
       "aloneHint": "You're the only one here so far — share the invite code above to bring your team in.",
       "loadError": "Couldn't load your team. {{error}}",
       "retry": "Retry",
@@ -289,7 +289,17 @@
       "createError": "Couldn't create team. Try again.",
       "renameError": "Couldn't rename team. Try again.",
       "deleteSuccess": "{{name}} deleted.",
-      "deleteError": "Couldn't delete team. Try again."
+      "deleteError": "Couldn't delete team. Try again.",
+      "members": {
+        "expandAria": "Show members of {{teamName}}",
+        "collapseAria": "Hide members of {{teamName}}",
+        "empty": "No members yet",
+        "presetUnnamed": "Untitled",
+        "noPreset": "No preset attached",
+        "presetLoading": "Loading preset…",
+        "presetLine_one": "Preset: {{name}} · {{count}} resource",
+        "presetLine_other": "Preset: {{name}} · {{count}} resources"
+      }
     },
     "presets": {
       "newPreset": "New Preset",

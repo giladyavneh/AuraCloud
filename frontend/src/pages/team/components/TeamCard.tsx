@@ -1,4 +1,6 @@
+import TeamMembersPanel from "@/pages/team/components/TeamMembersPanel";
 import {
+  TeamCardExpandTrigger,
   TeamCardHeaderRow,
   TeamCardRoot,
   TeamCardValue,
@@ -9,20 +11,47 @@ import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
-import { PencilSimpleIcon, TrashIcon } from "@phosphor-icons/react";
-import React from "react";
+import { CaretDownIcon, CaretRightIcon, PencilSimpleIcon, TrashIcon } from "@phosphor-icons/react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const TeamCard: React.FC<TeamCardProps> = ({ team, memberCount, onRename, onDelete }) => {
+const TeamCard: React.FC<TeamCardProps> = ({
+  team,
+  members,
+  preset,
+  presetsLoading,
+  onRename,
+  onDelete,
+}) => {
   const { t } = useTranslation();
   const theme = useTheme();
+
+  const [expanded, setExpanded] = useState(false);
+
+  const memberCount = members.length;
 
   return (
     <TeamCardRoot>
       <TeamCardHeaderRow>
-        <Typography variant="subtitle1" color="textPrimary">
-          {team.name}
-        </Typography>
+        <TeamCardExpandTrigger
+          onClick={() => setExpanded((prev) => !prev)}
+          aria-expanded={expanded}
+          aria-label={
+            expanded
+              ? t("team.teams.members.collapseAria", { teamName: team.name })
+              : t("team.teams.members.expandAria", { teamName: team.name })
+          }
+        >
+          {expanded ? (
+            <CaretDownIcon size={theme.iconSize.xs} />
+          ) : (
+            <CaretRightIcon size={theme.iconSize.xs} />
+          )}
+
+          <Typography variant="subtitle1" color="textPrimary" noWrap>
+            {team.name}
+          </Typography>
+        </TeamCardExpandTrigger>
 
         <Box sx={{ display: "flex", gap: theme.spacing(1) }}>
           <Tooltip title={t("team.teams.rename")}>
@@ -53,6 +82,10 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, memberCount, onRename, onDele
       <Typography variant="caption" color="textSecondary">
         {t("team.teams.memberCountLabel", { count: memberCount })}
       </Typography>
+
+      {expanded && (
+        <TeamMembersPanel members={members} preset={preset} presetsLoading={presetsLoading} />
+      )}
     </TeamCardRoot>
   );
 };

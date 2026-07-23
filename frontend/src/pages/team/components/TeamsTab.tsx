@@ -5,8 +5,9 @@ import {
   useEmployees,
   useRenameTeam,
   useTeams,
+  useWatchlistPresets,
 } from "@/hooks/team.hooks";
-import { countTeamMembers } from "@/pages/team/helpers/team.helpers";
+import { findTeamPreset, getTeamMembers } from "@/pages/team/helpers/team.helpers";
 import TeamCard from "@/pages/team/components/TeamCard";
 import TeamDialog from "@/pages/team/components/TeamDialog";
 import {
@@ -50,6 +51,7 @@ const TeamsTab: React.FC = () => {
     refetch: refetchTeams,
   } = useTeams();
   const { data: employees = [], isLoading: employeesLoading } = useEmployees();
+  const { data: presets = [], isLoading: presetsLoading } = useWatchlistPresets();
 
   const createMutation = useCreateTeam();
   const renameMutation = useRenameTeam();
@@ -159,7 +161,9 @@ const TeamsTab: React.FC = () => {
             <TeamCard
               key={team._id}
               team={team}
-              memberCount={countTeamMembers(employees, team._id)}
+              members={getTeamMembers(employees, team._id)}
+              preset={findTeamPreset(presets, team._id)}
+              presetsLoading={presetsLoading}
               onRename={() => setDialogState({ mode: "rename", team })}
               onDelete={() => setDeleteTarget(team)}
             />

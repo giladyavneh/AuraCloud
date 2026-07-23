@@ -124,10 +124,13 @@ const PresetsTab: React.FC = () => {
           const Icon = preset.scopeType === "team" ? UsersIcon : UserIcon;
           return (
             <Box sx={{ display: "flex", alignItems: "center", gap: theme.spacing(2) }}>
-              <Icon
-                size={theme.iconSize.sm}
-                color={orphaned ? theme.palette.text.disabled : undefined}
-              />
+              <Box sx={{ display: "flex", flexShrink: 0 }}>
+                <Icon
+                  size={theme.iconSize.sm}
+                  color={orphaned ? theme.palette.text.disabled : undefined}
+                />
+              </Box>
+
               <Typography
                 variant="body2"
                 color={orphaned ? "textDisabled" : "textPrimary"}

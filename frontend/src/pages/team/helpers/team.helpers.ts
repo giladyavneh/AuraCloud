@@ -9,6 +9,14 @@ export const countManagers = (employees: Employee[]): number =>
 export const countTeamMembers = (employees: Employee[], teamId: string): number =>
   employees.filter((employee) => employee.teamId === teamId).length;
 
+/** Employees assigned to a given team (derived client-side, no server endpoint). */
+export const getTeamMembers = (employees: Employee[], teamId: string): Employee[] =>
+  employees.filter((employee) => employee.teamId === teamId);
+
+/** The team-scoped preset for a given team, or undefined when the team has none. */
+export const findTeamPreset = (presets: WatchlistPreset[], teamId: string): WatchlistPreset | undefined =>
+  presets.find((preset) => preset.scopeType === 'team' && preset.scopeId === teamId);
+
 /** The team name for an employee's current team assignment, or null when unassigned. */
 export const resolveTeamName = (employee: Employee, teams: Team[]): string | null =>
   teams.find((team) => team._id === employee.teamId)?.name ?? null;

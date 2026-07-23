@@ -11,10 +11,9 @@ import {
 } from "@/hooks/team.hooks";
 import { countManagers, resolveTeamName } from "@/pages/team/helpers/team.helpers";
 import EmployeeRowMenu from "@/pages/team/components/EmployeeRowMenu";
-import InviteCodeSection from "@/pages/settings/components/InviteCodeSection";
+import TeamInviteCard from "@/pages/team/components/TeamInviteCard";
 import {
   ErrorRow,
-  InviteToggleRow,
   LoadingBox,
   SectionCard,
 } from "@/pages/team/components/team.styled";
@@ -28,13 +27,7 @@ import { InputAdornment } from "@mui/material";
 import Snackbar from "@mui/material/Snackbar";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
-import {
-  CaretDownIcon,
-  CaretUpIcon,
-  MagnifyingGlassIcon,
-  PlusIcon,
-  WarningCircleIcon,
-} from "@phosphor-icons/react";
+import { MagnifyingGlassIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import {
   MaterialReactTable,
   useMaterialReactTable,
@@ -48,7 +41,6 @@ const EmployeesTab: React.FC = () => {
   const theme = useTheme();
   const { customer } = useAuth();
 
-  const [showInvite, setShowInvite] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<Employee | null>(null);
   const [snackbar, setSnackbar] = useState<SnackbarState>({
     open: false,
@@ -305,31 +297,7 @@ const EmployeesTab: React.FC = () => {
 
   return (
     <>
-      <SectionCard>
-        <InviteToggleRow
-          onClick={() => setShowInvite((prev) => !prev)}
-          aria-expanded={showInvite}
-          aria-label={
-            showInvite
-              ? t("team.employees.inviteToggleHide")
-              : t("team.employees.inviteToggleShow")
-          }
-        >
-          <PlusIcon size={theme.iconSize.sm} />
-          <Typography variant="subtitle1" color="textPrimary" sx={{ flex: 1 }}>
-            {showInvite
-              ? t("team.employees.inviteToggleHide")
-              : t("team.employees.inviteToggleShow")}
-          </Typography>
-          {showInvite ? (
-            <CaretUpIcon size={theme.iconSize.sm} />
-          ) : (
-            <CaretDownIcon size={theme.iconSize.sm} />
-          )}
-        </InviteToggleRow>
-
-        {showInvite && <InviteCodeSection />}
-      </SectionCard>
+      <TeamInviteCard />
 
       {isLoading && (
         <LoadingBox>

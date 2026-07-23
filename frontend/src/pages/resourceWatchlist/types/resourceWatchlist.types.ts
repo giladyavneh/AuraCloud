@@ -12,6 +12,7 @@ export interface ResourceSelectorPanelProps {
   onDraftChange: (resources: WatchlistResource[]) => void;
   onSave: () => void;
   onCancel: () => void;
+  onResetToPreset: () => void;
   isSaving: boolean;
   isDirty: boolean;
 }

@@ -1,5 +1,6 @@
 export const QUERY_KEYS = {
   userResourceWatchlist: ['userResourceWatchlist'],
+  myPresetResources: ['myPresetResources'],
   userPermissions: ['userPermissions'],
   allResources: ['allResources'],
   resourceActions: (arn: string) => ['resourceActions', arn],

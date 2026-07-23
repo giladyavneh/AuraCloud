@@ -2,10 +2,11 @@ import React from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 import { useTranslation } from "react-i18next";
-import { ListBulletsIcon } from "@phosphor-icons/react";
+import { ArrowCounterClockwiseIcon, ListBulletsIcon } from "@phosphor-icons/react";
 import AddResourceForm from "@/pages/resourceWatchlist/components/AddResourceForm";
 import WatchlistTable from "@/pages/resourceWatchlist/components/WatchlistTable";
 import {
@@ -23,6 +24,7 @@ const ResourceSelectorPanel: React.FC<ResourceSelectorPanelProps> = ({
   onDraftChange,
   onSave,
   onCancel,
+  onResetToPreset,
   isSaving,
   isDirty,
 }) => {
@@ -85,43 +87,58 @@ const ResourceSelectorPanel: React.FC<ResourceSelectorPanelProps> = ({
       <Box
         sx={{
           display: "flex",
-          justifyContent: "flex-end",
+          justifyContent: "space-between",
           alignItems: "center",
           gap: theme.spacing(2),
         }}
       >
-        {isDirty && (
-          <Typography variant="caption" color="warning.main">
-            {t("resourceWatchlist.unsavedChanges")}
-          </Typography>
-        )}
+        <Tooltip title={t("resourceWatchlist.resetToPresetTooltip")}>
+          <Button
+            variant="text"
+            color="inherit"
+            onClick={onResetToPreset}
+            disabled={isSaving}
+            size="medium"
+            startIcon={<ArrowCounterClockwiseIcon size={theme.iconSize.xs} />}
+          >
+            {t("resourceWatchlist.resetToPreset")}
+          </Button>
+        </Tooltip>
 
-        <Button
-          variant="text"
-          color="inherit"
-          onClick={onCancel}
-          disabled={!isDirty || isSaving}
-          size="medium"
-        >
-          {t("resourceWatchlist.cancel")}
-        </Button>
+        <Box sx={{ display: "flex", alignItems: "center", gap: theme.spacing(2) }}>
+          {isDirty && (
+            <Typography variant="caption" color="warning.main">
+              {t("resourceWatchlist.unsavedChanges")}
+            </Typography>
+          )}
 
-        <Button
-          variant={isDirty ? "contained" : "outlined"}
-          color="primary"
-          onClick={onSave}
-          disabled={isSaving}
-          size="medium"
-          startIcon={
-            isSaving ? (
-              <CircularProgress size={theme.iconSize.xs} color="inherit" />
-            ) : undefined
-          }
-        >
-          {isSaving
-            ? t("resourceWatchlist.saving")
-            : t("resourceWatchlist.save")}
-        </Button>
+          <Button
+            variant="text"
+            color="inherit"
+            onClick={onCancel}
+            disabled={!isDirty || isSaving}
+            size="medium"
+          >
+            {t("resourceWatchlist.cancel")}
+          </Button>
+
+          <Button
+            variant={isDirty ? "contained" : "outlined"}
+            color="primary"
+            onClick={onSave}
+            disabled={isSaving}
+            size="medium"
+            startIcon={
+              isSaving ? (
+                <CircularProgress size={theme.iconSize.xs} color="inherit" />
+              ) : undefined
+            }
+          >
+            {isSaving
+              ? t("resourceWatchlist.saving")
+              : t("resourceWatchlist.save")}
+          </Button>
+        </Box>
       </Box>
     </LeftPanel>
   );

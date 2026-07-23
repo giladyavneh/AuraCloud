@@ -1,5 +1,6 @@
 import {
   useCreateWatchlist,
+  useMyPresetResources,
   useUpdateWatchlist,
   useUserResourceWatchlist,
 } from "@/hooks/resources.hooks";
@@ -35,6 +36,7 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
 
   const { mutate: save, isPending: isSaving } = useUpdateWatchlist();
   const { mutate: create, isPending: isCreating } = useCreateWatchlist();
+  const { data: presetResources = [] } = useMyPresetResources();
 
   const isPending = isSaving || isCreating;
 
@@ -72,6 +74,11 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
   // Reverts the whole draft — the table and the JSON editor are two views of
   // this one piece of state, so they revert together.
   const handleCancel = () => setDraftResources(watchlist?.resources ?? []);
+
+  // Replaces the draft with the user's preset (team + individual). No preset
+  // resolves to an empty array, which clears the draft. Still requires Save to
+  // persist, so it's reversible via Cancel.
+  const handleResetToPreset = () => setDraftResources(presetResources);
 
   const handleSnackbarClose = () =>
     setSnackbar((prev) => ({ ...prev, open: false }));
@@ -114,6 +121,7 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
             onDraftChange={setDraftResources}
             onSave={handleSave}
             onCancel={handleCancel}
+            onResetToPreset={handleResetToPreset}
             isSaving={isPending}
             isDirty={isDirty}
           />

@@ -29,6 +29,32 @@ export function mergeResourceLists(
 }
 
 /**
+ * Resolves the resources a member should inherit from presets: their individual
+ * preset unioned with their team's preset (if any), merged additively. Read-only
+ * — computes nothing about their existing watchlist. Returns [] when the customer
+ * doesn't exist or has no applicable presets.
+ */
+export async function resolveMemberPresetResources(customerId: string): Promise<WatchlistResource[]> {
+  const customer = await CustomerModel.findById(customerId).lean();
+  if (!customer) return [];
+
+  const scopeFilters: { scopeType: "team" | "individual"; scopeId: string }[] = [
+    { scopeType: "individual", scopeId: customerId },
+  ];
+  if (customer.teamId) scopeFilters.push({ scopeType: "team", scopeId: customer.teamId });
+
+  const presets = await WatchlistPresetModel.find({ $or: scopeFilters }).lean();
+  return presets.reduce<WatchlistResource[]>(
+    (acc, preset) =>
+      mergeResourceLists(
+        acc,
+        preset.resources.map((r) => ({ arn: r.arn, actions: r.actions ?? [] })),
+      ),
+    [],
+  );
+}
+
+/**
  * Copies a member's team preset and/or individual preset (if any) into
  * their real UserResourceWatchlist doc, additively (see SPEC §3). Called
  * from both the team-assign handler and the link-aws-user handler.
@@ -40,22 +66,8 @@ export async function applyPresetsToMember(customerId: string, awsUserId: string
   const customer = await CustomerModel.findById(customerId).lean();
   if (!customer) return;
 
-  const scopeFilters: { scopeType: "team" | "individual"; scopeId: string }[] = [
-    { scopeType: "individual", scopeId: customerId },
-  ];
-  if (customer.teamId) scopeFilters.push({ scopeType: "team", scopeId: customer.teamId });
-
-  const presets = await WatchlistPresetModel.find({ $or: scopeFilters }).lean();
-  if (presets.length === 0) return;
-
-  const presetResources = presets.reduce<WatchlistResource[]>(
-    (acc, preset) =>
-      mergeResourceLists(
-        acc,
-        preset.resources.map((r) => ({ arn: r.arn, actions: r.actions ?? [] })),
-      ),
-    [],
-  );
+  const presetResources = await resolveMemberPresetResources(customerId);
+  if (presetResources.length === 0) return;
 
   const existing = await UserResourceWatchlistModel.findOne({ userId: awsUserId }).lean();
   const existingResources = existing?.resources.map((r) => ({ arn: r.arn, actions: r.actions ?? [] })) ?? [];

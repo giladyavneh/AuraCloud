@@ -30,7 +30,7 @@ import {
   mongoose,
   type CustomerDoc,
 } from "utils";
-import { applyPresetsToMember } from "./presets.js";
+import { applyPresetsToMember, resolveMemberPresetResources } from "./presets.js";
 
 dotenv.config();
 
@@ -400,6 +400,19 @@ app.get("/api/auth/me", requireAuth, async (req, res) => {
 });
 
 // ── Watchlist routes ───────────────────────────────────────────────────────────
+
+// Read-only: the resources the caller would inherit from presets (their individual
+// preset unioned with their team's). Powers the "reset to preset" action on the
+// watchlist page. Empty array when the caller has no applicable preset.
+app.get("/api/user-resource-watchlist/preset", requireAuth, async (req, res) => {
+  try {
+    const resources = await resolveMemberPresetResources(req.customer!.customerId);
+    res.json({ resources });
+  } catch (err) {
+    console.error("GET /api/user-resource-watchlist/preset failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
 
 app.get("/api/user-resource-watchlist", requireAuth, async (req, res) => {
   try {

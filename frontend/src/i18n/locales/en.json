@@ -98,7 +98,9 @@
     "columns": {
       "resource": "Resource",
       "actions": "Actions"
-    }
+    },
+    "resetToPreset": "Reset to preset",
+    "resetToPresetTooltip": "Replace the list with your team and individual preset. If you have no preset, this clears the list. You still need to Save."
   },
   "signUp": {
     "title": "Create your account",

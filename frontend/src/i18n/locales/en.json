@@ -75,6 +75,7 @@
     "subtitle": "Choose the AWS resources and actions you want to monitor. Changes take effect after saving.",
     "save": "Save",
     "saving": "Saving...",
+    "cancel": "Cancel",
     "addResource": "Add Resource",
     "selectResource": "Select a resource",
     "selectActions": "Select actions",

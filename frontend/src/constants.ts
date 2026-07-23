@@ -5,6 +5,12 @@ export const MONO_LABEL_FONT_SIZE = "11px";
 export const INVITE_CODE_FONT_SIZE = "20px";
 export const INVITE_CODE_LETTER_SPACING = "0.25em";
 export const WATCHLIST_SEARCH_WIDTH = 320;
+export const WATCHLIST_RESOURCE_SELECT_WIDTH = 280;
+export const WATCHLIST_ACTIONS_SELECT_WIDTH = 320;
+/** Selected action chips shown before collapsing to "+N" (while unfocused) */
+export const WATCHLIST_ACTIONS_VISIBLE_TAGS = 2;
+/** Opacity of the cursor-following spotlight tint on cards */
+export const SPOTLIGHT_TINT_ALPHA = 0.15;
 export const USER_LIST_MAX_HEIGHT = 280;
 export const EDITOR_FONT_SIZE = 13;
 export const EDITOR_PADDING = 12;

@@ -22,6 +22,7 @@ const ResourceSelectorPanel: React.FC<ResourceSelectorPanelProps> = ({
   draftResources,
   onDraftChange,
   onSave,
+  onCancel,
   isSaving,
   isDirty,
 }) => {
@@ -94,6 +95,16 @@ const ResourceSelectorPanel: React.FC<ResourceSelectorPanelProps> = ({
             {t("resourceWatchlist.unsavedChanges")}
           </Typography>
         )}
+
+        <Button
+          variant="text"
+          color="inherit"
+          onClick={onCancel}
+          disabled={!isDirty || isSaving}
+          size="medium"
+        >
+          {t("resourceWatchlist.cancel")}
+        </Button>
 
         <Button
           variant={isDirty ? "contained" : "outlined"}

@@ -86,7 +86,11 @@ export const FilterTab = styled(Box, {
   shouldForwardProp: (prop) => prop !== "isActive",
 })<{ isActive?: boolean }>(({ theme, isActive }) => ({
   padding: theme.spacing(1.5, 3),
-  borderRadius: `calc(${theme.shape.borderRadius} - ${theme.spacing(2)})`,
+  // Inset radius: the parent pill's radius minus its own padding, so the active
+  // fill sits concentrically inside it. `shape.borderRadius` is a unitless
+  // number, so it needs `px` before going into calc() — without it the whole
+  // declaration is invalid and gets dropped, which is why tabs looked square.
+  borderRadius: `calc(${theme.shape.borderRadius}px - ${theme.spacing(0.5)})`,
   cursor: "pointer",
   fontSize: theme.typography.body2.fontSize,
   fontWeight: 400,

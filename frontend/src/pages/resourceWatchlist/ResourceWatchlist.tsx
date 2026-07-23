@@ -69,6 +69,10 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
     }
   };
 
+  // Reverts the whole draft — the table and the JSON editor are two views of
+  // this one piece of state, so they revert together.
+  const handleCancel = () => setDraftResources(watchlist?.resources ?? []);
+
   const handleSnackbarClose = () =>
     setSnackbar((prev) => ({ ...prev, open: false }));
 
@@ -109,6 +113,7 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({
             draftResources={draftResources}
             onDraftChange={setDraftResources}
             onSave={handleSave}
+            onCancel={handleCancel}
             isSaving={isPending}
             isDirty={isDirty}
           />

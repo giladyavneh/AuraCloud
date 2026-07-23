@@ -1,3 +1,4 @@
+import { spotlightOverlayStyles } from '@/components/spotlightCard/components/spotlightCard.styled';
 import { styled } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 
@@ -17,6 +18,7 @@ export const CardInner = styled(Box)(({ theme }) => ({
   border: `1px solid ${theme.palette.border.default}`,
   borderRadius: theme.shape.borderRadius,
   height: '100%',
+  ...spotlightOverlayStyles(theme),
 }));
 
 export const StatValue = styled('p', {

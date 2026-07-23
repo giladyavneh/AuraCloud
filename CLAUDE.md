@@ -3,60 +3,91 @@
 ## What This Is
 Aura Cloud ("NoOps for Developers") is an automated AWS infrastructure monitoring system. It gives developers a real-time dashboard to monitor AWS infrastructure health and detect configuration discrepancies (missing permissions, policy mismatches). The goal: a single source of truth to instantly distinguish local code bugs from cloud environment errors.
 
+## Code Style — read this before writing code
+
+**Readability is the top priority.** When two approaches both work, choose the one that reads more clearly, even if it is longer.
+
+- **No cryptic names.** Never `r`, `e`, `p`, `a`. Write `resource`, `employee`, `preset`, `action`. Conventional loop indices (`i`) and `_unused` args are the only exceptions.
+- **One component per file, always.** The file name matches the component name (`TeamCard.tsx` exports `TeamCard`). This includes small presentational helpers — if it returns JSX and is rendered as `<Foo />`, it gets its own file. Styled components are the exception: all of a component's `styled` definitions live together in its `*.styled.ts`.
+- **Split large components.** Sub-components go in the `components/` sub-folder, pure logic in `helpers/`, React logic in `hooks/`. If a component file needs scrolling to understand, split it.
+- **Comments explain _why_, never _what_.** Comment a non-obvious constraint, a bug being prevented, or a deliberate trade-off. Never narrate what the code does, never leave progress notes, and never cite documents the reader does not have (spec sections, tickets, chat history).
+- **Explicit over clever.** Prefer named intermediate values over dense one-liners, and explicit object keys over spreads when a consumer depends on the shape.
+- **DB projections use `true`/`false`**, not `1`/`0`.
+- Formatting is defined in `.prettierrc.json` (2-space, double quotes, semicolons, trailing commas, 100 cols). Prettier is not installed as a dependency yet.
+
+The frontend additionally follows the global React/TypeScript/MUI rules in `~/.claude/CLAUDE.md` (strict TS with no `any`, MUI `styled` only, theme tokens for all colours/spacing, `@/` absolute imports, i18n for all user-facing text, centralised query keys).
+
 ## Architecture (Microservices, Containerized)
 
 | Component | Role | Status |
 |---|---|---|
-| **Crawlers** | Poll AWS for org-level SCPs and resource data | Not yet implemented |
-| **Cache** | Redis/MongoDB — fast storage for AWS configs | Not yet implemented |
+| **Crawlers** | Poll AWS for org-level SCPs and resource data | Partially implemented (`crawlers/`) |
+| **Cache** | Redis — fast storage for AWS configs | Partially implemented |
 | **Brain (Central Logic Server)** | Cross-references project requirements, user permissions, and cached cloud data | Not yet implemented |
-| **Results DB** | MongoDB Atlas — stores processed results per user | Active (seeded with mock data) |
+| **Results DB** | MongoDB Atlas — stores processed results per user | Active |
 | **API Server** | Delivers processed data from Results DB to UI | Active (`api-server/`) |
 | **Frontend (Audit Dashboard)** | React dashboard showing health/freshness of AWS resources | Active (`frontend/`) |
 
 ## Tech Stack
 - **Language:** TypeScript (strict, across the entire stack)
-- **Repo structure:** Monorepo
-- **Backend:** Node.js + Express (v5)
-- **Database:** MongoDB Atlas via Mongoose
-- **Frontend:** React + Vite + MUI + @phosphor-icons/react + react-i18next + @tanstack/react-query
+- **Repo structure:** npm-workspaces monorepo (`utils`, `api-server`, `frontend`, `crawlers`, `logic`, `mcp-server`)
+- **Backend:** Node.js + Express v5
+- **Database:** MongoDB Atlas via Mongoose (replica set — transactions are available and relied upon)
+- **Frontend:** React + Vite + MUI + @phosphor-icons/react + react-i18next + @tanstack/react-query + material-react-table
 
-## Current State of the Codebase
+## Data Models — all in `utils/src/index.ts`
+Models are defined **once** in the shared `utils` workspace, not in `api-server`. `api-server/src/db.ts` only re-exports them.
 
-### `api-server/`
-- Express server running on port 3000 (configurable via `PORT` env var)
-- Connected to MongoDB Atlas via `MONGO_URI` in `.env`
-- `src/db.ts` — defines Mongoose models and seeds mock data on first run
-- `src/index.ts` — Express app with one route: `GET /api/user-resource-watchlist`
+| Model | Purpose |
+|---|---|
+| `Company` | An onboarded organisation: `name`, `slug`, `inviteCode`, encrypted `awsCredentials`, `managerOpsSeq` |
+| `Customer` | An Aura login account: `email`, `passwordHash`, `role: manager\|employee`, `companyId`, `teamId`, `linkedAwsUserId` |
+| `Team` | A named group in a company; unique on `{companyId, name}` |
+| `WatchlistPreset` | Default resources for a team or individual; unique on `{scopeType, scopeId}` |
+| `User` | A **discovered AWS IAM/SSO identity** (not a login) |
+| `AwsResource`, `ResourceAction` | Catalogue of discovered resources and their IAM actions |
+| `UserResourceWatchlist` | The resources a person watches, keyed by AWS `externalId` |
+| `UserPermission` | Raw permission data, `permissionsData: Mixed` (Brain's shape isn't final) |
 
-### Mongoose Schemas (both defined in `src/db.ts`)
-1. **`UserResourceWatchlist`** — frontend-facing processed data
-   - `userId: String`, `name: String`, `resources: [{ arn, actions[] }]`
-2. **`UserPermission`** — raw backend-structured data
-   - `name: String`, `permissionsData: Mixed` (flexible, pending real data shape)
+**Critical identity distinction:** `Customer` is the login account; `User` is a discovered AWS identity. `Customer.linkedAwsUserId` → `User.externalId` links them. `UserResourceWatchlist.userId` is the **AWS externalId**, not a Customer id.
 
-### Mock Data
-Crawlers and Brain are not implemented yet. `connectDB()` seeds MongoDB with hardcoded mock data if collections are empty.
+## `api-server/` layout
+Routes are split by domain — `index.ts` only wires things together.
+
+```
+src/
+  index.ts          app setup, router mounting, startup
+  config.ts         env-derived constants
+  db.ts             re-exports models from utils
+  presets.ts        preset resolution + additive merge
+  middleware/       auth.middleware.ts (requireAuth, requireManager), objectId.middleware.ts
+  helpers/          company, validation, response, lastManagerGuard
+  routes/           auth, companies, employees, teams, watchlistPresets, watchlist, resources, user, aws
+```
+
+Conventions:
+- Every manager-only route is `requireAuth, requireManager` and **scoped by `companyId`**. Cross-company targets return **404**, never 403 — never confirm another company's data exists.
+- Routers with an `:id` param must register `router.param("id", validateObjectIdParam)`; `app.param` does not reach mounted routers. Without it a malformed id becomes a 500 instead of a 404.
+- `withLastManagerGuard` must stay transactional with its `$inc` on the Company doc — that write is what forces the conflict preventing a company from losing its last manager. See `helpers/lastManagerGuard.helpers.ts`.
 
 ## Frontend Structure (`frontend/src/`)
 - **`theme/`** — MUI theme with all Figma tokens; custom palette augmentation in `theme.augment.d.ts`
 - **`constants/queryKeys.ts`** — Centralised React Query keys (always add new keys here)
-- **`i18n/locales/en.json`** — All user-facing strings (no hardcoded text in components)
-- **`components/`** — `statusTag`, `menuItem`, `sideMenu`, `statCard`, `glowCard`, `awsServiceIcon`, `resourceCard`
-- **`layouts/pageWrapper/`** — Sidebar + scrollable content shell; used as React Router layout route
-- **`pages/dashboard/`** — Dashboard page with sub-components, helpers, and styled file
-- **`services/resources.service.ts`** — `GET /api/user-resource-watchlist` from `api-server`
-- **`hooks/resources.hooks.ts`** — `useUserResourceWatchlist()` via React Query
+- **`i18n/locales/en.json`** — All user-facing strings
+- **`components/`** — shared: `statusTag`, `menuItem`, `sideMenu`, `statCard`, `glowCard`, `spotlightCard`, `awsServiceIcon`, `resourceCard`, `confirmDialog`, `copyField`, `keyValueRow`, `errorRetryRow`
+- **`pages/`** — `dashboard`, `resourceWatchlist`, `team` (manager-only: employees/teams/presets), `settings`, auth pages
+- **`services/` + `hooks/`** — API calls and their React Query wrappers
+
+## Tests
+No test framework is installed. Checks are plain assert scripts run with `tsx`:
+- `api-server/src/presets.test.ts` — preset merge semantics (`npx tsx api-server/src/presets.test.ts`)
+- `api-server/src/lastManagerRace.manual.ts` — manual integration check; needs a running server and live Mongo
 
 ## Immediate Next Steps
-1. **User schema** — Add a proper `User` Mongoose model to manage user data instead of hardcoded user IDs
-2. **Shared types** — Implement a shared types strategy (`InferSchemaType` or a `shared-types` monorepo package) for strict type safety between API and frontend
-3. **Real status data** — Replace mock `STATUS_CYCLE` in `ResourceSection.tsx` with real status from the API once Brain is implemented
-
-## Key Decisions & Constraints
-- `permissionsData` uses `Mixed` type intentionally — the real data shape from the Brain is not finalized yet
-- Mock data is only seeded when collections are empty — safe to run repeatedly
-- All code comments must be in English (note: there is one Hebrew comment in `db.ts` line 85 to clean up)
+1. **Brain** — replace mock/absent status data with real analysis output
+2. **Shared types** — share `InferSchemaType` model types with the frontend instead of hand-written duplicates
+3. **Invite hardening** — the company invite code is single, non-expiring and unlimited-use; decide whether it should expire/rotate
+4. **Tenancy gap** — `GET /api/companies/:slug/aws-users` returns all `User` docs without company scoping
 
 ## graphify
 

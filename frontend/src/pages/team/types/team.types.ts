@@ -7,12 +7,7 @@ import type {
 } from '@/services/types/team.types';
 
 export type { Employee, PresetResource, PresetScopeType, Team, WatchlistPreset } from '@/services/types/team.types';
-
-export interface SnackbarState {
-  open: boolean;
-  severity: 'success' | 'error';
-  message: string;
-}
+export type { SnackbarState } from '@/components/feedbackSnackbar/types/feedbackSnackbar.types';
 
 export interface EmployeeRowMenuProps {
   employee: Employee;
@@ -117,4 +112,12 @@ export interface EmployeesTableProps {
   employees: Employee[];
   teams: Team[];
   renderRowActions: (employee: Employee) => React.ReactNode;
+}
+
+export interface PresetsTableProps {
+  presets: WatchlistPreset[];
+  teams: Team[];
+  employees: Employee[];
+  onEdit: (preset: WatchlistPreset) => void;
+  onDelete: (preset: WatchlistPreset) => void;
 }

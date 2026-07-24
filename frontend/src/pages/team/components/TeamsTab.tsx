@@ -1,5 +1,7 @@
 import ConfirmDialog from "@/components/confirmDialog/ConfirmDialog";
+import EmptyState from "@/components/emptyState/EmptyState";
 import ErrorRetryRow from "@/components/errorRetryRow/ErrorRetryRow";
+import FeedbackSnackbar from "@/components/feedbackSnackbar/FeedbackSnackbar";
 import {
   useCreateTeam,
   useDeleteTeam,
@@ -11,23 +13,17 @@ import {
 import { findTeamPreset, getTeamMembers } from "@/pages/team/helpers/team.helpers";
 import TeamCard from "@/pages/team/components/TeamCard";
 import TeamDialog from "@/pages/team/components/TeamDialog";
-import {
-  EmptyStateCard,
-  LoadingBox,
-  TabHeaderRow,
-  TeamsGrid,
-} from "@/pages/team/components/team.styled";
+import { LoadingBox, TabHeaderRow, TeamsGrid } from "@/pages/team/components/team.styled";
 import type { SnackbarState, Team } from "@/pages/team/types/team.types";
-import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
-import Snackbar from "@mui/material/Snackbar";
-import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 import { PlusIcon, UsersThreeIcon } from "@phosphor-icons/react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+
+const EMPTY_STATE_ICON_SIZE = 48;
 
 type DialogState = { mode: "create" } | { mode: "rename"; team: Team };
 
@@ -129,26 +125,15 @@ const TeamsTab: React.FC = () => {
       )}
 
       {!isLoading && !teamsError && teams.length === 0 && (
-        <EmptyStateCard>
-          <UsersThreeIcon size={48} color={theme.palette.text.disabled} />
-
-          <Box>
-            <Typography variant="h6" color="textPrimary">
-              {t("team.teams.emptyTitle")}
-            </Typography>
-            <Typography variant="body2" color="textSecondary" sx={{ marginTop: 1 }}>
-              {t("team.teams.emptyDescription")}
-            </Typography>
-          </Box>
-
-          <Button
-            variant="contained"
-            size="large"
-            onClick={() => setDialogState({ mode: "create" })}
-          >
-            {t("team.teams.emptyCta")}
-          </Button>
-        </EmptyStateCard>
+        <EmptyState
+          icon={
+            <UsersThreeIcon size={EMPTY_STATE_ICON_SIZE} color={theme.palette.text.disabled} />
+          }
+          title={t("team.teams.emptyTitle")}
+          description={t("team.teams.emptyDescription")}
+          ctaLabel={t("team.teams.emptyCta")}
+          onCta={() => setDialogState({ mode: "create" })}
+        />
       )}
 
       {!isLoading && !teamsError && teams.length > 0 && (
@@ -187,20 +172,10 @@ const TeamsTab: React.FC = () => {
         onClose={() => setDeleteTarget(null)}
       />
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
+      <FeedbackSnackbar
+        state={snackbar}
         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          variant="standard"
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+      />
     </>
   );
 };

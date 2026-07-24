@@ -119,27 +119,6 @@ export const LoadingBox = styled(Box)(({ theme }) => ({
   paddingBlock: theme.spacing(8),
 }));
 
-export const ErrorRow = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: theme.spacing(2),
-  paddingBlock: theme.spacing(4),
-}));
-
-/** Full-width dashed empty-state card — same recipe as dashboard.styled.ts's EmptyStateCard. */
-export const EmptyStateCard = styled(Card)(({ theme }) => ({
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  textAlign: 'center',
-  gap: theme.spacing(4),
-  padding: theme.spacing(10, 6),
-  backgroundColor: 'transparent',
-  border: `1px dashed ${theme.palette.divider}`,
-  borderRadius: theme.shape.borderRadius,
-  boxShadow: 'none',
-}));
-
 export const TabHeaderRow = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',

@@ -1,5 +1,6 @@
 import ConfirmDialog from "@/components/confirmDialog/ConfirmDialog";
 import ErrorRetryRow from "@/components/errorRetryRow/ErrorRetryRow";
+import FeedbackSnackbar from "@/components/feedbackSnackbar/FeedbackSnackbar";
 import { useAuth } from "@/context/auth/AuthContext";
 import {
   useEmployees,
@@ -14,14 +15,10 @@ import EmployeesTable from "@/pages/team/components/EmployeesTable";
 import TeamInviteCard from "@/pages/team/components/TeamInviteCard";
 import { LoadingBox, SectionCard } from "@/pages/team/components/team.styled";
 import type { Employee, SnackbarState } from "@/pages/team/types/team.types";
-import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
-import Snackbar from "@mui/material/Snackbar";
 import Typography from "@mui/material/Typography";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-
-const SNACKBAR_DURATION_MS = 4000;
 
 const EmployeesTab: React.FC = () => {
   const { t } = useTranslation();
@@ -188,20 +185,10 @@ const EmployeesTab: React.FC = () => {
         onClose={() => setRemoveTarget(null)}
       />
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={SNACKBAR_DURATION_MS}
+      <FeedbackSnackbar
+        state={snackbar}
         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          variant="standard"
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+      />
     </>
   );
 };

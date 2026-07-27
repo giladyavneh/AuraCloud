@@ -10,6 +10,7 @@ import {
   updateResourceActions,
 } from "./watchlist.js";
 import { getResourceActions, listAwsResources } from "./resources.js";
+import { getPermissionStatus } from "./permissions.js";
 
 const ok = (data: unknown): CallToolResult => ({
   content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
@@ -27,6 +28,20 @@ const handleError = (err: unknown): CallToolResult => {
 
 export const buildServer = (ctx: UserContext): McpServer => {
   const server = new McpServer({ name: "auracloud-mcp-server", version: "1.0.0" });
+
+  // SDK 1.29 rejects tools/call when the spec-optional `arguments` field is omitted
+  // (it feeds `undefined` to the zod object schema), which breaks bare calls to
+  // all-optional tools like get_permission_status. Normalize omitted arguments to {}.
+  // validateToolInput is private in the SDK typings (hence the cast); if a future SDK
+  // renames it, the guard skips the shim and behavior falls back to the SDK default.
+  const internals = server as unknown as {
+    validateToolInput?: (tool: unknown, args: unknown, toolName: string) => Promise<unknown>;
+  };
+  if (typeof internals.validateToolInput === "function") {
+    const originalValidate = internals.validateToolInput.bind(server);
+    internals.validateToolInput = (tool, args, toolName) =>
+      originalValidate(tool, args ?? {}, toolName);
+  }
 
   server.registerTool(
     "get_watchlist",
@@ -49,6 +64,41 @@ export const buildServer = (ctx: UserContext): McpServer => {
           userId: watchlist.userId,
           resources: watchlist.resources,
         });
+      } catch (err) {
+        return handleError(err);
+      }
+    },
+  );
+
+  server.registerTool(
+    "get_permission_status",
+    {
+      title: "Get permission status",
+      description:
+        "Get Aura's evaluated permission status for the user's watched AWS resources: allowed ('valid') or blocked ('error') per IAM action, with the exact deny reason. This is the primary diagnostic tool — when the user reports an AWS operation failing (access denied, timeouts, silent failures), call this to determine whether cloud configuration is the cause. The summary always reflects the full watchlist even when filters are applied. Set includeDetails to true for the full policy evaluation trace (identity/resource/SCP steps and context keys).",
+      inputSchema: {
+        arn: z
+          .string()
+          .optional()
+          .describe("Filter to a single watched resource by its full ARN (exact, case-sensitive — use the ARN as returned by get_watchlist)"),
+        action: z
+          .string()
+          .optional()
+          .describe("Filter to one IAM action, e.g. s3:GetObject (service prefix optional)"),
+        status: z
+          .enum(["valid", "error"])
+          .optional()
+          .describe("Return only actions with this status — 'error' means blocked"),
+        includeDetails: z
+          .boolean()
+          .default(false)
+          .describe("Include the full policy evaluation trace and evaluation timestamp per action. The trace is verbose — combine with an arn/action/status filter to keep the response small"),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    async ({ arn, action, status, includeDetails }) => {
+      try {
+        return ok(await getPermissionStatus(ctx, { arn, action, status, includeDetails }));
       } catch (err) {
         return handleError(err);
       }

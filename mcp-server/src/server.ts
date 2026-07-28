@@ -110,9 +110,9 @@ export const buildServer = (ctx: UserContext): McpServer => {
     {
       title: "Add watchlist resource",
       description:
-        "Add an AWS resource (by ARN) to the user's monitoring watchlist, optionally with the IAM actions to monitor on it. Use this when the user wants to start monitoring a resource that is not on the watchlist yet; it creates the watchlist automatically if none exists. Fails if the ARN is already watched — use update_resource_actions in that case.",
+        "Add an AWS resource (by ARN) to the user's monitoring watchlist, optionally with the IAM actions to monitor on it. Use this when the user wants to start monitoring a resource that is not on the watchlist yet; it creates the watchlist automatically if none exists. The ARN must be one of the discovered resources — find the exact ARN with list_aws_resources first (unknown ARNs are rejected, with a suggestion when a close match exists). Fails if the ARN is already watched — use update_resource_actions in that case.",
       inputSchema: {
-        arn: z.string().describe("Full AWS ARN of the resource to watch"),
+        arn: z.string().describe("Full AWS ARN of the resource to watch, exactly as returned by list_aws_resources"),
         actions: z
           .array(z.string())
           .default([])
@@ -152,7 +152,7 @@ export const buildServer = (ctx: UserContext): McpServer => {
     {
       title: "Update resource actions",
       description:
-        "Replace the list of monitored IAM actions for a resource that is already on the watchlist. Use this to change which actions are monitored (the provided array fully replaces the existing one). Fails if the ARN is not on the watchlist — use add_watchlist_resource first.",
+        "Replace the list of monitored IAM actions for a resource that is already on the watchlist. Use this to change which actions are monitored (the provided array fully replaces the existing one). Action names not present in the known-actions catalogue are accepted but flagged in a warnings array. Fails if the ARN is not on the watchlist — use add_watchlist_resource first.",
       inputSchema: {
         arn: z.string().describe("ARN of the watched resource to update"),
         actions: z
@@ -180,6 +180,10 @@ export const buildServer = (ctx: UserContext): McpServer => {
           .string()
           .optional()
           .describe("Filter by resource type, e.g. S3Bucket, IAMUser, IAMRole, IAMGroup, SSOUser, SSOGroup, PermissionSet"),
+        nameContains: z
+          .string()
+          .optional()
+          .describe("Case-insensitive substring match on the resource name — use this to resolve a human name like 'payments' to its exact ARN"),
         limit: z
           .number()
           .int()
@@ -190,9 +194,9 @@ export const buildServer = (ctx: UserContext): McpServer => {
       },
       annotations: { readOnlyHint: true },
     },
-    async ({ resourceType, limit }) => {
+    async ({ resourceType, nameContains, limit }) => {
       try {
-        return ok(await listAwsResources({ resourceType, limit }));
+        return ok(await listAwsResources({ resourceType, nameContains, limit }));
       } catch (err) {
         return handleError(err);
       }

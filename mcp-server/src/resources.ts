@@ -23,10 +23,13 @@ export interface ResourceActionsResult {
 
 export interface ListAwsResourcesFilter {
   resourceType?: string;
+  nameContains?: string;
   limit?: number;
 }
 
 const DEFAULT_LIMIT = 100;
+
+const escapeRegex = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export const listAwsResources = async (
   filter: ListAwsResourcesFilter,
@@ -36,6 +39,9 @@ export const listAwsResources = async (
   // this matters once IAM/SSO resources join it).
   const query: Record<string, unknown> = { arn: { $nin: INTERNAL_AWS_USER_ARNS } };
   if (filter.resourceType) query.resourceType = filter.resourceType;
+  if (filter.nameContains) {
+    query.name = { $regex: escapeRegex(filter.nameContains), $options: "i" };
+  }
 
   const docs = await AwsResourceModel.find(query)
     .limit(filter.limit ?? DEFAULT_LIMIT)

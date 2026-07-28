@@ -1,4 +1,4 @@
-import { AwsResourceModel, ResourceActionModel } from "utils";
+import { AwsResourceModel, INTERNAL_AWS_USER_ARNS, ResourceActionModel } from "utils";
 
 export interface AwsResourceSummary {
   arn: string;
@@ -31,7 +31,10 @@ const DEFAULT_LIMIT = 100;
 export const listAwsResources = async (
   filter: ListAwsResourcesFilter,
 ): Promise<AwsResourceSummary[]> => {
-  const query: Record<string, string> = {};
+  // Internal Aura identities are never listed as monitorable resources — same
+  // filter as the api-server routes (today the catalogue holds only S3 buckets;
+  // this matters once IAM/SSO resources join it).
+  const query: Record<string, unknown> = { arn: { $nin: INTERNAL_AWS_USER_ARNS } };
   if (filter.resourceType) query.resourceType = filter.resourceType;
 
   const docs = await AwsResourceModel.find(query)

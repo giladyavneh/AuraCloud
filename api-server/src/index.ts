@@ -24,6 +24,7 @@ import {
   AwsResourceModel,
   ResourceActionModel,
   UserModel,
+  INTERNAL_AWS_USER_ARNS,
   encryptSecret,
 } from "utils";
 
@@ -35,11 +36,8 @@ const JWT_SECRET =
   process.env.JWT_SECRET ?? "aura-dev-secret-change-in-production";
 const BCRYPT_ROUNDS = 10;
 
-// Internal Aura infrastructure identities — never exposed as linkable AWS users.
-const INTERNAL_AWS_USER_ARNS = [
-  "arn:aws:iam::589523296424:user/Aura-Crawlers-Sevice",
-  "arn:aws:iam::589523296424:user/Aura-SaaS-Crawler",
-];
+// Internal Aura infrastructure identities live in utils/src/consts.ts and are
+// filtered here (aws-users, resources) and in mcp-server's list_aws_resources.
 
 app.use(cors());
 app.use(express.json());
@@ -404,7 +402,9 @@ app.put("/api/user-resource-watchlist/:id", requireAuth, async (req, res) => {
 
 app.get("/api/resources", requireAuth, async (_req, res) => {
   try {
-    const resources = await AwsResourceModel.find().lean().exec();
+    const resources = await AwsResourceModel.find({ arn: { $nin: INTERNAL_AWS_USER_ARNS } })
+      .lean()
+      .exec();
     res.json(resources);
   } catch (err) {
     console.error("GET /api/resources failed:", err);

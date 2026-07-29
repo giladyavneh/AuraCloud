@@ -3,7 +3,7 @@
     "auracloud": {
       "command": "npx",
       "args": ["tsx", "mcp-server/src/index.ts"],
-      "env": { "MCP_USER_EMAIL": "admin@aura.com" }
+      "env": { "MCP_USER_EMAIL": "${AURA_MCP_USER:-admin@aura.com}" }
     }
   }
 }

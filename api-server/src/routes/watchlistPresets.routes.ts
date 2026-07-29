@@ -49,15 +49,22 @@ router.put("/api/watchlist-presets", requireAuth, requireManager, async (req, re
       return;
     }
 
+    const setFields: Record<string, unknown> = {
+      companyId,
+      scopeType,
+      scopeId,
+      resources,
+    };
+    if (typeof name === "string") {
+      setFields.name = name;
+    }
+
     const preset = await WatchlistPresetModel.findOneAndUpdate(
       { scopeType, scopeId },
       {
-        companyId,
-        scopeType,
-        scopeId,
-        name: typeof name === "string" ? name : undefined,
-        resources,
-        createdBy: req.managerCustomer!._id.toString(),
+        $set: setFields,
+        // Only stamp createdBy on insert — an edit must not reassign authorship of an existing preset.
+        $setOnInsert: { createdBy: req.managerCustomer!._id.toString() },
       },
       { upsert: true, returnDocument: "after" },
     );

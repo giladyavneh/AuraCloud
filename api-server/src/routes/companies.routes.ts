@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { CompanyModel } from "../db.js";
+import { CompanyModel, CustomerModel } from "../db.js";
 import { UserModel } from "utils";
 import { INTERNAL_AWS_USER_ARNS } from "../config.js";
 import { requireAuth, requireManager } from "../middleware/auth.middleware.js";
@@ -23,10 +23,17 @@ router.get("/api/companies/:slug", async (req, res) => {
   }
 });
 
-router.get("/api/companies/:slug/aws-users", async (req, res) => {
+router.get("/api/companies/:slug/aws-users", requireAuth, async (req, res) => {
   try {
     const company = await CompanyModel.findOne({ slug: req.params.slug }).lean();
     if (!company) {
+      res.status(404).json({ message: "Company not found" });
+      return;
+    }
+
+    const customer = await CustomerModel.findById(req.customer!.customerId).lean();
+    if (!customer || customer.companyId.toString() !== company._id.toString()) {
+      // Cross-company target: respond as if the company doesn't exist rather than confirming it does.
       res.status(404).json({ message: "Company not found" });
       return;
     }

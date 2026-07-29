@@ -15,6 +15,7 @@ export interface ResourceSelectorPanelProps {
   onResetToPreset: () => void;
   isSaving: boolean;
   isDirty: boolean;
+  isPresetResourcesLoading: boolean;
 }
 
 export interface JsonEditorPanelProps {

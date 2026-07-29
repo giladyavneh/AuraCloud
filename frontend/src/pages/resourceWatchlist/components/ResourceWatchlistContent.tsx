@@ -23,7 +23,8 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({ wat
 
   const { mutate: save, isPending: isSaving } = useUpdateWatchlist();
   const { mutate: create, isPending: isCreating } = useCreateWatchlist();
-  const { data: presetResources = [] } = useMyPresetResources();
+  const { data: presetResources = [], isPending: isPresetResourcesLoading } =
+    useMyPresetResources();
 
   const [draftResources, setDraftResources] = useState<WatchlistResource[]>(
     watchlist?.resources ?? [],
@@ -102,6 +103,7 @@ const ResourceWatchlistContent: React.FC<ResourceWatchlistContentProps> = ({ wat
             onResetToPreset={handleResetToPreset}
             isSaving={isPending}
             isDirty={isDirty}
+            isPresetResourcesLoading={isPresetResourcesLoading}
           />
         </Grid>
 

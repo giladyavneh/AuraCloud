@@ -27,6 +27,7 @@ const ResourceSelectorPanel: React.FC<ResourceSelectorPanelProps> = ({
   onResetToPreset,
   isSaving,
   isDirty,
+  isPresetResourcesLoading,
 }) => {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -96,7 +97,7 @@ const ResourceSelectorPanel: React.FC<ResourceSelectorPanelProps> = ({
             variant="text"
             color="inherit"
             onClick={onResetToPreset}
-            disabled={isSaving}
+            disabled={isSaving || isPresetResourcesLoading}
             size="medium"
             startIcon={<ArrowCounterClockwiseIcon size={theme.iconSize.xs} />}
           >

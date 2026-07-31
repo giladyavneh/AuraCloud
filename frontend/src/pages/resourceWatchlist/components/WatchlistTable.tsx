@@ -96,8 +96,24 @@ const WatchlistTable: React.FC<WatchlistTableProps> = ({
     muiTableContainerProps: {
       sx: { backgroundColor: "transparent" },
     },
-    muiTableHeadCellProps: {
-      sx: { borderColor: theme.palette.border.default },
+    // Round the header row's outer corners, mirroring the last body row.
+    // The row-actions display column sits last, so the trailing corner has to
+    // come from the visible leaf columns rather than the `columns` array.
+    muiTableHeadCellProps: ({ column, table }) => {
+      const visibleColumns = table.getVisibleLeafColumns();
+      const radius = `${theme.shape.borderRadius}px`;
+
+      return {
+        sx: {
+          borderColor: theme.palette.border.default,
+          borderTopLeftRadius:
+            visibleColumns[0]?.id === column.id ? radius : undefined,
+          borderTopRightRadius:
+            visibleColumns[visibleColumns.length - 1]?.id === column.id
+              ? radius
+              : undefined,
+        },
+      };
     },
     muiTableBodyCellProps: ({ row, table }) => {
       const isLastRow = row.index === table.getRowModel().rows.length - 1;

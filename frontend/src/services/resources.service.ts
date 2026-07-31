@@ -34,6 +34,17 @@ export const fetchUserPermissions = async (): Promise<UserPermission> => {
   return response.json() as Promise<UserPermission>;
 };
 
+export const fetchMyPresetResources = async (): Promise<WatchlistResource[]> => {
+  const response = await fetch(`${API_BASE_URL}/api/user-resource-watchlist/preset`, {
+    headers: authHeaders(),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch preset resources: ${response.statusText}`);
+  }
+  const body = (await response.json()) as { resources: WatchlistResource[] };
+  return body.resources;
+};
+
 export const fetchAllResources = async (): Promise<AwsResource[]> => {
   const response = await fetch(`${API_BASE_URL}/api/resources`, {
     headers: authHeaders(),

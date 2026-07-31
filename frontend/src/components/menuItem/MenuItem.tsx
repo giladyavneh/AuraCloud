@@ -1,4 +1,5 @@
 import React from "react";
+import Box from "@mui/material/Box";
 import { useTheme } from "@mui/material/styles";
 import {
   ItemRoot,
@@ -21,12 +22,14 @@ const MenuItem: React.FC<MenuItemProps> = ({
       <ActiveIndicator isActive={isActive} />
 
       {Icon && (
-        <Icon
-          size={theme.iconSize.sm}
-          color={
-            isActive ? theme.palette.text.primary : theme.palette.text.secondary
-          }
-        />
+        <Box sx={{ display: "flex", flexShrink: 0 }}>
+          <Icon
+            size={theme.iconSize.sm}
+            color={
+              isActive ? theme.palette.text.primary : theme.palette.text.secondary
+            }
+          />
+        </Box>
       )}
 
       <ItemLabel isActive={isActive}>{label}</ItemLabel>

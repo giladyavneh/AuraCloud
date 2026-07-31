@@ -61,8 +61,8 @@ const JsonEditorPanel: React.FC<JsonEditorPanelProps> = ({
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result;
+    reader.onload = (event) => {
+      const text = event.target?.result;
       if (typeof text !== 'string') return;
 
       const parsed = parseWatchlistJson(text);

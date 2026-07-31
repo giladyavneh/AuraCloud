@@ -1,4 +1,5 @@
 import { MONO_LABEL_FONT_SIZE } from "@/constants";
+import { spotlightOverlayStyles } from "@/components/spotlightCard/components/spotlightCard.styled";
 import { styled } from "@mui/material/styles";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
@@ -17,6 +18,7 @@ export const StatusSummaryRoot = styled(Box)(({ theme }) => ({
   backgroundColor: theme.palette.surface.base,
   border: `1px solid ${theme.palette.border.default}`,
   borderRadius: theme.shape.borderRadius,
+  ...spotlightOverlayStyles(theme),
 }));
 
 export const StatusSummaryLeft = styled(Box)(({ theme }) => ({
@@ -86,7 +88,8 @@ export const FilterTab = styled(Box, {
   shouldForwardProp: (prop) => prop !== "isActive",
 })<{ isActive?: boolean }>(({ theme, isActive }) => ({
   padding: theme.spacing(1.5, 3),
-  borderRadius: `calc(${theme.shape.borderRadius} - ${theme.spacing(2)})`,
+  // Inset radius so the active fill sits concentrically inside the parent pill
+  borderRadius: `calc(${theme.shape.borderRadius}px - ${theme.spacing(0.5)})`,
   cursor: "pointer",
   fontSize: theme.typography.body2.fontSize,
   fontWeight: 400,

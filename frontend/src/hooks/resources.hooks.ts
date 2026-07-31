@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createWatchlist,
   fetchAllResources,
+  fetchMyPresetResources,
   fetchResourceActions,
   fetchUserPermissions,
   fetchUserResourceWatchlist,
@@ -26,6 +27,14 @@ export const useUserPermissions = () =>
     // 404 means no Brain data yet — treat as empty, not an error
     retry: (failureCount, error) =>
       error.message.includes('404') ? false : failureCount < 3,
+  });
+
+// The resources the current user inherits from presets (team + individual).
+// Powers "reset to preset"; empty array means no preset, which resets to empty.
+export const useMyPresetResources = () =>
+  useQuery({
+    queryKey: QUERY_KEYS.myPresetResources,
+    queryFn: fetchMyPresetResources,
   });
 
 export const useAllResources = () =>

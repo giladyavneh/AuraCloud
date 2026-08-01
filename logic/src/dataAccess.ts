@@ -6,11 +6,7 @@ export function getUsersFromMongo(): Promise<UserResourceWatchlist[]> {
 
 export async function getSsoUser(redis: RedisClientType, userId: string) {
   const rawUser = await redis.hGet('aura:sso:users', userId);
-
-  if (!rawUser) {
-    console.error(`User ${userId} not found in 'aura:sso:users'`);
-    return null;
-  }
+  if (!rawUser) return null;
 
   const userData = JSON.parse(rawUser);
 
@@ -39,6 +35,24 @@ export async function getSsoUser(redis: RedisClientType, userId: string) {
     userData.resolvedPermissionSets = rawPS.filter(Boolean).map((p) => JSON.parse(p!));
   } else {
     userData.resolvedPermissionSets = [];
+  }
+
+  return userData;
+}
+
+export async function getIAMUser(redis: RedisClientType, userId: string) {
+  const rawUser = await redis.hGet('aura:iam:users', userId);
+  if (!rawUser) return null;
+
+  const userData = JSON.parse(rawUser);
+
+  if (userData.Groups?.length) {
+    const rawGroups = await Promise.all(
+      userData.Groups.map((groupName: string) => redis.hGet('aura:iam:groups', groupName)),
+    );
+    userData.resolvedGroups = rawGroups.filter(Boolean).map((g) => JSON.parse(g!));
+  } else {
+    userData.resolvedGroups = [];
   }
 
   return userData;

@@ -1,24 +1,23 @@
-import { MONO_LABEL_FONT_SIZE } from "@/constants";
+import { SPOTLIGHT_TINT_ALPHA } from "@/constants";
 import AwsServiceIcon from "@/components/awsServiceIcon/AwsServiceIcon";
 import {
   CardBody,
   CardHeader,
   CardRoot,
   MetaTopRow,
-  ResourceDot,
-  ResourceItem,
   ResourceList,
   ServiceMeta,
 } from "@/components/resourceCard/components/resourceCard.styled";
-import ResourceCardMoreActions from "@/components/resourceCard/components/ResourceCardMoreActions";
+import ResourceCardActionList from "@/components/resourceCard/components/ResourceCardActionList";
 import {
   getResourceDotColor,
   MAX_VISIBLE_ACTIONS,
 } from "@/components/resourceCard/helpers/resourceCard.helpers";
 import type { ResourceCardProps } from "@/components/resourceCard/types/resourceCard.types";
+import { useSpotlight } from "@/components/spotlightCard/hooks/spotlightCard.hooks";
 import StatusTag from "@/components/statusTag/StatusTag";
 import { Alert } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
+import { alpha, useTheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -39,8 +38,14 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
   const remainingActions = actions.slice(maxVisibleActions);
   const dotColor = getResourceDotColor(theme.palette, status);
 
+  // Tint the spotlight with the card's own status colour, so hovering a blocked
+  // resource glows red and a healthy one green.
+  const { ref, onMouseMove } = useSpotlight<HTMLDivElement>(
+    alpha(dotColor, SPOTLIGHT_TINT_ALPHA),
+  );
+
   return (
-    <CardRoot>
+    <CardRoot ref={ref} onMouseMove={onMouseMove}>
       <CardBody>
         <CardHeader>
           <AwsServiceIcon service={service} size={theme.iconSize.xl} />
@@ -69,37 +74,11 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
             {t("resourceCard.actions")}
           </Typography>
 
-          {actions.length === 0 ? (
-            <Typography variant="body2" color="textDisabled">
-              {t("resourceCard.noActions")}
-            </Typography>
-          ) : (
-            <>
-              {visibleActions.map((action) => (
-                <ResourceItem key={action}>
-                  <ResourceDot dotColor={dotColor} />
-
-                  <Typography
-                    variant="body2"
-                    color="textSecondary"
-                    sx={{
-                      fontFamily: theme.typography.fontFamilyMono,
-                      fontSize: MONO_LABEL_FONT_SIZE,
-                    }}
-                  >
-                    {action}
-                  </Typography>
-                </ResourceItem>
-              ))}
-
-              {remainingActions.length > 0 && (
-                <ResourceCardMoreActions
-                  actions={remainingActions}
-                  dotColor={dotColor}
-                />
-              )}
-            </>
-          )}
+          <ResourceCardActionList
+            visibleActions={visibleActions}
+            remainingActions={remainingActions}
+            dotColor={dotColor}
+          />
         </ResourceList>
 
         {errorMessage && (

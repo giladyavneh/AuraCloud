@@ -133,7 +133,9 @@ export const fetchCompanyBySlug = async (slug: string): Promise<CompanyInfo> => 
 };
 
 export const fetchCompanyAwsUsers = async (slug: string): Promise<AwsUserOption[]> => {
-  const response = await fetch(`${API_BASE}/companies/${encodeURIComponent(slug)}/aws-users`);
+  const response = await fetch(`${API_BASE}/companies/${encodeURIComponent(slug)}/aws-users`, {
+    headers: authHeaders(),
+  });
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: "Failed to fetch users" }));
     throw new Error((error as { message: string }).message);

@@ -1,14 +1,18 @@
+import { spotlightOverlayStyles } from "@/components/spotlightCard/components/spotlightCard.styled";
 import { styled } from "@mui/material/styles";
 import Box from "@mui/material/Box";
 
 export const CardRoot = styled(Box)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
-  height: "stretch",
+  // `100%` rather than the `stretch` keyword: Safari resolves `stretch` and
+  // blew the card up to the full viewport, while Chrome dropped it to `auto`.
+  height: "100%",
   backgroundColor: theme.palette.surface.base,
   border: `1px solid ${theme.palette.border.default}`,
   borderRadius: theme.shape.borderRadius,
   overflow: "hidden",
+  ...spotlightOverlayStyles(theme),
 }));
 
 export const CardBody = styled(Box)(({ theme }) => ({

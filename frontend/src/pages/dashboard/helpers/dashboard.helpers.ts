@@ -75,7 +75,7 @@ export const getErrorReasonFromArnData = (
 
   const perAction = data as Record<string, ActionData>;
   return (
-    Object.values(perAction).find((a) => a.status === "error")?.reason ??
+    Object.values(perAction).find((action) => action.status === "error")?.reason ??
     undefined
   );
 };
@@ -122,4 +122,30 @@ export const formatTimestamp = (isoTimestamp: string): string => {
   return remainingHours > 0
     ? t("dashboard.timeAgo.daysAndHoursAgo", { days: totalDays, hours: remainingHours })
     : t("dashboard.timeAgo.daysAgo", { count: totalDays });
+};
+
+export interface SystemStatus {
+  variant: StatusTagVariant;
+  labelKey?: string;
+}
+
+/**
+ * Derives the system-health tag from the permissions query — the only live health
+ * signal available until a dedicated health endpoint exists. A 404 means the Brain
+ * has not produced data yet, which is a waiting state rather than an outage.
+ */
+export const deriveSystemStatus = (
+  isLoading: boolean,
+  isError: boolean,
+  errorMessage?: string,
+): SystemStatus => {
+  if (isLoading) return { variant: "stale", labelKey: "dashboard.systemStatus.checking" };
+
+  if (isError) {
+    return errorMessage?.includes("404")
+      ? { variant: "stale", labelKey: "dashboard.systemStatus.awaitingData" }
+      : { variant: "warning", labelKey: "dashboard.systemStatus.degraded" };
+  }
+
+  return { variant: "online" };
 };

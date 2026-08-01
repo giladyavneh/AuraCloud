@@ -5,14 +5,17 @@ import type {
   AwsResource,
   ResourceAction,
 } from "@/services/types/resources.types";
+import {
+  WATCHLIST_ACTIONS_SELECT_WIDTH,
+  WATCHLIST_ACTIONS_VISIBLE_TAGS,
+  WATCHLIST_RESOURCE_SELECT_WIDTH,
+} from "@/constants";
 import Autocomplete from "@mui/material/Autocomplete";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import TextField from "@mui/material/TextField";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-
-const AUTOCOMPLETE_MIN_WIDTH = 280;
 
 const AddResourceForm: React.FC<AddResourceFormProps> = ({ onAdd }) => {
   const { t } = useTranslation();
@@ -47,7 +50,7 @@ const AddResourceForm: React.FC<AddResourceFormProps> = ({ onAdd }) => {
 
     onAdd({
       arn: selectedResource.arn,
-      actions: selectedActions.map((a) => a.actionName),
+      actions: selectedActions.map((action) => action.actionName),
       _id: "",
     });
     setSelectedResource(null);
@@ -63,7 +66,7 @@ const AddResourceForm: React.FC<AddResourceFormProps> = ({ onAdd }) => {
         loading={resourcesLoading}
         getOptionLabel={(option) => option.name || option.arn}
         isOptionEqualToValue={(option, value) => option.arn === value.arn}
-        sx={{ minWidth: AUTOCOMPLETE_MIN_WIDTH }}
+        sx={{ minWidth: WATCHLIST_RESOURCE_SELECT_WIDTH }}
         renderInput={(params) => (
           <TextField
             {...params}
@@ -82,7 +85,8 @@ const AddResourceForm: React.FC<AddResourceFormProps> = ({ onAdd }) => {
         disabled={!selectedResource}
         getOptionLabel={(option) => option.actionName}
         isOptionEqualToValue={(option, value) => option._id === value._id}
-        sx={{ minWidth: AUTOCOMPLETE_MIN_WIDTH }}
+        limitTags={WATCHLIST_ACTIONS_VISIBLE_TAGS}
+        sx={{ width: WATCHLIST_ACTIONS_SELECT_WIDTH }}
         renderValue={(values, getItemProps) =>
           values.map((option, index) => {
             const { key, ...itemProps } = getItemProps({ index });
@@ -110,7 +114,9 @@ const AddResourceForm: React.FC<AddResourceFormProps> = ({ onAdd }) => {
         onClick={handleAdd}
         disabled={!selectedResource}
         size="medium"
-        sx={{ alignSelf: "center" }}
+        // Pinned to the top of the row: the actions field gets taller once
+        // chips appear, and a centred button would slide down with it.
+        sx={{ alignSelf: "flex-start", marginBlockStart: 0.5 }}
       >
         {t("resourceWatchlist.add")}
       </Button>

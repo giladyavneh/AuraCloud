@@ -10,16 +10,15 @@ export const parseWatchlistJson = (json: string): WatchlistResource[] | null => 
 
     if (!Array.isArray(parsed)) return null;
 
-    const isValid = parsed.every(
-      (item) =>
-        typeof item === 'object' &&
-        item !== null &&
-        typeof (item as Record<string, unknown>).arn === 'string' &&
-        Array.isArray((item as Record<string, unknown>).actions) &&
-        ((item as Record<string, unknown>).actions as unknown[]).every(
-          (a) => typeof a === 'string'
-        )
-    );
+    const isValid = parsed.every((item) => {
+      if (typeof item !== 'object' || item === null) return false;
+
+      const { arn, actions } = item as Record<string, unknown>;
+      if (typeof arn !== 'string') return false;
+      if (!Array.isArray(actions)) return false;
+
+      return actions.every((action) => typeof action === 'string');
+    });
 
     if (!isValid) return null;
 
@@ -28,6 +27,17 @@ export const parseWatchlistJson = (json: string): WatchlistResource[] | null => 
     return null;
   }
 };
+
+/**
+ * Normalises a resource list into a stable, comparable shape — sorted by ARN and
+ * stripped of anything but arn/actions — so drafts can be diffed against saved data.
+ */
+export const toComparableResources = (
+  resources: WatchlistResource[],
+): { arn: string; actions: string[] }[] =>
+  [...resources]
+    .sort((first, second) => first.arn.localeCompare(second.arn))
+    .map((resource) => ({ arn: resource.arn, actions: resource.actions }));
 
 /**
  * Converts a WatchlistResource array to a pretty-printed JSON string.

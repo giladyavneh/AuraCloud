@@ -209,6 +209,10 @@ const companySchema = new mongoose.Schema(
     name:       { type: String, required: true },
     slug:       { type: String, required: true },          // URL-safe identifier, e.g. "acme"
     inviteCode: { type: String, required: true },          // 6-digit code required for employee signup
+    // Bumped inside the last-manager-guard transaction (never read for its value) so that
+    // two concurrent guarded ops on the same company touch the same doc and collide as a
+    // real MongoDB write conflict instead of racing past a stale count (write-skew).
+    managerOpsSeq: { type: Number, default: 0 },
     awsCredentials: {
       accessKeyId:     { type: String },
       // Stored encrypted via encryptSecret() — see utils/src/crypto.ts
@@ -241,6 +245,7 @@ const customerSchema = new mongoose.Schema(
     role:             { type: String, enum: ['manager', 'employee'], required: true },
     companyId:        { type: String, required: true },    // references Company._id
     linkedAwsUserId:  { type: String, default: null },     // stores User.externalId (AWS SSO/IAM UserId); null until selected
+    teamId:           { type: String, default: null },     // references Team._id; at most one team per employee in v1
   },
   { timestamps: true },
 );
@@ -253,6 +258,54 @@ export type CustomerDoc = HydratedDocument<Customer>;
 export const CustomerModel =
   (mongoose.models.Customer as mongoose.Model<Customer>) ??
   mongoose.model<Customer>('Customer', customerSchema);
+
+// ==========================================
+// Team — a named group of employees within a Company
+// ==========================================
+const teamSchema = new mongoose.Schema(
+  {
+    companyId: { type: String, required: true, index: true }, // references Company._id
+    name:      { type: String, required: true, trim: true },
+  },
+  { timestamps: true },
+);
+teamSchema.index({ companyId: 1, name: 1 }, { unique: true });
+
+export type Team = InferSchemaType<typeof teamSchema>;
+export type TeamDoc = HydratedDocument<Team>;
+
+export const TeamModel =
+  (mongoose.models.Team as mongoose.Model<Team>) ??
+  mongoose.model<Team>('Team', teamSchema);
+
+// ==========================================
+// WatchlistPreset — a resource-watchlist template applied to a team or an individual
+// ==========================================
+const watchlistPresetSchema = new mongoose.Schema(
+  {
+    companyId: { type: String, required: true, index: true },        // denormalized for cheap tenancy checks
+    scopeType: { type: String, enum: ['team', 'individual'], required: true },
+    scopeId:   { type: String, required: true },                     // Team._id when scopeType='team', Customer._id when 'individual'
+    name:      { type: String },
+    resources: [
+      {
+        _id: false,
+        arn: { type: String, required: true },
+        actions: [{ type: String }],
+      },
+    ],
+    createdBy: { type: String },                                     // Customer._id, informational only
+  },
+  { timestamps: true },
+);
+watchlistPresetSchema.index({ scopeType: 1, scopeId: 1 }, { unique: true });
+
+export type WatchlistPreset = InferSchemaType<typeof watchlistPresetSchema>;
+export type WatchlistPresetDoc = HydratedDocument<WatchlistPreset>;
+
+export const WatchlistPresetModel =
+  (mongoose.models.WatchlistPreset as mongoose.Model<WatchlistPreset>) ??
+  mongoose.model<WatchlistPreset>('WatchlistPreset', watchlistPresetSchema);
 
 export { mongoose };
 export type { RedisClientType } from 'redis';

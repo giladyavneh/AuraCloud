@@ -44,6 +44,23 @@ export const buildServer = (ctx: UserContext): McpServer => {
   }
 
   server.registerTool(
+    "whoami",
+    {
+      title: "Who am I",
+      description:
+        "Identify the AuraCloud user this MCP connection acts as (email, display name, linked AWS user id). Use this when unsure whose watchlist and permissions are being managed.",
+      inputSchema: {},
+      annotations: { readOnlyHint: true },
+    },
+    async () =>
+      ok({
+        email: ctx.email,
+        name: `${ctx.firstName} ${ctx.lastName}`,
+        linkedAwsUserId: ctx.linkedAwsUserId,
+      }),
+  );
+
+  server.registerTool(
     "get_watchlist",
     {
       title: "Get watchlist",
@@ -137,6 +154,7 @@ export const buildServer = (ctx: UserContext): McpServer => {
       inputSchema: {
         arn: z.string().describe("ARN to remove from the watchlist"),
       },
+      annotations: { destructiveHint: true },
     },
     async ({ arn }) => {
       try {

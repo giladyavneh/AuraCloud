@@ -97,6 +97,9 @@ export class IAMPoliciesCrawler extends BaseCrawler {
     // AWS  + OnlyAttached:true    → in-use AWS managed only (e.g. AmazonS3FullAccess), not every AWS policy.
     // Omitting Scope (All) would either list thousands of unused AWS managed policies (OnlyAttached:false)
     // or drop unattached customer-managed policies (OnlyAttached:true).
+    // Known limitation (Single-account assumption): Scope: 'AWS', OnlyAttached: true only returns
+    // AWS-managed policies attached to an IAM entity in the credential account. In multi-account AWS orgs,
+    // permission-set managed policies provisioned onto AWSReservedSSO_* roles in member accounts will not be listed here.
     const listed = [
       ...(await this.listPolicies('Local', false)),
       ...(await this.listPolicies('AWS', true)),

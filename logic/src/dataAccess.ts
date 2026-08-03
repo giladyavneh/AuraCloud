@@ -47,6 +47,9 @@ export async function getIAMUser(redis: RedisClientType, userId: string) {
   const userData = JSON.parse(rawUser);
 
   if (userData.Groups?.length) {
+    // Known limitation (Tenancy Hardening): `aura:iam:groups` is keyed by bare GroupName, which is only unique
+    // per AWS account and shared across tenants. In multi-tenant environments, group names (e.g. 'Developers')
+    // could collide across accounts. Future fix: key by group ARN or prefix by company/account ID.
     const rawGroups = await Promise.all(
       userData.Groups.map((groupName: string) => redis.hGet('aura:iam:groups', groupName)),
     );

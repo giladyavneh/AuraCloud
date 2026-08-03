@@ -68,7 +68,12 @@ const editDistance = (a: string, b: string): number => {
 /** Closest discovered ARN of the same service, or null when nothing is close. */
 const suggestSimilarArn = async (arn: string): Promise<string | null> => {
   const service = arn.split(":")[2] ?? "";
-  const docs = await AwsResourceModel.find({}).select("arn").limit(500).lean().exec();
+  // Internal Aura identities are excluded — never suggest an ARN we refuse to watch.
+  const docs = await AwsResourceModel.find({ arn: { $nin: INTERNAL_AWS_USER_ARNS } })
+    .select("arn")
+    .limit(500)
+    .lean()
+    .exec();
   let best: { arn: string; distance: number } | null = null;
   for (const doc of docs) {
     if ((doc.arn.split(":")[2] ?? "") !== service) continue;

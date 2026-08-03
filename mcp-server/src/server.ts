@@ -49,7 +49,7 @@ export const buildServer = (ctx: UserContext): McpServer => {
       title: "Get watchlist",
       description:
         "Get the current AWS resource watchlist for the configured AuraCloud user (the resources and IAM actions being monitored). Use this first to see what is already monitored before adding, removing, or updating resources.",
-      inputSchema: {},
+      inputSchema: z.object({}),
       annotations: { readOnlyHint: true },
     },
     async () => {
@@ -76,7 +76,7 @@ export const buildServer = (ctx: UserContext): McpServer => {
       title: "Get permission status",
       description:
         "Get Aura's evaluated permission status for the user's watched AWS resources: allowed ('valid') or blocked ('error') per IAM action, with the exact deny reason. This is the primary diagnostic tool — when the user reports an AWS operation failing (access denied, timeouts, silent failures), call this to determine whether cloud configuration is the cause. The summary always reflects the full watchlist even when filters are applied. Set includeDetails to true for the full policy evaluation trace (identity/resource/SCP steps and context keys).",
-      inputSchema: {
+      inputSchema: z.object({
         arn: z
           .string()
           .optional()
@@ -93,7 +93,7 @@ export const buildServer = (ctx: UserContext): McpServer => {
           .boolean()
           .default(false)
           .describe("Include the full policy evaluation trace and evaluation timestamp per action. The trace is verbose — combine with an arn/action/status filter to keep the response small"),
-      },
+      }),
       annotations: { readOnlyHint: true },
     },
     async ({ arn, action, status, includeDetails }) => {
@@ -111,13 +111,13 @@ export const buildServer = (ctx: UserContext): McpServer => {
       title: "Add watchlist resource",
       description:
         "Add an AWS resource (by ARN) to the user's monitoring watchlist, optionally with the IAM actions to monitor on it. Use this when the user wants to start monitoring a resource that is not on the watchlist yet; it creates the watchlist automatically if none exists. The ARN must be one of the discovered resources — find the exact ARN with list_aws_resources first (unknown ARNs are rejected, with a suggestion when a close match exists). Fails if the ARN is already watched — use update_resource_actions in that case.",
-      inputSchema: {
+      inputSchema: z.object({
         arn: z.string().describe("Full AWS ARN of the resource to watch, exactly as returned by list_aws_resources"),
         actions: z
           .array(z.string())
           .default([])
           .describe("IAM action names to monitor, e.g. s3:GetObject"),
-      },
+      }),
     },
     async ({ arn, actions }) => {
       try {
@@ -134,9 +134,9 @@ export const buildServer = (ctx: UserContext): McpServer => {
       title: "Remove watchlist resource",
       description:
         "Remove an AWS resource (by ARN) from the user's monitoring watchlist. Use this when the user no longer wants a resource monitored. Fails if the ARN is not currently on the watchlist.",
-      inputSchema: {
+      inputSchema: z.object({
         arn: z.string().describe("ARN to remove from the watchlist"),
-      },
+      }),
     },
     async ({ arn }) => {
       try {
@@ -153,12 +153,12 @@ export const buildServer = (ctx: UserContext): McpServer => {
       title: "Update resource actions",
       description:
         "Replace the list of monitored IAM actions for a resource that is already on the watchlist. Use this to change which actions are monitored (the provided array fully replaces the existing one). Action names not present in the known-actions catalogue are accepted but flagged in a warnings array. Fails if the ARN is not on the watchlist — use add_watchlist_resource first.",
-      inputSchema: {
+      inputSchema: z.object({
         arn: z.string().describe("ARN of the watched resource to update"),
         actions: z
           .array(z.string())
           .describe("Replaces the resource's full actions array"),
-      },
+      }),
     },
     async ({ arn, actions }) => {
       try {
@@ -175,7 +175,7 @@ export const buildServer = (ctx: UserContext): McpServer => {
       title: "List AWS resources",
       description:
         "List AWS resources discovered in the connected AWS account (ARN, type, name, account, region). Use this to find a resource's exact ARN before adding it to the watchlist, or to explore what exists in the account. Optionally filter by resourceType.",
-      inputSchema: {
+      inputSchema: z.object({
         resourceType: z
           .string()
           .optional()
@@ -191,7 +191,7 @@ export const buildServer = (ctx: UserContext): McpServer => {
           .max(500)
           .default(100)
           .describe("Maximum number of resources to return"),
-      },
+      }),
       annotations: { readOnlyHint: true },
     },
     async ({ resourceType, nameContains, limit }) => {
@@ -209,9 +209,9 @@ export const buildServer = (ctx: UserContext): McpServer => {
       title: "Get resource actions",
       description:
         "Get the IAM actions available for a discovered AWS resource (by ARN), derived from the policies attached to its service. Use this to see which actions can be monitored on a resource before adding it to the watchlist or updating its actions.",
-      inputSchema: {
+      inputSchema: z.object({
         arn: z.string().describe("ARN of a discovered AWS resource"),
-      },
+      }),
       annotations: { readOnlyHint: true },
     },
     async ({ arn }) => {

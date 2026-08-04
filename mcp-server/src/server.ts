@@ -11,6 +11,7 @@ import {
 } from "./watchlist.js";
 import { getResourceActions, listAwsResources } from "./resources.js";
 import { getPermissionStatus } from "./permissions.js";
+import { checkTheoreticalPermission } from "./theoretical.js";
 
 const ok = (data: unknown): CallToolResult => ({
   content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
@@ -99,6 +100,33 @@ export const buildServer = (ctx: UserContext): McpServer => {
     async ({ arn, action, status, includeDetails }) => {
       try {
         return ok(await getPermissionStatus(ctx, { arn, action, status, includeDetails }));
+      } catch (err) {
+        return handleError(err);
+      }
+    },
+  );
+
+  server.registerTool(
+    "check_theoretical_permission",
+    {
+      title: "Check theoretical permission",
+      description:
+        "Evaluate, live and read-only, whether the user's policies would allow an IAM action on any discovered AWS resource — WITHOUT adding it to the watchlist. Use this for what-if questions ('would I be allowed to s3:PutObject on bucket X?') and for diagnosing resources that are not monitored. The verdict comes from the same policy evaluator the dashboard uses, computed on the spot from the latest crawled data — no waiting for an evaluation cycle. The resource stays unwatched; use add_watchlist_resource for continuous monitoring.",
+      inputSchema: z.object({
+        arn: z
+          .string()
+          .describe("Full ARN of a discovered AWS resource (watched or not) — find it with list_aws_resources"),
+        action: z.string().describe("IAM action to evaluate, e.g. s3:GetObject"),
+        includeDetails: z
+          .boolean()
+          .default(false)
+          .describe("Include the full policy evaluation trace (identity/resource/SCP steps and context keys)"),
+      }),
+      annotations: { readOnlyHint: true },
+    },
+    async ({ arn, action, includeDetails }) => {
+      try {
+        return ok(await checkTheoreticalPermission(ctx, arn, action, includeDetails));
       } catch (err) {
         return handleError(err);
       }

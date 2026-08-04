@@ -88,8 +88,9 @@ const suggestSimilarArn = async (arn: string): Promise<string | null> => {
  * Rejects ARNs that are malformed or not in the discovered-resource catalogue.
  * Watching an undiscovered ARN would poison the diagnostics: the logic engine
  * evaluates it against empty resource data and emits confident wrong verdicts.
+ * Also guards theoretical checks — evaluating fiction produces fiction.
  */
-const assertWatchableArn = async (arn: string): Promise<void> => {
+export const assertWatchableArn = async (arn: string): Promise<void> => {
   if (!ARN_REGEX.test(arn)) {
     throw new DomainError(
       `"${arn}" is not a valid ARN (expected arn:partition:service:region:account:resource)`,
@@ -110,7 +111,7 @@ const assertWatchableArn = async (arn: string): Promise<void> => {
 };
 
 /** Non-fatal warnings for action names missing from the known-actions catalogue. */
-const unknownActionWarnings = async (arn: string, actions: string[]): Promise<string[]> => {
+export const unknownActionWarnings = async (arn: string, actions: string[]): Promise<string[]> => {
   const serviceKey = (arn.split(":")[2] ?? "").toLowerCase();
   const docs = await ResourceActionModel.find({ resourceType: serviceKey })
     .select("actionName")

@@ -307,6 +307,79 @@ export const WatchlistPresetModel =
   (mongoose.models.WatchlistPreset as mongoose.Model<WatchlistPreset>) ??
   mongoose.model<WatchlistPreset>('WatchlistPreset', watchlistPresetSchema);
 
+// ==========================================
+// OAuthClient — an AI client that registered itself via Dynamic Client Registration
+// ==========================================
+const oauthClientSchema = new mongoose.Schema(
+  {
+    clientId:              { type: String, required: true },
+    clientName:            { type: String, default: null },       // self-reported at registration, never verified
+    redirectUris:          [{ type: String, required: true }],
+    // The MCP SDK compares the presented secret against this value verbatim, so it
+    // cannot be hashed. Public clients (PKCE only, which is what AI clients use) leave it null.
+    clientSecret:          { type: String, default: null },
+    clientSecretExpiresAt: { type: Number, default: null },       // seconds since epoch; 0 means never
+  },
+  { timestamps: true },
+);
+oauthClientSchema.index({ clientId: 1 }, { unique: true });
+
+export type OAuthClient = InferSchemaType<typeof oauthClientSchema>;
+export type OAuthClientDoc = HydratedDocument<OAuthClient>;
+
+export const OAuthClientModel =
+  (mongoose.models.OAuthClient as mongoose.Model<OAuthClient>) ??
+  mongoose.model<OAuthClient>('OAuthClient', oauthClientSchema);
+
+// ==========================================
+// OAuthGrant — one customer's standing authorization for one AI client
+// ==========================================
+const oauthGrantSchema = new mongoose.Schema(
+  {
+    customerId:       { type: String, required: true, index: true },  // references Customer._id
+    clientId:         { type: String, required: true },               // references OAuthClient.clientId
+    refreshTokenHash: { type: String, required: true, index: true },  // sha256 of the opaque refresh token
+    scopes:           [{ type: String }],                             // always ['full'] today; kept so granular grants stay possible
+    lastUsedAt:       { type: Date, default: null },
+  },
+  { timestamps: true },
+);
+oauthGrantSchema.index({ customerId: 1, clientId: 1 }, { unique: true });
+
+export type OAuthGrant = InferSchemaType<typeof oauthGrantSchema>;
+export type OAuthGrantDoc = HydratedDocument<OAuthGrant>;
+
+export const OAuthGrantModel =
+  (mongoose.models.OAuthGrant as mongoose.Model<OAuthGrant>) ??
+  mongoose.model<OAuthGrant>('OAuthGrant', oauthGrantSchema);
+
+// ==========================================
+// OAuthAuthCode — a one-time code handed to a client after the user approves consent
+// ==========================================
+const oauthAuthCodeSchema = new mongoose.Schema(
+  {
+    code:          { type: String, required: true },
+    customerId:    { type: String, required: true },   // references Customer._id
+    clientId:      { type: String, required: true },   // references OAuthClient.clientId
+    redirectUri:   { type: String, required: true },   // must match the one presented at token exchange
+    codeChallenge: { type: String, required: true },   // PKCE S256 challenge
+    scopes:        [{ type: String }],
+    expiresAt:     { type: Date, required: true },
+  },
+  { timestamps: true },
+);
+oauthAuthCodeSchema.index({ code: 1 }, { unique: true });
+// Mongo's TTL monitor only sweeps about once a minute, so an expired code can still
+// be readable. Readers must check expiresAt themselves; this index is cleanup, not enforcement.
+oauthAuthCodeSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+export type OAuthAuthCode = InferSchemaType<typeof oauthAuthCodeSchema>;
+export type OAuthAuthCodeDoc = HydratedDocument<OAuthAuthCode>;
+
+export const OAuthAuthCodeModel =
+  (mongoose.models.OAuthAuthCode as mongoose.Model<OAuthAuthCode>) ??
+  mongoose.model<OAuthAuthCode>('OAuthAuthCode', oauthAuthCodeSchema);
+
 export { mongoose };
 export type { RedisClientType } from 'redis';
 export * from './utils.js';

@@ -13,6 +13,7 @@
     "frontend"
   ],
   "scripts": {
+    "test": "vitest run",
     "start": "sh -c 'if [ -z \"$1\" ]; then echo \"Usage: npm start <workspace>\"; exit 1; fi; npm run dev -w \"$1\"' --",
     "build": "sh -c 'if [ -z \"$1\" ]; then echo \"Usage: npm run build <workspace>\"; exit 1; fi; npm run build -w \"$1\"' --",
     "build:all": "npm run build -w utils && npm run build --workspaces --if-present",
@@ -27,5 +28,8 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.10"
   }
 }

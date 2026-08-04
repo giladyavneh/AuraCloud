@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { CustomerModel, TeamModel } from "../db.js";
+import { CustomerModel, OAuthGrantModel, TeamModel } from "../db.js";
 import { mongoose } from "utils";
 import { applyPresetsToMember } from "../presets.js";
 import { toEmployeeResponse } from "../helpers/response.helpers.js";
@@ -49,6 +49,9 @@ router.delete("/api/employees/:id", requireAuth, requireManager, async (req, res
     } else {
       await CustomerModel.deleteOne({ _id: target._id });
     }
+
+    // Their AI clients hold refresh tokens that outlive the account otherwise.
+    await OAuthGrantModel.deleteMany({ customerId: target._id.toString() });
 
     res.status(204).send();
   } catch (err) {

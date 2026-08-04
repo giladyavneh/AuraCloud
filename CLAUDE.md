@@ -79,8 +79,11 @@ Conventions:
 - **`services/` + `hooks/`** — API calls and their React Query wrappers
 
 ## Tests
-No test framework is installed. Checks are plain assert scripts run with `tsx`:
-- `api-server/src/presets.test.ts` — preset merge semantics (`npx tsx api-server/src/presets.test.ts`)
+Vitest is installed at the repo root; run the suite with `npm test`. `vitest.config.ts` picks up
+`*/src/**/*.test.ts`, aliases `utils` to its source so tests never run against a stale `utils/dist`,
+and supplies the `JWT_SECRET` that `config.ts` requires.
+- `api-server/src/presets.test.ts` — preset merge semantics
+- `api-server/src/oauth.provider.test.ts` — OAuth code/token lifecycle; mocks the models, so no live Mongo
 - `api-server/src/lastManagerRace.manual.ts` — manual integration check; needs a running server and live Mongo
 
 ## Immediate Next Steps

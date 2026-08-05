@@ -10,6 +10,7 @@ import {
   LoginForm,
   LoginRoot,
 } from "@/pages/login/components/login.styled";
+import { resolveNextPath } from "@/pages/login/helpers/login.helpers";
 import PasswordField from "@/components/passwordField/PasswordField";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
@@ -21,29 +22,34 @@ import type { LoginFormValues } from "@/pages/login/types/login.types";
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/context/auth/AuthContext";
 
 const Login: React.FC = () => {
   const { t } = useTranslation();
   const theme = useTheme();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { customer } = useAuth();
   const { mutate: doLogin, isPending, error } = useLogin();
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>();
 
+  const nextPath = resolveNextPath(searchParams.get("next"));
+
   // Redirect already-authenticated users
   useEffect(() => {
     if (customer) {
-      navigate(customer.hasAwsConnected ? "/dashboard" : "/onboard", { replace: true });
+      navigate(nextPath ?? (customer.hasAwsConnected ? "/dashboard" : "/onboard"), {
+        replace: true,
+      });
     }
-  }, [customer, navigate]);
+  }, [customer, navigate, nextPath]);
 
   const onSubmit = (values: LoginFormValues) => {
     doLogin(values, {
       onSuccess: ({ customer: c }) => {
-        navigate(c.hasAwsConnected ? "/dashboard" : "/onboard", { replace: true });
+        navigate(nextPath ?? (c.hasAwsConnected ? "/dashboard" : "/onboard"), { replace: true });
       },
     });
   };

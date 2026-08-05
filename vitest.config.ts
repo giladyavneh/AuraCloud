@@ -5,7 +5,11 @@ export default defineConfig({
   resolve: {
     // Resolve the workspace package to its source, mirroring the tsconfig `paths`.
     // Left alone, tests would run against whatever was last built into utils/dist.
-    alias: { utils: fileURLToPath(new URL("./utils/src/index.ts", import.meta.url)) },
+    alias: {
+      utils: fileURLToPath(new URL("./utils/src/index.ts", import.meta.url)),
+      // Mirrors the frontend's own vite alias, so its helpers keep their `@/` imports.
+      "@": fileURLToPath(new URL("./frontend/src", import.meta.url)),
+    },
   },
   test: {
     include: ["*/src/**/*.test.ts"],

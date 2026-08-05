@@ -15,6 +15,13 @@
       "autoPort": false
     },
     {
+      "name": "MCP Server (HTTP)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:http", "-w", "mcp-server"],
+      "port": 3001,
+      "autoPort": false
+    },
+    {
       "name": "Crawlers",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "-w", "crawlers"]

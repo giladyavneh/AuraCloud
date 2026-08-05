@@ -32,6 +32,13 @@ export interface ApprovalRequest {
   state?: string;
 }
 
+export interface ConsentRequestInfo {
+  clientId: string;
+  clientName: string | null;
+  redirectUri: string;
+  isRedirectUriRegistered: boolean;
+}
+
 const ACCESS_TOKEN_TTL_SECONDS = 60 * 60;
 const AUTHORIZATION_CODE_TTL_SECONDS = 60;
 const CONSENT_PATH = "/oauth/authorize";
@@ -42,6 +49,10 @@ function randomToken(): string {
 
 function hashToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+function isRedirectUriRegistered(client: OAuthClient, redirectUri: string): boolean {
+  return client.redirectUris.some((registered) => redirectUriMatches(redirectUri, registered));
 }
 
 function toClientInformation(client: OAuthClient): OAuthClientInformationFull {
@@ -250,6 +261,29 @@ export const oauthProvider: OAuthServerProvider = {
   },
 };
 
+/**
+ * What the consent screen needs to describe the request, and — the part that matters —
+ * whether the redirect target is one the client actually registered. The consent screen's
+ * deny path navigates to that URI, so without this answer our own origin would redirect
+ * anywhere an attacker put in the query string.
+ *
+ * Returns null for an unknown client so the caller can 404 it.
+ */
+export async function describeConsentRequest(
+  clientId: string,
+  redirectUri: string,
+): Promise<ConsentRequestInfo | null> {
+  const client = await OAuthClientModel.findOne({ clientId }).lean();
+  if (!client) return null;
+
+  return {
+    clientId,
+    clientName: client.clientName ?? null,
+    redirectUri,
+    isRedirectUriRegistered: isRedirectUriRegistered(client, redirectUri),
+  };
+}
+
 /** Throws an OAuthError if the client or its redirect URI does not check out. */
 export async function approveAuthorization(request: ApprovalRequest): Promise<string> {
   const client = await OAuthClientModel.findOne({ clientId: request.clientId }).lean();
@@ -257,10 +291,9 @@ export async function approveAuthorization(request: ApprovalRequest): Promise<st
 
   // These parameters travel through the browser, so the redirect target has to be
   // re-checked against the registration before a code is minted for it.
-  const isRegistered = client.redirectUris.some((registered) =>
-    redirectUriMatches(request.redirectUri, registered),
-  );
-  if (!isRegistered) throw new InvalidRequestError("Unregistered redirect_uri");
+  if (!isRedirectUriRegistered(client, request.redirectUri)) {
+    throw new InvalidRequestError("Unregistered redirect_uri");
+  }
 
   const code = randomToken();
   await OAuthAuthCodeModel.create({

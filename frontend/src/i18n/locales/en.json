@@ -161,6 +161,67 @@
     "signUpPrompt": "Don't have an account?",
     "signUpLink": "Sign up"
   },
+  "consent": {
+    "title": "Connect an AI client",
+    "signedInAs": "You're signing in as {{email}} at {{company}}.",
+
+    "destination": {
+      "sectionLabel": "Where your access will be sent",
+      "tag": {
+        "local": "Your computer",
+        "remote": "External server"
+      },
+      "headline": {
+        "local": "This connects to a program running on your own computer.",
+        "remote": "This sends your Aura Cloud access to a server on the internet."
+      },
+      "hint": {
+        "local": "That's what you'd expect if you just ran a command in your terminal.",
+        "remote": "Only continue if you recognise this address. If you started this from your terminal, it should point at your own computer — not a website."
+      },
+      "fullUrlLabel": "Full address",
+      "copy": "Copy address",
+      "copied": "Copied!"
+    },
+
+    "client": {
+      "unnamed": "an app that didn't give a name",
+      "notice": "Requested by {{clientName}} — this name was chosen by the app itself. We don't check it, and anyone can register any name, so trust the address above, not this."
+    },
+
+    "access": {
+      "sectionLabel": "What it will be able to do",
+      "readStatus": "See the health and permission status of every AWS resource you monitor",
+      "manageWatchlist": "Add, change, and remove resources on your watchlist",
+      "actAsYou": "Do all of this as you — it sees exactly what you see, nothing more"
+    },
+
+    "awsNotLinked": {
+      "title": "You haven't linked an AWS identity yet",
+      "body": "You can still connect, but the AI's tools will return an error until you link one. You can do that any time from Settings."
+    },
+
+    "acknowledge": "I understand this sends my Aura Cloud access to {{host}}",
+
+    "loading": "Checking this request…",
+
+    "approve": "Approve",
+    "approving": "Connecting…",
+    "deny": "Deny",
+    "denying": "Returning you…",
+
+    "footerNote": "You can disconnect this at any time from Settings.",
+
+    "invalid": {
+      "title": "This request doesn't look right",
+      "body": "The link you followed is incomplete, has expired, or points somewhere the app didn't register. Nothing has been connected and your account is unchanged. Go back to your terminal and run the connect command again.",
+      "backToDashboard": "Back to dashboard"
+    },
+
+    "loadError": "Couldn't load the details of this request.",
+    "retry": "Retry",
+    "approveError": "Couldn't complete the connection. {{error}}"
+  },
   "onboard": {
     "title": "Connect your AWS account",
     "subtitle": "Aura needs read-only access to your AWS account to start monitoring your infrastructure.",

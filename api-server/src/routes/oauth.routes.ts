@@ -3,7 +3,7 @@ import { mcpAuthRouter } from "@modelcontextprotocol/sdk/server/auth/router.js";
 import { OAuthError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import { ISSUER_URL, MCP_SERVER_URL } from "../config.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
-import { approveAuthorization, oauthProvider } from "../oauth.provider.js";
+import { approveAuthorization, describeConsentRequest, oauthProvider } from "../oauth.provider.js";
 
 const router = Router();
 
@@ -17,6 +17,29 @@ router.use(
     resourceServerUrl: new URL(MCP_SERVER_URL),
   }),
 );
+
+// Behind requireAuth so the registered-client list is not publicly enumerable.
+router.get("/api/oauth/consent", requireAuth, async (req, res) => {
+  try {
+    const { client_id: clientId, redirect_uri: redirectUri } = req.query;
+
+    if (typeof clientId !== "string" || typeof redirectUri !== "string") {
+      res.status(400).json({ message: "client_id and redirect_uri are required" });
+      return;
+    }
+
+    const consent = await describeConsentRequest(clientId, redirectUri);
+    if (!consent) {
+      res.status(404).json({ message: "Unknown client" });
+      return;
+    }
+
+    res.json(consent);
+  } catch (err) {
+    console.error("GET /api/oauth/consent failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
 
 router.post("/api/oauth/approve", requireAuth, async (req, res) => {
   try {

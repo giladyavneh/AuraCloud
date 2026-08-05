@@ -79,7 +79,9 @@ vi.mock("./db.js", () => ({
   OAuthAuthCodeModel,
 }));
 
-const { approveAuthorization, oauthProvider } = await import("./oauth.provider.js");
+const { approveAuthorization, describeConsentRequest, oauthProvider } = await import(
+  "./oauth.provider.js"
+);
 const { requireAuth, signToken } = await import("./middleware/auth.middleware.js");
 
 const CUSTOMER_ID = "customer-1";
@@ -152,6 +154,45 @@ describe("authorize", () => {
     expect(consentUrl.searchParams.get("redirect_uri")).toBe(REDIRECT_URI);
     expect(consentUrl.searchParams.get("code_challenge")).toBe(CODE_CHALLENGE);
     expect(consentUrl.searchParams.get("state")).toBe("state-123");
+  });
+});
+
+describe("describeConsentRequest", () => {
+  test("names the client and confirms a registered redirect_uri", async () => {
+    await expect(describeConsentRequest(client.client_id, REDIRECT_URI)).resolves.toEqual({
+      clientId: client.client_id,
+      clientName: "Claude Code",
+      redirectUri: REDIRECT_URI,
+      isRedirectUriRegistered: true,
+    });
+  });
+
+  // The consent screen's deny path navigates to this URI, so a false here is the only
+  // thing standing between us and an open redirect on our own origin.
+  test("reports a redirect_uri the client never registered as unregistered", async () => {
+    const consent = await describeConsentRequest(
+      client.client_id,
+      "https://attacker.example.com/callback",
+    );
+
+    expect(consent?.isRedirectUriRegistered).toBe(false);
+  });
+
+  // The route turns this null into a 404.
+  test("returns null for an unknown client", async () => {
+    await expect(describeConsentRequest("client-does-not-exist", REDIRECT_URI)).resolves.toBeNull();
+  });
+
+  test("reports a null clientName rather than inventing one", async () => {
+    OAuthClientModel.docs.push({
+      clientId: "anonymous-client",
+      clientName: null,
+      redirectUris: [REDIRECT_URI],
+    });
+
+    const consent = await describeConsentRequest("anonymous-client", REDIRECT_URI);
+
+    expect(consent?.clientName).toBeNull();
   });
 });
 

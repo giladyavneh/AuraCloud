@@ -5,6 +5,7 @@ import CompanyLanding from "@/pages/companyLanding/CompanyLanding";
 import CompanySignUp from "@/pages/companySignUp/CompanySignUp";
 import Dashboard from "@/pages/dashboard/Dashboard";
 import Login from "@/pages/login/Login";
+import OAuthConsent from "@/pages/oauthConsent/OAuthConsent";
 import Onboard from "@/pages/onboard/Onboard";
 import ResourceWatchlist from "@/pages/resourceWatchlist/ResourceWatchlist";
 import SelectAwsUser from "@/pages/selectAwsUser/SelectAwsUser";
@@ -19,6 +20,11 @@ const App: React.FC = () => (
     {/* Public routes */}
     <Route path="/login" element={<Login />} />
     <Route path="/sign-up" element={<SignUp />} />
+
+    {/* OAuth consent: outside both guards. OnboardGuard would bounce a user who has not
+        linked an AWS identity to /onboard, but that user is still allowed to approve.
+        The page owns its own auth check and returns here after login. */}
+    <Route path="/oauth/authorize" element={<OAuthConsent />} />
 
     {/* Company entry points — public, slug-scoped */}
     <Route path="/:slug" element={<CompanyLanding />} />

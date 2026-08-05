@@ -50,6 +50,36 @@ The server speaks MCP over **stdio** — stdout is the protocol channel. All log
 
 Note: SDK 1.29 rejects `tools/call` requests that omit the spec-optional `arguments` field; `buildServer` installs a small normalization shim so bare calls (e.g. `get_permission_status` with no filters) work with any client.
 
+## Remote (HTTP) mode
+
+A second entry point serves MCP over **Streamable HTTP** with per-user JWT auth — no repo, `.env`, or Node setup on the client side:
+
+```sh
+npm run dev:http -w mcp-server
+```
+
+| Env var | Purpose |
+|---|---|
+| `MCP_HTTP_PORT` | Listen port (default 3001); endpoint is `POST /mcp`, liveness at `GET /healthz` |
+| `JWT_SECRET` | **Required.** Same secret the api-server signs tokens with (picked up from `api-server/.env` via the fallback chain) |
+
+Every request must carry `Authorization: Bearer <JWT>` where the token payload is `{ customerId, email }` — exactly what the api-server's `signToken` produces. Identity is resolved **per request**, so re-linking an AWS user applies immediately. The server is stateless (fresh transport per request): no sessions, horizontally scalable.
+
+Two things to know: tokens are currently **unscoped** — any api-server login JWT works here; an `aud: "mcp"` claim should be agreed before `/api/auth/mcp-token` ships long-lived tokens (retrofitting it later invalidates issued tokens). And when testing with `curl`, send `Accept: application/json, text/event-stream` — the MCP SDK 406s without it (real MCP clients always send both).
+
+Connect a client:
+
+```sh
+claude mcp add --transport http auracloud-remote http://localhost:3001/mcp \
+  --header "Authorization: Bearer <token>"
+```
+
+Until the Settings page issues tokens (`POST /api/auth/mcp-token`, in progress), mint a dev token manually:
+
+```sh
+node -e "console.log(require('jsonwebtoken').sign({customerId:'<Customer._id>',email:'<email>'}, process.env.JWT_SECRET, {expiresIn:'90d'}))"
+```
+
 ## Connecting an AI client
 
 The repo-root `.mcp.json` already registers the server for Claude Code (project-scoped). To register manually elsewhere:

@@ -1,6 +1,7 @@
+import type { RedirectClass } from '@/types/redirectUri.types';
 import type { ReactNode } from 'react';
 
-export type RedirectClass = 'local' | 'remote' | 'blocked';
+export type { RedirectClass };
 
 /**
  * `blocked` is routed to the dead-end page instead of the destination panel, so nothing
@@ -15,12 +16,6 @@ export interface ConsentParams {
   codeChallenge: string;
   scopes: string[];
   state?: string;
-}
-
-export interface HostLabels {
-  /** Everything before the last two labels, trailing dot included. Rendered dimmed. */
-  dim: string;
-  emphasised: string;
 }
 
 export interface ConsentReadyState {

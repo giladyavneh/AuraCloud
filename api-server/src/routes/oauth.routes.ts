@@ -3,9 +3,17 @@ import { mcpAuthRouter } from "@modelcontextprotocol/sdk/server/auth/router.js";
 import { OAuthError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import { ISSUER_URL, MCP_SERVER_URL } from "../config.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
-import { approveAuthorization, describeConsentRequest, oauthProvider } from "../oauth.provider.js";
+import { validateObjectIdParam } from "../middleware/objectId.middleware.js";
+import {
+  approveAuthorization,
+  describeConsentRequest,
+  listConnectedClients,
+  oauthProvider,
+  revokeGrant,
+} from "../oauth.provider.js";
 
 const router = Router();
+router.param("id", validateObjectIdParam);
 
 // The SDK router's paths are absolute, so this must stay mounted without a prefix.
 router.use(
@@ -68,6 +76,31 @@ router.post("/api/oauth/approve", requireAuth, async (req, res) => {
       return;
     }
     console.error("POST /api/oauth/approve failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+router.get("/api/oauth/grants", requireAuth, async (req, res) => {
+  try {
+    const clients = await listConnectedClients(req.customer!.customerId);
+    res.json(clients);
+  } catch (err) {
+    console.error("GET /api/oauth/grants failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+router.delete("/api/oauth/grants/:id", requireAuth, async (req, res) => {
+  try {
+    const wasRevoked = await revokeGrant(req.customer!.customerId, String(req.params.id));
+    if (!wasRevoked) {
+      res.status(404).json({ message: "Connection not found" });
+      return;
+    }
+
+    res.status(204).send();
+  } catch (err) {
+    console.error("DELETE /api/oauth/grants/:id failed:", err);
     res.status(500).json({ message: "Server Error" });
   }
 });

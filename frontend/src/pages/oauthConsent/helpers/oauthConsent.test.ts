@@ -1,11 +1,14 @@
 import {
-  buildDenyUrl,
   classifyRedirectUri,
+  redirectUriHost,
+  splitHostLabels,
+} from '@/helpers/redirectUri.helpers';
+import {
+  buildDenyUrl,
   formatRedirectPath,
   isNotFoundError,
   isStaleRequestError,
   parseConsentParams,
-  splitHostLabels,
 } from '@/pages/oauthConsent/helpers/oauthConsent.helpers';
 import { describe, expect, test } from 'vitest';
 
@@ -67,6 +70,28 @@ describe('classifyRedirectUri', () => {
   // DNS resolves a trailing-dot host normally, so this must not read as remote.
   test('treats a trailing-dot loopback host as local', () => {
     expect(classifyRedirectUri('http://localhost./cb', true)).toBe('local');
+  });
+});
+
+describe('redirectUriHost', () => {
+  test('reads the host and port a person recognises the client by', () => {
+    expect(redirectUriHost('http://localhost:41234/callback')).toBe('localhost:41234');
+  });
+
+  // The userinfo trick: everything before the @ is a decoration, and the host that
+  // actually receives the code is the part after it.
+  test('names the host that receives the code, not the one dressed up as userinfo', () => {
+    expect(redirectUriHost('http://localhost@evil.io/cb')).toBe('evil.io');
+  });
+
+  // A custom scheme parses, so an optional-chained host yields '' — and a blank origin
+  // leaves the self-reported client name as the only thing identifying a connection.
+  test('falls back to the raw string for a scheme that parses with no host', () => {
+    expect(redirectUriHost('com.example.app:/cb')).toBe('com.example.app:/cb');
+  });
+
+  test('has nothing to show for an empty address, and says so by staying empty', () => {
+    expect(redirectUriHost('')).toBe('');
   });
 });
 

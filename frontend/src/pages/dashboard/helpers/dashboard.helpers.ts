@@ -4,9 +4,9 @@ import type {
   ActionData,
 } from "@/services/types/resources.types";
 import type { AwsService } from "@/components/awsServiceIcon/types/awsServiceIcon.types";
-import i18next from "i18next";
 
 export { inferServiceFromArn, inferTitleFromArn } from "@/helpers/arn.helpers";
+export { formatTimestamp } from "@/helpers/time.helpers";
 
 export type ResourceCategory = "iam" | "network" | "resource";
 
@@ -85,43 +85,6 @@ export const getTimestampFromArnData = (data: ArnPermissionData): string => {
   if (isTopLevelArnData(data)) return data.timestamp;
   const firstAction = Object.values(data as Record<string, ActionData>)[0];
   return firstAction?.timestamp ?? "";
-};
-
-const { t } = i18next;
-
-/** Formats an ISO timestamp as a human-readable relative time string. */
-export const formatTimestamp = (isoTimestamp: string): string => {
-  if (!isoTimestamp) return t("dashboard.timeAgo.unknown");
-
-  const diffMs = Date.now() - new Date(isoTimestamp).getTime();
-  const totalMinutes = Math.floor(diffMs / 60_000);
-  const totalHours = Math.floor(totalMinutes / 60);
-  const totalDays = Math.floor(totalHours / 24);
-
-  if (totalMinutes < 1) return t("dashboard.timeAgo.lessThanMinute");
-  if (totalMinutes < 60) return t("dashboard.timeAgo.minutesAgo", { count: totalMinutes });
-
-  if (totalHours < 24) {
-    const remainingMinutes = totalMinutes % 60;
-    if (totalHours === 1) {
-      return remainingMinutes > 0
-        ? t("dashboard.timeAgo.oneHourAndMinutesAgo", { minutes: remainingMinutes })
-        : t("dashboard.timeAgo.oneHourAgo");
-    }
-    return remainingMinutes > 0
-      ? t("dashboard.timeAgo.hoursAndMinutesAgo", { hours: totalHours, minutes: remainingMinutes })
-      : t("dashboard.timeAgo.hoursAgo", { count: totalHours });
-  }
-
-  const remainingHours = totalHours % 24;
-  if (totalDays === 1) {
-    return remainingHours > 0
-      ? t("dashboard.timeAgo.oneDayAndHoursAgo", { hours: remainingHours })
-      : t("dashboard.timeAgo.oneDayAgo");
-  }
-  return remainingHours > 0
-    ? t("dashboard.timeAgo.daysAndHoursAgo", { days: totalDays, hours: remainingHours })
-    : t("dashboard.timeAgo.daysAgo", { count: totalDays });
 };
 
 export interface SystemStatus {

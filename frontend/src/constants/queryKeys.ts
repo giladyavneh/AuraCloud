@@ -15,4 +15,5 @@ export const QUERY_KEYS = {
   // registered, so two requests from the same client are not interchangeable.
   consentRequest: (clientId: string, redirectUri: string) =>
     ['consentRequest', clientId, redirectUri],
+  oauthGrants: ['oauthGrants'],
 } as const;

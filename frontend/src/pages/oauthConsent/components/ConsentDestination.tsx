@@ -16,11 +16,8 @@ import {
   SectionBlock,
   VisuallyHidden,
 } from '@/pages/oauthConsent/components/oauthConsent.styled';
-import {
-  formatRedirectPath,
-  parseRedirectUri,
-  splitHostLabels,
-} from '@/pages/oauthConsent/helpers/oauthConsent.helpers';
+import { parseRedirectUri, splitHostLabels } from '@/helpers/redirectUri.helpers';
+import { formatRedirectPath } from '@/pages/oauthConsent/helpers/oauthConsent.helpers';
 import type {
   ConsentDestinationProps,
   RenderedRedirectClass,

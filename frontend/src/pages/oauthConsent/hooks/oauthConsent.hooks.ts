@@ -1,12 +1,11 @@
 import { useAuth } from '@/context/auth/AuthContext';
 import { useApproveAuthorization, useConsentRequestQuery } from '@/hooks/oauth.hooks';
+import { classifyRedirectUri, redirectUriHost } from '@/helpers/redirectUri.helpers';
 import {
   buildDenyUrl,
-  classifyRedirectUri,
   isNotFoundError,
   isStaleRequestError,
   parseConsentParams,
-  parseRedirectUri,
 } from '@/pages/oauthConsent/helpers/oauthConsent.helpers';
 import type { ConsentViewState } from '@/pages/oauthConsent/types/oauthConsent.types';
 import { useMemo, useState } from 'react';
@@ -74,7 +73,7 @@ export const useConsentRequest = (): ConsentViewState => {
     status: 'ready',
     redirectUri: params.redirectUri,
     redirectClass,
-    host: parseRedirectUri(params.redirectUri)?.host ?? params.redirectUri,
+    host: redirectUriHost(params.redirectUri),
     clientName: consentQuery.data.clientName,
     email: customer.email,
     companyName: customer.companyName,

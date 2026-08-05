@@ -3,6 +3,7 @@ import { getStoredToken } from '@/services/auth.service';
 import type {
   ApprovePayload,
   ApproveResponse,
+  ConnectedClient,
   ConsentRequest,
 } from '@/services/types/oauth.types';
 
@@ -45,4 +46,22 @@ export const approveAuthorization = async (
   });
   if (!response.ok) await throwApiError(response, 'Failed to complete the connection');
   return response.json() as Promise<ApproveResponse>;
+};
+
+export const fetchGrants = async (): Promise<ConnectedClient[]> => {
+  const response = await fetch(`${API_BASE}/oauth/grants`, { headers: authHeaders() });
+  if (!response.ok) await throwApiError(response, 'Failed to load your connected clients');
+  return response.json() as Promise<ConnectedClient[]>;
+};
+
+export const revokeGrant = async (grantId: string): Promise<void> => {
+  const response = await fetch(`${API_BASE}/oauth/grants/${grantId}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  // Gone already — a manager revoked it, or a second tab did — is the outcome the user
+  // asked for, so it resolves rather than raising an error the UI would have to explain.
+  if (!response.ok && response.status !== 404) {
+    await throwApiError(response, 'Failed to disconnect the client');
+  }
 };

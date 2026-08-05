@@ -6,6 +6,18 @@ export interface ConsentRequest {
   isRedirectUriRegistered: boolean;
 }
 
+export interface ConnectedClient {
+  id: string;
+  clientId: string;
+  /** Self-reported at registration and never verified — never the row's identity. */
+  clientName: string | null;
+  /** Registration order. Empty when the client's registration no longer exists. */
+  redirectUris: string[];
+  connectedAt: string;
+  /** Null until the client's first refresh. */
+  lastUsedAt: string | null;
+}
+
 export interface ApprovePayload {
   clientId: string;
   redirectUri: string;

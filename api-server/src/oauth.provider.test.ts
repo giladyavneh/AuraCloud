@@ -1,7 +1,10 @@
 import crypto from "node:crypto";
-import type { Request, Response } from "express";
+import { once } from "node:events";
+import type { Server } from "node:http";
+import type { AddressInfo } from "node:net";
+import express, { type Request, type Response } from "express";
 import jwt from "jsonwebtoken";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import type { OAuthClientInformationFull } from "@modelcontextprotocol/sdk/shared/auth.js";
 import {
   InvalidGrantError,
@@ -12,15 +15,36 @@ import { MCP_TOKEN_AUDIENCE } from "utils";
 
 type FakeDoc = Record<string, unknown>;
 
-/** Awaitable stand-in for a Mongoose query, which is both a promise and `.lean()`-able. */
-function fakeQuery<T>(value: T): Promise<T> & { lean: () => Promise<T> } {
-  const query = Promise.resolve(value) as Promise<T> & { lean: () => Promise<T> };
+interface FakeQuery<T> extends Promise<T> {
+  lean: () => Promise<T>;
+  sort: (spec: Record<string, 1 | -1>) => FakeQuery<T>;
+}
+
+/** Awaitable stand-in for a Mongoose query, which is both a promise and chainable. */
+function fakeQuery<T>(value: T): FakeQuery<T> {
+  const query = Promise.resolve(value) as FakeQuery<T>;
   query.lean = () => Promise.resolve(value);
+  query.sort = (spec) => {
+    const [key, direction] = Object.entries(spec)[0] ?? [];
+    if (Array.isArray(value) && key && direction) {
+      (value as FakeDoc[]).sort(
+        (left, right) => (Number(left[key]) - Number(right[key])) * direction,
+      );
+    }
+    return query;
+  };
   return query;
 }
 
+function matchesValue(actual: unknown, expected: unknown): boolean {
+  if (expected && typeof expected === "object" && "$in" in expected) {
+    return (expected.$in as unknown[]).includes(actual);
+  }
+  return actual === expected;
+}
+
 function matches(doc: FakeDoc, filter: FakeDoc): boolean {
-  return Object.entries(filter).every(([key, value]) => doc[key] === value);
+  return Object.entries(filter).every(([key, value]) => matchesValue(doc[key], value));
 }
 
 /** Just enough of a Mongoose model to exercise the provider without a database. */
@@ -35,6 +59,10 @@ class FakeModel {
 
   findById(id: string) {
     return fakeQuery(this.docs.find((doc) => doc._id === id) ?? null);
+  }
+
+  find(filter: FakeDoc) {
+    return fakeQuery(this.docs.filter((doc) => matches(doc, filter)));
   }
 
   findOne(filter: FakeDoc) {
@@ -79,10 +107,15 @@ vi.mock("./db.js", () => ({
   OAuthAuthCodeModel,
 }));
 
-const { approveAuthorization, describeConsentRequest, oauthProvider } = await import(
-  "./oauth.provider.js"
-);
+const {
+  approveAuthorization,
+  describeConsentRequest,
+  listConnectedClients,
+  oauthProvider,
+  revokeGrant,
+} = await import("./oauth.provider.js");
 const { requireAuth, signToken } = await import("./middleware/auth.middleware.js");
+const { default: oauthRoutes } = await import("./routes/oauth.routes.js");
 
 const CUSTOMER_ID = "customer-1";
 const CUSTOMER_EMAIL = "dev@example.com";
@@ -438,6 +471,174 @@ describe("access token", () => {
     await expect(oauthProvider.verifyAccessToken(loginToken)).rejects.toBeInstanceOf(
       InvalidTokenError,
     );
+  });
+});
+
+describe("connected clients", () => {
+  const OTHER_CUSTOMER_ID = "customer-2";
+
+  function seedGrant(overrides: FakeDoc = {}): FakeDoc {
+    const grant: FakeDoc = {
+      _id: `grant-${OAuthGrantModel.docs.length + 1}`,
+      customerId: CUSTOMER_ID,
+      clientId: client.client_id,
+      refreshTokenHash: "a-secret-hash",
+      scopes: ["full"],
+      lastUsedAt: null,
+      createdAt: new Date("2026-08-01T10:00:00.000Z"),
+      ...overrides,
+    };
+    OAuthGrantModel.docs.push(grant);
+    return grant;
+  }
+
+  test("names the client and its registered addresses, which only the join knows", async () => {
+    seedGrant({ lastUsedAt: new Date("2026-08-04T09:00:00.000Z") });
+
+    await expect(listConnectedClients(CUSTOMER_ID)).resolves.toEqual([
+      {
+        id: "grant-1",
+        clientId: client.client_id,
+        clientName: "Claude Code",
+        redirectUris: [REDIRECT_URI],
+        connectedAt: "2026-08-01T10:00:00.000Z",
+        lastUsedAt: "2026-08-04T09:00:00.000Z",
+      },
+    ]);
+  });
+
+  test("returns nobody else's connections", async () => {
+    seedGrant();
+    seedGrant({ customerId: OTHER_CUSTOMER_ID, clientId: "client-2" });
+
+    const clients = await listConnectedClients(CUSTOMER_ID);
+
+    expect(clients).toHaveLength(1);
+    expect(clients[0]?.clientId).toBe(client.client_id);
+  });
+
+  // The hash is a bearer credential in everything but name — a rendered list is one
+  // screenshot away from being shared.
+  test("never carries the refresh token hash", async () => {
+    seedGrant();
+
+    const [connectedClient] = await listConnectedClients(CUSTOMER_ID);
+
+    expect(JSON.stringify(connectedClient)).not.toContain("a-secret-hash");
+    expect(connectedClient).not.toHaveProperty("refreshTokenHash");
+  });
+
+  // The registration is permanent today, but the access is what matters: a row the
+  // list cannot describe is still a row the user has to be able to cut.
+  test("still lists a grant whose client registration is gone", async () => {
+    seedGrant({ clientId: "client-deleted" });
+
+    await expect(listConnectedClients(CUSTOMER_ID)).resolves.toEqual([
+      {
+        id: "grant-1",
+        clientId: "client-deleted",
+        clientName: null,
+        redirectUris: [],
+        connectedAt: "2026-08-01T10:00:00.000Z",
+        lastUsedAt: null,
+      },
+    ]);
+  });
+
+  test("puts the newest connection first", async () => {
+    seedGrant({ createdAt: new Date("2026-07-01T10:00:00.000Z") });
+    seedGrant({ clientId: "client-2", createdAt: new Date("2026-08-03T10:00:00.000Z") });
+
+    const clients = await listConnectedClients(CUSTOMER_ID);
+
+    expect(clients.map((connected) => connected.id)).toEqual(["grant-2", "grant-1"]);
+  });
+
+  test("revoking removes the grant, so the refresh token stops working", async () => {
+    const grant = seedGrant();
+
+    await expect(revokeGrant(CUSTOMER_ID, String(grant._id))).resolves.toBe(true);
+    expect(OAuthGrantModel.docs).toHaveLength(0);
+  });
+
+  // False is what the route turns into a 404 — a 403 would confirm the grant exists.
+  test("revoking someone else's connection reports it as missing and leaves it alone", async () => {
+    const grant = seedGrant({ customerId: OTHER_CUSTOMER_ID });
+
+    await expect(revokeGrant(CUSTOMER_ID, String(grant._id))).resolves.toBe(false);
+    expect(OAuthGrantModel.docs).toHaveLength(1);
+  });
+
+  test("revoking a grant that is already gone reports it as missing", async () => {
+    await expect(revokeGrant(CUSTOMER_ID, "grant-does-not-exist")).resolves.toBe(false);
+  });
+});
+
+// Over a real socket rather than the handler alone: the 404 for a malformed id comes
+// from router.param, which only runs when the request is routed.
+describe("DELETE /api/oauth/grants/:id", () => {
+  const GRANT_ID = "68e0f0c2e4b0a1a2b3c4d5e6";
+  const UNUSED_GRANT_ID = "68e0f0c2e4b0a1a2b3c4d5ff";
+
+  let server: Server;
+  let baseUrl = "";
+
+  beforeAll(async () => {
+    const app = express();
+    app.use(oauthRoutes);
+    server = app.listen(0);
+    await once(server, "listening");
+    baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  });
+
+  afterAll(async () => {
+    server.close();
+    await once(server, "close");
+  });
+
+  function disconnect(grantId: string): Promise<globalThis.Response> {
+    return fetch(`${baseUrl}/api/oauth/grants/${grantId}`, {
+      method: "DELETE",
+      headers: {
+        authorization: `Bearer ${signToken({ customerId: CUSTOMER_ID, email: CUSTOMER_EMAIL })}`,
+      },
+    });
+  }
+
+  test("answers 204 and removes the grant", async () => {
+    OAuthGrantModel.docs.push({
+      _id: GRANT_ID,
+      customerId: CUSTOMER_ID,
+      clientId: client.client_id,
+    });
+
+    const response = await disconnect(GRANT_ID);
+
+    expect(response.status).toBe(204);
+    expect(OAuthGrantModel.docs).toHaveLength(0);
+  });
+
+  test("answers 404 for a connection this account does not have", async () => {
+    const response = await disconnect(UNUSED_GRANT_ID);
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({ message: "Connection not found" });
+  });
+
+  // A CastError reaching Mongoose would surface as a 500 and tell a prober that the id
+  // shape, not the connection, was the problem. The message is what separates this 404
+  // from the handler's — it is the only proof the param check ran at all.
+  test("answers 404 for an id that is not an ObjectId at all", async () => {
+    const response = await disconnect("not-an-object-id");
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({ message: "Not found" });
+  });
+
+  test("refuses an unauthenticated caller before looking anything up", async () => {
+    const response = await fetch(`${baseUrl}/api/oauth/grants/${GRANT_ID}`, { method: "DELETE" });
+
+    expect(response.status).toBe(401);
   });
 });
 

@@ -50,7 +50,7 @@ const ProfileSection: React.FC = () => {
   return (
     <SettingsCard elevation={0}>
       <SectionHeader>
-        <Typography variant="subtitle1" color="textPrimary">
+        <Typography variant="subtitle1" color="textPrimary" component="h2">
           {t('settings.profile.title')}
         </Typography>
         <Typography variant="body2" color="textSecondary">

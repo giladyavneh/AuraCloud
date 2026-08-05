@@ -1,7 +1,20 @@
 {
   "common": {
     "showPassword": "Show password",
-    "hidePassword": "Hide password"
+    "hidePassword": "Hide password",
+    "timeAgo": {
+      "unknown": "Unknown",
+      "lessThanMinute": "< 1 min ago",
+      "minutesAgo": "{{count}} min ago",
+      "oneHourAgo": "1 hour ago",
+      "hoursAgo": "{{count}} hours ago",
+      "oneHourAndMinutesAgo": "1 hour, {{minutes}} min ago",
+      "hoursAndMinutesAgo": "{{hours}} hours, {{minutes}} min ago",
+      "oneDayAgo": "1 day ago",
+      "daysAgo": "{{count}} days ago",
+      "oneDayAndHoursAgo": "1 day, {{hours}} hour ago",
+      "daysAndHoursAgo": "{{days}} days, {{hours}} hour ago"
+    }
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -49,19 +62,6 @@
       "activeBlockers": "Active Blockers",
       "staleResources": "Stale Resources",
       "healthScore": "Infrastructure Health Score"
-    },
-    "timeAgo": {
-      "unknown": "Unknown",
-      "lessThanMinute": "< 1 min ago",
-      "minutesAgo": "{{count}} min ago",
-      "oneHourAgo": "1 hour ago",
-      "hoursAgo": "{{count}} hours ago",
-      "oneHourAndMinutesAgo": "1 hour, {{minutes}} min ago",
-      "hoursAndMinutesAgo": "{{hours}} hours, {{minutes}} min ago",
-      "oneDayAgo": "1 day ago",
-      "daysAgo": "{{count}} days ago",
-      "oneDayAndHoursAgo": "1 day, {{hours}} hour ago",
-      "daysAndHoursAgo": "{{days}} days, {{hours}} hour ago"
     },
     "systemStatus": {
       "checking": "Checking system…",
@@ -240,7 +240,7 @@
   },
   "settings": {
     "title": "Settings",
-    "subtitle": "Manage your profile and AWS connection.",
+    "subtitle": "Manage your profile, your AI connections, and your AWS setup.",
     "profile": {
       "title": "Profile",
       "description": "Update your personal and company information.",
@@ -252,6 +252,45 @@
       "save": "Save Changes",
       "saving": "Saving...",
       "successMessage": "Profile updated successfully."
+    },
+    "connectAi": {
+      "title": "Connect your AI",
+      "description": "Give Claude Code access to your Aura Cloud data, so you can ask it whether a failure is your code or your cloud.",
+      "awsNotLinked": {
+        "body": "Link your AWS identity first. You can connect without it, but every tool your AI calls will come back with a permission error until you do.",
+        "action": "Link AWS identity"
+      },
+      "command": {
+        "label": "Run this in your terminal",
+        "copy": "Copy command",
+        "copied": "Copied!",
+        "hint": "Your browser will open and ask you to approve the connection. Approve it once and you're done.",
+        "safeToShare": "There's no password or key in this command. It's safe to put in a README or send to a teammate."
+      },
+      "clients": {
+        "title": "Connected clients",
+        "empty": "Nothing is connected yet. Run the command above and approve the request in your browser — whatever you connect appears here, and you can cut it off from this list at any time.",
+        "loadError": "Couldn't load your connected clients.",
+        "retry": "Retry",
+        "timing": "Connected {{connected}} · Last used {{lastUsed}}",
+        "neverUsed": "never",
+        "nameNotice": "Calls itself \"{{clientName}}\" — a name the app chose for itself, which we don't check.",
+        "unnamed": "This app didn't give itself a name.",
+        "unknownAddress": "an unknown address",
+        "externalTag": "External server",
+        "extraAddresses_one": "+{{count}} more registered address",
+        "extraAddresses_other": "+{{count}} more registered addresses",
+        "disconnect": "Disconnect",
+        "disconnectAria": "Disconnect the client at {{origin}}",
+        "disconnectSuccess": "Disconnected {{origin}}. It can't come back without your approval.",
+        "disconnectError": "Couldn't disconnect {{origin}}. Try again."
+      },
+      "confirmDisconnect": {
+        "title": "Disconnect this AI client?",
+        "body": "This is the client at {{origin}}, connected {{connected}}. It loses access straight away and can't reconnect without your approval — though a request it already started may keep working for up to an hour. Reconnecting later is the same command you ran the first time.",
+        "confirm": "Disconnect",
+        "cancel": "Cancel"
+      }
     },
     "invite": {
       "title": "Team Invite",

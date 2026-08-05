@@ -19,7 +19,7 @@ import type {
   OAuthTokenRevocationRequest,
   OAuthTokens,
 } from "@modelcontextprotocol/sdk/shared/auth.js";
-import { MCP_TOKEN_AUDIENCE, type OAuthClient } from "utils";
+import { MCP_TOKEN_AUDIENCE, mongoose, type OAuthClient, type OAuthGrant } from "utils";
 import { CustomerModel, OAuthAuthCodeModel, OAuthClientModel, OAuthGrantModel } from "./db.js";
 import { FRONTEND_URL, JWT_SECRET } from "./config.js";
 
@@ -38,6 +38,18 @@ export interface ConsentRequestInfo {
   redirectUri: string;
   isRedirectUriRegistered: boolean;
 }
+
+export interface ConnectedClient {
+  id: string;
+  clientId: string;
+  clientName: string | null;
+  redirectUris: string[];
+  connectedAt: string;
+  lastUsedAt: string | null;
+}
+
+/** Timestamps and _id are outside InferSchemaType, and both are part of the row. */
+type GrantRecord = OAuthGrant & { _id: mongoose.Types.ObjectId; createdAt: Date };
 
 const ACCESS_TOKEN_TTL_SECONDS = 60 * 60;
 const AUTHORIZATION_CODE_TTL_SECONDS = 60;
@@ -282,6 +294,49 @@ export async function describeConsentRequest(
     redirectUri,
     isRedirectUriRegistered: isRedirectUriRegistered(client, redirectUri),
   };
+}
+
+/**
+ * A grant records only which client it is for. The name and the addresses that client
+ * registered live on OAuthClient, and the address is the only part of a connection its
+ * owner can recognise — so the list is worthless without the join. A grant whose client
+ * registration has since gone still lists, with nothing invented to fill the gap: the
+ * access is real and has to stay revocable.
+ *
+ * Never returns refreshTokenHash.
+ */
+export async function listConnectedClients(customerId: string): Promise<ConnectedClient[]> {
+  const grants = await OAuthGrantModel.find({ customerId })
+    .sort({ createdAt: -1 })
+    .lean<GrantRecord[]>();
+  if (grants.length === 0) return [];
+
+  const clients = await OAuthClientModel.find({
+    clientId: { $in: grants.map((grant) => grant.clientId) },
+  }).lean();
+  const clientsById = new Map(clients.map((client) => [client.clientId, client]));
+
+  return grants.map((grant) => {
+    const client = clientsById.get(grant.clientId);
+
+    return {
+      id: String(grant._id),
+      clientId: grant.clientId,
+      clientName: client?.clientName ?? null,
+      redirectUris: client?.redirectUris ?? [],
+      connectedAt: grant.createdAt.toISOString(),
+      lastUsedAt: grant.lastUsedAt?.toISOString() ?? null,
+    };
+  });
+}
+
+/**
+ * False when the grant does not exist or belongs to another account — the caller answers
+ * both with 404, so a probe cannot learn that someone else's connection exists.
+ */
+export async function revokeGrant(customerId: string, grantId: string): Promise<boolean> {
+  const revoked = await OAuthGrantModel.findOneAndDelete({ _id: grantId, customerId });
+  return revoked !== null;
 }
 
 /** Throws an OAuthError if the client or its redirect URI does not check out. */

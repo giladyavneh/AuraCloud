@@ -16,4 +16,5 @@ export const QUERY_KEYS = {
   consentRequest: (clientId: string, redirectUri: string) =>
     ['consentRequest', clientId, redirectUri],
   oauthGrants: ['oauthGrants'],
+  oauthCompanyGrants: ['oauthCompanyGrants'],
 } as const;

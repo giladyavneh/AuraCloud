@@ -48,6 +48,15 @@ export interface ConnectedClient {
   lastUsedAt: string | null;
 }
 
+export interface CompanyConnectedClient extends ConnectedClient {
+  employee: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+}
+
 /** Timestamps and _id are outside InferSchemaType, and both are part of the row. */
 type GrantRecord = OAuthGrant & { _id: mongoose.Types.ObjectId; createdAt: Date };
 
@@ -298,17 +307,14 @@ export async function describeConsentRequest(
 
 /**
  * A grant records only which client it is for. The name and the addresses that client
- * registered live on OAuthClient, and the address is the only part of a connection its
- * owner can recognise — so the list is worthless without the join. A grant whose client
+ * registered live on OAuthClient, and the address is the only part of a connection a
+ * reader can recognise — so the list is worthless without the join. A grant whose client
  * registration has since gone still lists, with nothing invented to fill the gap: the
  * access is real and has to stay revocable.
  *
- * Never returns refreshTokenHash.
+ * One entry per grant, in the order given. Never returns refreshTokenHash.
  */
-export async function listConnectedClients(customerId: string): Promise<ConnectedClient[]> {
-  const grants = await OAuthGrantModel.find({ customerId })
-    .sort({ createdAt: -1 })
-    .lean<GrantRecord[]>();
+async function describeGrants(grants: GrantRecord[]): Promise<ConnectedClient[]> {
   if (grants.length === 0) return [];
 
   const clients = await OAuthClientModel.find({
@@ -330,12 +336,95 @@ export async function listConnectedClients(customerId: string): Promise<Connecte
   });
 }
 
+export async function listConnectedClients(customerId: string): Promise<ConnectedClient[]> {
+  const grants = await OAuthGrantModel.find({ customerId })
+    .sort({ createdAt: -1 })
+    .lean<GrantRecord[]>();
+
+  return describeGrants(grants);
+}
+
 /**
- * False when the grant does not exist or belongs to another account — the caller answers
- * both with 404, so a probe cannot learn that someone else's connection exists.
+ * A grant records no company, so the roster is what scopes the list: a connection is only
+ * reachable through a Customer this company owns. A grant whose owner was deleted outside
+ * the app is therefore invisible here — and unreachable from that owner's own settings
+ * too, since the login is gone. Nothing in either surface can cut it.
+ *
+ * Grouped by person and newest-first within a person, because the rows a manager has to
+ * tell apart are that person's own. The sort key lives on Customer, so it cannot be a
+ * Mongo sort on the grants.
+ *
+ * Employee fields are listed rather than spread: these are Customer documents, and a
+ * spread would hand passwordHash to every manager in the company.
  */
-export async function revokeGrant(customerId: string, grantId: string): Promise<boolean> {
-  const revoked = await OAuthGrantModel.findOneAndDelete({ _id: grantId, customerId });
+export async function listCompanyConnectedClients(
+  companyId: string,
+): Promise<CompanyConnectedClient[]> {
+  const roster = await CustomerModel.find(
+    { companyId },
+    { firstName: true, lastName: true, email: true },
+  ).lean();
+  if (roster.length === 0) return [];
+
+  const employeesById = new Map(roster.map((member) => [String(member._id), member]));
+  const grants = await OAuthGrantModel.find({
+    customerId: { $in: [...employeesById.keys()] },
+  }).lean<GrantRecord[]>();
+
+  const connected = await describeGrants(grants);
+  const ownerIdByGrantId = new Map(grants.map((grant) => [String(grant._id), grant.customerId]));
+
+  return connected
+    .map((client) => {
+      const owner = employeesById.get(ownerIdByGrantId.get(client.id) ?? "");
+
+      return {
+        ...client,
+        employee: {
+          id: String(owner?._id ?? ""),
+          firstName: owner?.firstName ?? "",
+          lastName: owner?.lastName ?? "",
+          email: owner?.email ?? "",
+        },
+      };
+    })
+    .sort(
+      (left, right) =>
+        left.employee.lastName.localeCompare(right.employee.lastName) ||
+        left.employee.firstName.localeCompare(right.employee.firstName) ||
+        right.connectedAt.localeCompare(left.connectedAt),
+    );
+}
+
+/**
+ * Whose connections a caller may cut: their own, and every colleague's when they manage
+ * the company. Building the list here is what lets the delete carry its own tenancy
+ * predicate — a cross-company id never enters it, so there is no separate check to skip.
+ */
+export async function listRevocableCustomerIds(customerId: string): Promise<string[]> {
+  const customer = await CustomerModel.findById(customerId).lean();
+  if (customer?.role !== "manager") return [customerId];
+
+  const roster = await CustomerModel.find({ companyId: customer.companyId }, { _id: true }).lean();
+
+  return roster.map((member) => String(member._id));
+}
+
+/**
+ * False when the grant does not exist or belongs outside `allowedCustomerIds` — the caller
+ * answers both with 404, so a probe cannot learn that someone else's connection exists.
+ * The scope lives in the delete's own filter: one atomic write, with no window between
+ * deciding the grant is reachable and removing it.
+ */
+export async function revokeGrant(
+  grantId: string,
+  allowedCustomerIds: string[],
+): Promise<boolean> {
+  const revoked = await OAuthGrantModel.findOneAndDelete({
+    _id: grantId,
+    customerId: { $in: allowedCustomerIds },
+  });
+
   return revoked !== null;
 }
 

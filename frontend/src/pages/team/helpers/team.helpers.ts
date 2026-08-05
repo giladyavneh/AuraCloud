@@ -1,4 +1,6 @@
+import { classifyRedirectUri, redirectUriHost } from '@/helpers/redirectUri.helpers';
 import type {
+  CompanyConnectedClient,
   Employee,
   PresetResource,
   PresetScopeType,
@@ -109,3 +111,34 @@ export const toComparablePresetResources = (
 /** An employee's display name. */
 export const getEmployeeFullName = (employee: Employee): string =>
   `${employee.firstName} ${employee.lastName}`;
+
+/** The display name of the person a connection belongs to. */
+export const getConnectionOwnerName = (grant: CompanyConnectedClient): string =>
+  `${grant.employee.firstName} ${grant.employee.lastName}`;
+
+/**
+ * The address a connection is identified by. A grant outlives its client's registration,
+ * which leaves it with no address at all — so an empty one has to say so out loud rather
+ * than leave the self-reported name as the only thing naming the connection.
+ */
+export const resolveConnectionOrigin = (
+  grant: CompanyConnectedClient,
+  unknownAddressLabel: string,
+): string => redirectUriHost(grant.redirectUris[0] ?? '') || unknownAddressLabel;
+
+/**
+ * A grant only exists because a registered address was approved, so `blocked` here can
+ * only mean unparseable — which reads as external, so an odd address is loud.
+ */
+export const isExternalConnection = (grant: CompanyConnectedClient): boolean =>
+  classifyRedirectUri(grant.redirectUris[0] ?? '', true) !== 'local';
+
+/**
+ * Only the connections whose address actually reads as an internet host. Narrower than
+ * the per-row tag on purpose: the tag says "treat this with suspicion", which an
+ * unreadable address earns, but the summary names a destination — and an address we
+ * could not parse is not evidence of one.
+ */
+export const countExternalConnections = (grants: CompanyConnectedClient[]): number =>
+  grants.filter((grant) => classifyRedirectUri(grant.redirectUris[0] ?? '', true) === 'remote')
+    .length;

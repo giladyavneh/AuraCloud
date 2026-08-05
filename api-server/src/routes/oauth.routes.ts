@@ -2,12 +2,14 @@ import { Router } from "express";
 import { mcpAuthRouter } from "@modelcontextprotocol/sdk/server/auth/router.js";
 import { OAuthError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import { ISSUER_URL, MCP_SERVER_URL } from "../config.js";
-import { requireAuth } from "../middleware/auth.middleware.js";
+import { requireAuth, requireManager } from "../middleware/auth.middleware.js";
 import { validateObjectIdParam } from "../middleware/objectId.middleware.js";
 import {
   approveAuthorization,
   describeConsentRequest,
+  listCompanyConnectedClients,
   listConnectedClients,
+  listRevocableCustomerIds,
   oauthProvider,
   revokeGrant,
 } from "../oauth.provider.js";
@@ -90,9 +92,22 @@ router.get("/api/oauth/grants", requireAuth, async (req, res) => {
   }
 });
 
+router.get("/api/oauth/grants/company", requireAuth, requireManager, async (req, res) => {
+  try {
+    const clients = await listCompanyConnectedClients(req.managerCustomer!.companyId);
+    res.json(clients);
+  } catch (err) {
+    console.error("GET /api/oauth/grants/company failed:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
 router.delete("/api/oauth/grants/:id", requireAuth, async (req, res) => {
   try {
-    const wasRevoked = await revokeGrant(req.customer!.customerId, String(req.params.id));
+    // A manager may cut any connection their company holds; anyone else, only their own.
+    const allowedCustomerIds = await listRevocableCustomerIds(req.customer!.customerId);
+
+    const wasRevoked = await revokeGrant(String(req.params.id), allowedCustomerIds);
     if (!wasRevoked) {
       res.status(404).json({ message: "Connection not found" });
       return;

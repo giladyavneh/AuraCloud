@@ -330,7 +330,8 @@
     "tabs": {
       "employees": "Employees",
       "teams": "Teams",
-      "presets": "Presets"
+      "presets": "Presets",
+      "aiAccess": "AI Access"
     },
     "employees": {
       "aloneHint": "You're the only one here so far — share the invite code above to bring your team in.",
@@ -452,6 +453,37 @@
       "deleteSuccess": "Preset deleted.",
       "deleteError": "Couldn't delete preset. Try again."
     },
+    "aiAccess": {
+      "summary_one": "{{count}} AI connection across your company.",
+      "summary_other": "{{count}} AI connections across your company.",
+      "summaryExternal_one": "{{count}} of them sends your data to a server outside your company.",
+      "summaryExternal_other": "{{count}} of them send your data to a server outside your company.",
+      "nameCaveat": "App names are chosen by the app itself — we don't check them. Judge a connection by the address it connects from.",
+      "search": "Search by person or address...",
+      "columns": {
+        "employee": "Person",
+        "address": "Connects from",
+        "app": "App name",
+        "connected": "Connected",
+        "lastUsed": "Last used"
+      },
+      "you": "(you)",
+      "unnamedApp": "No name given",
+      "unknownAddress": "No address on record",
+      "externalTag": "External server",
+      "extraAddresses_one": "+{{count}} more registered address",
+      "extraAddresses_other": "+{{count}} more registered addresses",
+      "neverUsed": "Never",
+      "disconnect": "Disconnect",
+      "disconnectAria": "Disconnect {{name}}'s connection from {{origin}}",
+      "disconnectSuccess": "Disconnected {{name}}'s connection from {{origin}}.",
+      "disconnectError": "Couldn't disconnect {{name}}'s connection from {{origin}}. Try again.",
+      "loadError": "Couldn't load your company's AI connections. {{error}}",
+      "retry": "Retry",
+      "emptyTitle": "No AI connections yet",
+      "emptyDescription": "Nobody in your company has connected an AI client to Aura Cloud. When someone does, their connection appears here and you can cut it off from this list.",
+      "emptyCta": "Connect your own"
+    },
     "confirmDialog": {
       "removeEmployeeTitle": "Remove {{firstName}} {{lastName}}?",
       "removeEmployeeBody": "They'll lose access to Aura Cloud immediately. This does not affect their existing resource watchlist — only their login is removed, and it can't be undone. {{email}} will be free to sign up again as a new account later.",
@@ -462,6 +494,9 @@
       "deletePresetTitle": "Delete this preset?",
       "deletePresetBody": "This removes the preset for {{scopeLabel}}. It won't change anyone's current watchlist — deleting a preset never takes back resources someone already received. This can't be undone.",
       "deletePresetConfirm": "Delete preset",
+      "disconnectAiTitle": "Disconnect {{firstName}}'s AI client?",
+      "disconnectAiBody": "This cuts the connection from {{origin}}, connected {{connected}}. {{firstName}} keeps their account and their watchlist — only this AI client's access ends, and a request it already started may keep working for up to an hour. We won't tell them, so message them if they need to know. They can reconnect it themselves from their own Settings.",
+      "disconnectAiConfirm": "Disconnect",
       "cancel": "Cancel"
     }
   }

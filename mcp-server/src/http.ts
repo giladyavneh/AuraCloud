@@ -5,40 +5,42 @@ import "./bootstrap.js";
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import express, { type NextFunction, type Request, type Response } from "express";
-import jwt from "jsonwebtoken";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { connectMongo, mongoose } from "utils";
+import { metadataHandler } from "@modelcontextprotocol/sdk/server/auth/handlers/metadata.js";
+import {
+  bearerChallenge,
+  buildProtectedResourceMetadata,
+  metadataMountPaths,
+  verifyMcpToken,
+  type McpTokenPayload,
+} from "./auth.js";
 import { IdentityError, resolveUserContextByCustomerId } from "./identity.js";
 import { buildServer } from "./server.js";
 import { createShutdown } from "./shutdown.js";
 
-// Same env resolution chain as the stdio entry: mcp-server/.env (symlink to the
-// repo-root .env), then api-server/.env as a fallback for teammates who already
-// run the stack. Note: ESM hoists the imports above, so these calls run after
-// module load — dotenv never overrides values that are already set.
+// Same env resolution chain as the stdio entry: mcp-server/.env if a teammate keeps
+// one, then api-server/.env — which is the symlink to the repo-root .env, and so is
+// what actually supplies the values today. Note: ESM hoists the imports above, so
+// these calls run after module load — dotenv never overrides values already set.
 dotenv.config({ path: fileURLToPath(new URL("../.env", import.meta.url)), quiet: true });
 dotenv.config({ path: fileURLToPath(new URL("../../api-server/.env", import.meta.url)), quiet: true });
 
-/**
- * Subset of the api-server's JwtPayload ({ customerId, email }) — only
- * customerId is consumed here. Tokens are currently UNSCOPED: any api-server
- * login JWT is accepted (deliberate simple-now trade-off). Before long-lived
- * tokens ship via POST /api/auth/mcp-token, an `aud: "mcp"` claim should be
- * agreed with the api-server side so MCP tokens and login sessions can be
- * revoked independently — retrofitting the claim later invalidates every
- * already-issued token.
- */
-interface McpTokenPayload {
-  customerId?: string;
-}
-
 const PORT = Number(process.env.MCP_HTTP_PORT) || 3001;
 
+// The resource identifier clients present tokens to, and the api-server that issues
+// them. Both must match what api-server advertises, or discovery sends clients to the
+// wrong place. Read after the dotenv calls above, so .env values are already in scope.
+const RESOURCE_URL = process.env.MCP_SERVER_URL ?? `http://localhost:${PORT}/mcp`;
+// Deliberately not derived from process.env.PORT, which api-server uses for its own
+// issuer default: PORT is whatever the *current* process was launched with, and dotenv
+// never overrides an already-set value — so borrowing it here advertised :3001, this
+// server's own port, as the authorization server. Set ISSUER_URL when api-server moves.
+const ISSUER_URL = process.env.ISSUER_URL ?? "http://localhost:3000";
+
 const rpcError = (res: Response, httpStatus: number, message: string): void => {
-  // RFC 9110 requires WWW-Authenticate on 401s (and MCP's auth spec makes it a
-  // MUST); this server deliberately ships static bearer auth instead of the
-  // spec's full OAuth resource-server flow, so header-capable clients only.
-  if (httpStatus === 401) res.set("WWW-Authenticate", "Bearer");
+  // RFC 9110 requires WWW-Authenticate on 401s (and MCP's auth spec makes it a MUST).
+  if (httpStatus === 401) res.set("WWW-Authenticate", bearerChallenge(RESOURCE_URL));
   res.status(httpStatus).json({
     jsonrpc: "2.0",
     error: { code: -32000, message },
@@ -70,6 +72,11 @@ const main = async (): Promise<void> => {
     });
   });
 
+  app.use(
+    metadataMountPaths(RESOURCE_URL),
+    metadataHandler(buildProtectedResourceMetadata(RESOURCE_URL, ISSUER_URL)),
+  );
+
   app.post("/mcp", async (req: Request, res: Response) => {
     try {
       const header = req.headers.authorization;
@@ -80,7 +87,7 @@ const main = async (): Promise<void> => {
 
       let payload: McpTokenPayload;
       try {
-        payload = jwt.verify(header.slice(7), jwtSecret) as McpTokenPayload;
+        payload = verifyMcpToken(header.slice(7), jwtSecret);
       } catch {
         rpcError(res, 401, "Invalid or expired token");
         return;

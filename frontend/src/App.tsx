@@ -49,6 +49,7 @@ const App: React.FC = () => (
           <Route path="/team" element={<Team />} />
           <Route path="/team/teams" element={<Team />} />
           <Route path="/team/presets" element={<Team />} />
+          <Route path="/team/ai-access" element={<Team />} />
         </Route>
       </Route>
     </Route>

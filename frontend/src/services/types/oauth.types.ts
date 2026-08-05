@@ -18,6 +18,16 @@ export interface ConnectedClient {
   lastUsedAt: string | null;
 }
 
+/** Extends rather than redeclares, so the two lists cannot drift on the fields they share. */
+export interface CompanyConnectedClient extends ConnectedClient {
+  employee: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+}
+
 export interface ApprovePayload {
   clientId: string;
   redirectUri: string;

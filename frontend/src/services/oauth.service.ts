@@ -3,6 +3,7 @@ import { getStoredToken } from '@/services/auth.service';
 import type {
   ApprovePayload,
   ApproveResponse,
+  CompanyConnectedClient,
   ConnectedClient,
   ConsentRequest,
 } from '@/services/types/oauth.types';
@@ -52,6 +53,12 @@ export const fetchGrants = async (): Promise<ConnectedClient[]> => {
   const response = await fetch(`${API_BASE}/oauth/grants`, { headers: authHeaders() });
   if (!response.ok) await throwApiError(response, 'Failed to load your connected clients');
   return response.json() as Promise<ConnectedClient[]>;
+};
+
+export const fetchCompanyGrants = async (): Promise<CompanyConnectedClient[]> => {
+  const response = await fetch(`${API_BASE}/oauth/grants/company`, { headers: authHeaders() });
+  if (!response.ok) await throwApiError(response, "Failed to load your company's connections");
+  return response.json() as Promise<CompanyConnectedClient[]>;
 };
 
 export const revokeGrant = async (grantId: string): Promise<void> => {

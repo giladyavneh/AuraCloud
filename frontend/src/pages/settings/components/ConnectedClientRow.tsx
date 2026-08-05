@@ -1,21 +1,15 @@
+import HostAddress from "@/components/hostAddress/HostAddress";
 import { KeyValueRow } from "@/components/keyValueRow/components/keyValueRow.styled";
+import { MonoText } from "@/components/monoText/components/monoText.styled";
 import StatusTag from "@/components/statusTag/StatusTag";
-import {
-  classifyRedirectUri,
-  redirectUriHost,
-  splitHostLabels,
-} from "@/helpers/redirectUri.helpers";
+import { classifyRedirectUri, redirectUriHost } from "@/helpers/redirectUri.helpers";
 import { formatTimestamp } from "@/helpers/time.helpers";
-import {
-  ClientRowDetails,
-  MonoText,
-} from "@/pages/settings/components/connectAi.styled";
+import { ClientRowDetails } from "@/pages/settings/components/connectAi.styled";
 import type { ConnectedClientRowProps } from "@/pages/settings/types/settings.types";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
-import { visuallyHidden } from "@mui/utils";
 import { GlobeIcon, LaptopIcon } from "@phosphor-icons/react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -32,7 +26,6 @@ const ConnectedClientRow: React.FC<ConnectedClientRowProps> = ({ client, onDisco
   // The row is identified by its address, so a blank one has to say so out loud rather
   // than leave the self-reported name as the only thing naming this connection.
   const origin = redirectUriHost(redirectUri) || t("settings.connectAi.clients.unknownAddress");
-  const hostLabels = splitHostLabels(origin);
   const extraAddresses = client.redirectUris.length - 1;
 
   const timing = t("settings.connectAi.clients.timing", {
@@ -54,19 +47,7 @@ const ConnectedClientRow: React.FC<ConnectedClientRowProps> = ({ client, onDisco
 
       <ClientRowDetails>
         <MonoText variant="body2">
-          {/* The dim/bright split reads as fragments, so the address is announced whole. */}
-          <Box component="span" sx={visuallyHidden}>
-            {origin}
-          </Box>
-
-          <Box component="span" aria-hidden="true">
-            {hostLabels.dim && (
-              <MonoText component="span" variant="body2" isDimmed>
-                {hostLabels.dim}
-              </MonoText>
-            )}
-            {hostLabels.emphasised}
-          </Box>
+          <HostAddress host={origin} />
 
           {extraAddresses > 0 && (
             <Typography

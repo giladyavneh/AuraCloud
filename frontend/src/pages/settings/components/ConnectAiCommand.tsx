@@ -1,6 +1,6 @@
 import CopyField from "@/components/copyField/CopyField";
+import { MonoText } from "@/components/monoText/components/monoText.styled";
 import { MCP_INSTALL_COMMAND } from "@/constants";
-import { MonoText } from "@/pages/settings/components/connectAi.styled";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";

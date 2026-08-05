@@ -110,7 +110,9 @@ vi.mock("./db.js", () => ({
 const {
   approveAuthorization,
   describeConsentRequest,
+  listCompanyConnectedClients,
   listConnectedClients,
+  listRevocableCustomerIds,
   oauthProvider,
   revokeGrant,
 } = await import("./oauth.provider.js");
@@ -119,6 +121,11 @@ const { default: oauthRoutes } = await import("./routes/oauth.routes.js");
 
 const CUSTOMER_ID = "customer-1";
 const CUSTOMER_EMAIL = "dev@example.com";
+const COMPANY_ID = "company-1";
+const MANAGER_ID = "manager-1";
+const OTHER_COMPANY_ID = "company-2";
+const OTHER_MANAGER_ID = "manager-2";
+const OTHER_COMPANY_EMPLOYEE_ID = "customer-9";
 const REDIRECT_URI = "http://localhost:41234/callback";
 const CODE_CHALLENGE = "hLDQ2Rl0Wl0m0k0KPqZ0eZ0mQe0mQe0mQe0mQe0mQe0";
 
@@ -150,7 +157,44 @@ async function approveAndGetCode(): Promise<string> {
 
 beforeEach(() => {
   resetCollections();
-  CustomerModel.docs.push({ _id: CUSTOMER_ID, email: CUSTOMER_EMAIL });
+  CustomerModel.docs.push(
+    {
+      _id: CUSTOMER_ID,
+      firstName: "Dana",
+      lastName: "Levi",
+      email: CUSTOMER_EMAIL,
+      passwordHash: "a-password-hash",
+      role: "employee",
+      companyId: COMPANY_ID,
+    },
+    {
+      _id: MANAGER_ID,
+      firstName: "Avi",
+      lastName: "Cohen",
+      email: "avi@example.com",
+      passwordHash: "a-manager-password-hash",
+      role: "manager",
+      companyId: COMPANY_ID,
+    },
+    {
+      _id: OTHER_MANAGER_ID,
+      firstName: "Rina",
+      lastName: "Katz",
+      email: "rina@other.example.com",
+      passwordHash: "another-password-hash",
+      role: "manager",
+      companyId: OTHER_COMPANY_ID,
+    },
+    {
+      _id: OTHER_COMPANY_EMPLOYEE_ID,
+      firstName: "Noa",
+      lastName: "Barak",
+      email: "noa@other.example.com",
+      passwordHash: "yet-another-password-hash",
+      role: "employee",
+      companyId: OTHER_COMPANY_ID,
+    },
+  );
   OAuthClientModel.docs.push({
     clientId: client.client_id,
     clientName: client.client_name,
@@ -557,7 +601,7 @@ describe("connected clients", () => {
   test("revoking removes the grant, so the refresh token stops working", async () => {
     const grant = seedGrant();
 
-    await expect(revokeGrant(CUSTOMER_ID, String(grant._id))).resolves.toBe(true);
+    await expect(revokeGrant(String(grant._id), [CUSTOMER_ID])).resolves.toBe(true);
     expect(OAuthGrantModel.docs).toHaveLength(0);
   });
 
@@ -565,18 +609,163 @@ describe("connected clients", () => {
   test("revoking someone else's connection reports it as missing and leaves it alone", async () => {
     const grant = seedGrant({ customerId: OTHER_CUSTOMER_ID });
 
-    await expect(revokeGrant(CUSTOMER_ID, String(grant._id))).resolves.toBe(false);
+    await expect(revokeGrant(String(grant._id), [CUSTOMER_ID])).resolves.toBe(false);
     expect(OAuthGrantModel.docs).toHaveLength(1);
   });
 
   test("revoking a grant that is already gone reports it as missing", async () => {
-    await expect(revokeGrant(CUSTOMER_ID, "grant-does-not-exist")).resolves.toBe(false);
+    await expect(revokeGrant("grant-does-not-exist", [CUSTOMER_ID])).resolves.toBe(false);
+  });
+
+  // An empty allowance must delete nothing. The predicate is the only tenancy check
+  // there is, so a caller allowed to touch nobody has to reach nothing.
+  test("revoking with an empty allowance deletes nothing", async () => {
+    const grant = seedGrant();
+
+    await expect(revokeGrant(String(grant._id), [])).resolves.toBe(false);
+    expect(OAuthGrantModel.docs).toHaveLength(1);
+  });
+});
+
+describe("company connections", () => {
+  function seedGrant(customerId: string, overrides: FakeDoc = {}): FakeDoc {
+    const grant: FakeDoc = {
+      _id: `grant-${OAuthGrantModel.docs.length + 1}`,
+      customerId,
+      clientId: client.client_id,
+      refreshTokenHash: "a-secret-hash",
+      scopes: ["full"],
+      lastUsedAt: null,
+      createdAt: new Date("2026-08-01T10:00:00.000Z"),
+      ...overrides,
+    };
+    OAuthGrantModel.docs.push(grant);
+    return grant;
+  }
+
+  test("names the person behind each connection", async () => {
+    seedGrant(CUSTOMER_ID, { lastUsedAt: new Date("2026-08-04T09:00:00.000Z") });
+
+    await expect(listCompanyConnectedClients(COMPANY_ID)).resolves.toEqual([
+      {
+        id: "grant-1",
+        clientId: client.client_id,
+        clientName: "Claude Code",
+        redirectUris: [REDIRECT_URI],
+        connectedAt: "2026-08-01T10:00:00.000Z",
+        lastUsedAt: "2026-08-04T09:00:00.000Z",
+        employee: {
+          id: CUSTOMER_ID,
+          firstName: "Dana",
+          lastName: "Levi",
+          email: CUSTOMER_EMAIL,
+        },
+      },
+    ]);
+  });
+
+  test("lists nothing from another company", async () => {
+    seedGrant(CUSTOMER_ID);
+    seedGrant(OTHER_COMPANY_EMPLOYEE_ID);
+    seedGrant(OTHER_MANAGER_ID);
+
+    const clients = await listCompanyConnectedClients(COMPANY_ID);
+
+    expect(clients).toHaveLength(1);
+    expect(clients[0]?.employee.email).toBe(CUSTOMER_EMAIL);
+  });
+
+  // The response is built from Customer documents, so a spread would leak the login
+  // credential alongside the connection it was meant to describe.
+  test("never carries token material or a password hash", async () => {
+    seedGrant(CUSTOMER_ID);
+
+    const clients = await listCompanyConnectedClients(COMPANY_ID);
+
+    expect(JSON.stringify(clients)).not.toContain("a-secret-hash");
+    expect(JSON.stringify(clients)).not.toContain("a-password-hash");
+    expect(clients[0]).not.toHaveProperty("refreshTokenHash");
+  });
+
+  test("keeps one person's connections together, newest first", async () => {
+    seedGrant(CUSTOMER_ID, { createdAt: new Date("2026-07-01T10:00:00.000Z") });
+    seedGrant(MANAGER_ID, { clientId: "client-2" });
+    seedGrant(CUSTOMER_ID, {
+      clientId: "client-2",
+      createdAt: new Date("2026-08-03T10:00:00.000Z"),
+    });
+
+    const clients = await listCompanyConnectedClients(COMPANY_ID);
+
+    expect(clients.map((connected) => connected.id)).toEqual(["grant-2", "grant-3", "grant-1"]);
+  });
+
+  test("a manager may cut a connection belonging to someone they manage", async () => {
+    const grant = seedGrant(CUSTOMER_ID);
+
+    const revocable = await listRevocableCustomerIds(MANAGER_ID);
+
+    await expect(revokeGrant(String(grant._id), revocable)).resolves.toBe(true);
+    expect(OAuthGrantModel.docs).toHaveLength(0);
+  });
+
+  // The predicate the delete carries is the whole tenancy check — if the roster ever
+  // stopped scoping it, this is the test that fails.
+  test("a manager of another company cuts nothing and the connection survives", async () => {
+    const grant = seedGrant(CUSTOMER_ID);
+
+    const revocable = await listRevocableCustomerIds(OTHER_MANAGER_ID);
+
+    expect(revocable).not.toContain(CUSTOMER_ID);
+    await expect(revokeGrant(String(grant._id), revocable)).resolves.toBe(false);
+    expect(OAuthGrantModel.docs).toHaveLength(1);
+  });
+
+  // A token outlives the account it was signed for, and that caller must not end up with
+  // a wider allowance than the one they had while the account existed.
+  test("a caller whose account is gone may still cut only their own", async () => {
+    CustomerModel.docs.length = 0;
+
+    await expect(listRevocableCustomerIds(CUSTOMER_ID)).resolves.toEqual([CUSTOMER_ID]);
+  });
+
+  // The registration is permanent today, but the access is what matters: a row the list
+  // cannot describe is still a row the manager has to be able to cut.
+  test("still lists a grant whose client registration is gone, with its owner named", async () => {
+    seedGrant(CUSTOMER_ID, { clientId: "client-deleted" });
+
+    await expect(listCompanyConnectedClients(COMPANY_ID)).resolves.toEqual([
+      {
+        id: "grant-1",
+        clientId: "client-deleted",
+        clientName: null,
+        redirectUris: [],
+        connectedAt: "2026-08-01T10:00:00.000Z",
+        lastUsedAt: null,
+        employee: {
+          id: CUSTOMER_ID,
+          firstName: "Dana",
+          lastName: "Levi",
+          email: CUSTOMER_EMAIL,
+        },
+      },
+    ]);
+  });
+
+  test("an employee may cut only their own connection", async () => {
+    const colleagueGrant = seedGrant(MANAGER_ID);
+
+    const revocable = await listRevocableCustomerIds(CUSTOMER_ID);
+
+    expect(revocable).toEqual([CUSTOMER_ID]);
+    await expect(revokeGrant(String(colleagueGrant._id), revocable)).resolves.toBe(false);
+    expect(OAuthGrantModel.docs).toHaveLength(1);
   });
 });
 
 // Over a real socket rather than the handler alone: the 404 for a malformed id comes
 // from router.param, which only runs when the request is routed.
-describe("DELETE /api/oauth/grants/:id", () => {
+describe("/api/oauth/grants routes", () => {
   const GRANT_ID = "68e0f0c2e4b0a1a2b3c4d5e6";
   const UNUSED_GRANT_ID = "68e0f0c2e4b0a1a2b3c4d5ff";
 
@@ -596,13 +785,21 @@ describe("DELETE /api/oauth/grants/:id", () => {
     await once(server, "close");
   });
 
-  function disconnect(grantId: string): Promise<globalThis.Response> {
+  function authHeader(customerId: string): Record<string, string> {
+    return {
+      authorization: `Bearer ${signToken({ customerId, email: CUSTOMER_EMAIL })}`,
+    };
+  }
+
+  function disconnect(grantId: string, callerId = CUSTOMER_ID): Promise<globalThis.Response> {
     return fetch(`${baseUrl}/api/oauth/grants/${grantId}`, {
       method: "DELETE",
-      headers: {
-        authorization: `Bearer ${signToken({ customerId: CUSTOMER_ID, email: CUSTOMER_EMAIL })}`,
-      },
+      headers: authHeader(callerId),
     });
+  }
+
+  function listCompanyGrants(callerId: string): Promise<globalThis.Response> {
+    return fetch(`${baseUrl}/api/oauth/grants/company`, { headers: authHeader(callerId) });
   }
 
   test("answers 204 and removes the grant", async () => {
@@ -639,6 +836,68 @@ describe("DELETE /api/oauth/grants/:id", () => {
     const response = await fetch(`${baseUrl}/api/oauth/grants/${GRANT_ID}`, { method: "DELETE" });
 
     expect(response.status).toBe(401);
+  });
+
+  test("lets a manager disconnect someone in their own company", async () => {
+    OAuthGrantModel.docs.push({
+      _id: GRANT_ID,
+      customerId: CUSTOMER_ID,
+      clientId: client.client_id,
+    });
+
+    const response = await disconnect(GRANT_ID, MANAGER_ID);
+
+    expect(response.status).toBe(204);
+    expect(OAuthGrantModel.docs).toHaveLength(0);
+  });
+
+  // 404 rather than 403: a manager elsewhere must not learn this connection exists.
+  test("answers 404 for a manager of another company and leaves the grant alone", async () => {
+    OAuthGrantModel.docs.push({
+      _id: GRANT_ID,
+      customerId: CUSTOMER_ID,
+      clientId: client.client_id,
+    });
+
+    const response = await disconnect(GRANT_ID, OTHER_MANAGER_ID);
+
+    expect(response.status).toBe(404);
+    expect(OAuthGrantModel.docs).toHaveLength(1);
+  });
+
+  test("gives a manager their own company's connections and nobody else's", async () => {
+    OAuthGrantModel.docs.push(
+      {
+        _id: GRANT_ID,
+        customerId: CUSTOMER_ID,
+        clientId: client.client_id,
+        refreshTokenHash: "a-secret-hash",
+        lastUsedAt: null,
+        createdAt: new Date("2026-08-01T10:00:00.000Z"),
+      },
+      {
+        _id: UNUSED_GRANT_ID,
+        customerId: OTHER_COMPANY_EMPLOYEE_ID,
+        clientId: client.client_id,
+        refreshTokenHash: "a-secret-hash",
+        lastUsedAt: null,
+        createdAt: new Date("2026-08-01T10:00:00.000Z"),
+      },
+    );
+
+    const response = await listCompanyGrants(MANAGER_ID);
+    const body = (await response.json()) as { id: string; employee: { email: string } }[];
+
+    expect(response.status).toBe(200);
+    expect(body.map((connection) => connection.id)).toEqual([GRANT_ID]);
+    expect(body[0]?.employee.email).toBe(CUSTOMER_EMAIL);
+    expect(JSON.stringify(body)).not.toContain("a-secret-hash");
+  });
+
+  test("refuses the company list to an employee", async () => {
+    const response = await listCompanyGrants(CUSTOMER_ID);
+
+    expect(response.status).toBe(403);
   });
 });
 

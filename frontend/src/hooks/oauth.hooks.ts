@@ -1,6 +1,7 @@
 import { QUERY_KEYS } from '@/constants/queryKeys';
 import {
   approveAuthorization,
+  fetchCompanyGrants,
   fetchConsentRequest,
   fetchGrants,
   revokeGrant,
@@ -35,12 +36,20 @@ export const useApproveAuthorization = () =>
 export const useOAuthGrants = () =>
   useQuery({ queryKey: QUERY_KEYS.oauthGrants, queryFn: fetchGrants });
 
+export const useCompanyOAuthGrants = () =>
+  useQuery({ queryKey: QUERY_KEYS.oauthCompanyGrants, queryFn: fetchCompanyGrants });
+
 export const useRevokeOAuthGrant = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (grantId: string) => revokeGrant(grantId),
     // On settle, not on success: a failed disconnect may still have landed server-side.
-    onSettled: () => void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.oauthGrants }),
+    // Both lists go stale together — a manager cutting a connection from the team page may
+    // be cutting one of their own — and invalidating a key nobody observes costs nothing.
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.oauthGrants });
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.oauthCompanyGrants });
+    },
   });
 };

@@ -385,3 +385,5 @@ export type { RedisClientType } from 'redis';
 export * from './utils.js';
 export * from './crypto.js';
 export * from './consts.js';
+export * from './evaluator.js';
+export * from './evaluationSubject.js';

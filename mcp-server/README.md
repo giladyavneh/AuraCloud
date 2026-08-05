@@ -8,6 +8,7 @@ MCP (Model Context Protocol) server that lets AI clients read and manage a user'
 |---|---|---|
 | `get_watchlist` | read | Current watchlist (resources + monitored IAM actions) for the acting user |
 | `get_permission_status` | read | Aura's evaluated allow/deny per watched resource/action, with the exact deny reason and an overall health summary. Filters: `arn`, `action`, `status`, `includeDetails` (full policy-evaluation trace) |
+| `check_theoretical_permission` | read | Live what-if evaluation (`arn`, `action`) for any discovered resource — watched or not — without touching the watchlist. Same evaluator and verdict vocabulary as the dashboard, computed on the spot from crawled data (needs Redis running) |
 | `add_watchlist_resource` | write | Add a resource (`arn`, `actions[]`) — creates the watchlist if missing. The ARN must be a discovered resource: unknown ARNs are rejected (with a "did you mean" suggestion for near-misses); unknown action names are accepted but flagged in a `warnings` array |
 | `remove_watchlist_resource` | write | Remove a resource by ARN (no validation — garbage that predates validation can always be removed) |
 | `update_resource_actions` | write | Replace the actions array of a watched resource; unknown action names produce `warnings` |

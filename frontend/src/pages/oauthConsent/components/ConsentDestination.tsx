@@ -8,11 +8,10 @@ import {
 } from '@/pages/oauthConsent/constants';
 import {
   DestinationPanel,
-  HostLabel,
+  MonoAddress,
+  MonoSegment,
   MonoValue,
-  OriginLine,
-  PathText,
-  SchemeText,
+  PanelHeader,
   SectionBlock,
   VisuallyHidden,
 } from '@/pages/oauthConsent/components/oauthConsent.styled';
@@ -52,17 +51,6 @@ const ConsentDestination: React.FC<ConsentDestinationProps> = ({ redirectUri, re
 
   return (
     <SectionBlock>
-      {redirectClass === 'remote' && (
-        <Typography
-          id={DESTINATION_LABEL_ELEMENT_ID}
-          variant="caption"
-          color="textSecondary"
-          component="h2"
-        >
-          {t('consent.destination.sectionLabel')}
-        </Typography>
-      )}
-
       <DestinationPanel
         ref={panelRef}
         redirectClass={redirectClass}
@@ -112,39 +100,49 @@ const ConsentDestination: React.FC<ConsentDestinationProps> = ({ redirectUri, re
           </>
         ) : (
           <>
-            <StatusTag
-              variant={TAG_VARIANTS.remote}
-              label={t('consent.destination.tag.remote')}
-            />
+            <PanelHeader>
+              <Typography
+                id={DESTINATION_LABEL_ELEMENT_ID}
+                variant="subtitle1"
+                component="h2"
+                color="textPrimary"
+              >
+                {t('consent.destination.sectionLabel')}
+              </Typography>
+
+              <StatusTag
+                variant={TAG_VARIANTS.remote}
+                label={t('consent.destination.tag.remote')}
+              />
+
+            </PanelHeader>
+
+            <CopyField
+              label={t('consent.destination.addressLabel')}
+              value={redirectUri}
+              copyLabel={t('consent.destination.copy')}
+              copiedLabel={t('consent.destination.copied')}
+            >
+              <MonoAddress aria-hidden="true">
+                <MonoSegment isEmphasised={false}>
+                  {url ? `${url.protocol}//${hostLabels.dim}` : ''}
+                </MonoSegment>
+                <MonoSegment isEmphasised>{hostLabels.emphasised}</MonoSegment>
+                <MonoSegment isEmphasised={false}>{url ? formatRedirectPath(url) : ''}</MonoSegment>
+              </MonoAddress>
+            </CopyField>
 
             <Typography
               id={DESTINATION_HEADLINE_ELEMENT_ID}
-              variant="subtitle1"
+              variant="body2"
               color={HEADLINE_COLORS.remote}
             >
               {t('consent.destination.headline.remote')}
             </Typography>
 
-            <OriginLine aria-hidden="true">
-              {url && <SchemeText>{`${url.protocol}//`}</SchemeText>}
-              {hostLabels.dim && <HostLabel isEmphasised={false}>{hostLabels.dim}</HostLabel>}
-              <HostLabel isEmphasised>{hostLabels.emphasised}</HostLabel>
-            </OriginLine>
-
-            {url && <PathText aria-hidden="true">{formatRedirectPath(url)}</PathText>}
-
-            <Typography variant="body2" color="textSecondary">
+            <Typography variant="caption" color="textSecondary">
               {t('consent.destination.hint.remote')}
             </Typography>
-
-            <CopyField
-              label={t('consent.destination.fullUrlLabel')}
-              value={redirectUri}
-              copyLabel={t('consent.destination.copy')}
-              copiedLabel={t('consent.destination.copied')}
-            >
-              <MonoValue>{redirectUri}</MonoValue>
-            </CopyField>
 
           </>
         )}

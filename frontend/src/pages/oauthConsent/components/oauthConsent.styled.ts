@@ -97,34 +97,27 @@ export const DestinationPanel = styled(Box, {
   };
 });
 
-export const OriginLine = styled(Box)(({ theme }) => ({
+/** The panel's own heading, with room for a tag that keeps its natural width. */
+export const PanelHeader = styled(Box)(({ theme }) => ({
   display: 'flex',
-  alignItems: 'baseline',
-  flexWrap: 'wrap',
-  gap: theme.spacing(1),
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: theme.spacing(2),
 }));
 
-export const SchemeText = styled('span')(({ theme }) => ({
-  fontFamily: theme.typography.fontFamilyMono,
-  fontSize: theme.typography.body2.fontSize,
-  color: theme.palette.text.disabled,
-}));
-
-export const HostLabel = styled('span', {
-  shouldForwardProp: (prop) => prop !== 'isEmphasised',
-})<{ isEmphasised: boolean }>(({ theme, isEmphasised }) => ({
-  fontFamily: theme.typography.fontFamilyMono,
-  fontSize: theme.typography.h5.fontSize,
-  fontWeight: 500,
-  color: isEmphasised ? theme.palette.text.primary : theme.palette.text.disabled,
-  wordBreak: 'break-all',
-}));
-
-export const PathText = styled('span')(({ theme }) => ({
+export const MonoAddress = styled('span')(({ theme }) => ({
   fontFamily: theme.typography.fontFamilyMono,
   fontSize: theme.typography.caption.fontSize,
-  color: theme.palette.text.disabled,
   wordBreak: 'break-all',
+  flexGrow: 1,
+}));
+
+/** DNS reads a host right to left, so the registrable domain stays lit and its prefix recedes. */
+export const MonoSegment = styled('span', {
+  shouldForwardProp: (prop) => prop !== 'isEmphasised',
+})<{ isEmphasised: boolean }>(({ theme, isEmphasised }) => ({
+  color: isEmphasised ? theme.palette.text.primary : theme.palette.text.disabled,
+  fontWeight: isEmphasised ? 700 : 400,
 }));
 
 export const MonoValue = styled('span')(({ theme }) => ({

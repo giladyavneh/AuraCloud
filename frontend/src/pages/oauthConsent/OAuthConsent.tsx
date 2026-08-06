@@ -5,7 +5,9 @@ import ConsentActions from '@/pages/oauthConsent/components/ConsentActions';
 import ConsentClientRow from '@/pages/oauthConsent/components/ConsentClientRow';
 import ConsentDestination from '@/pages/oauthConsent/components/ConsentDestination';
 import ConsentInvalidRequest from '@/pages/oauthConsent/components/ConsentInvalidRequest';
+import PixelBlast from '@/components/pixelBlast/PixelBlast';
 import {
+  BackgroundLayer,
   ConsentCard,
   ConsentRoot,
   HeaderBlock,
@@ -41,6 +43,19 @@ const OAuthConsent: React.FC = () => {
 
   return (
     <ConsentRoot>
+      <BackgroundLayer>
+        <PixelBlast
+          variant="square"
+          color={theme.palette.primary.main}
+          pixelSize={4}
+          patternScale={3}
+          patternDensity={1.2}
+          pixelSizeJitter={0.4}
+          edgeFade={0.4}
+          speed={0.4}
+        />
+      </BackgroundLayer>
+
       <ConsentCard elevation={0}>
         <HeaderBlock>
           <LogoBadge>
@@ -84,7 +99,7 @@ const OAuthConsent: React.FC = () => {
               redirectClass={state.redirectClass}
             />
 
-            <ConsentClientRow clientName={state.clientName} />
+            <ConsentClientRow clientName={state.clientName} redirectClass={state.redirectClass} />
 
             <ConsentAccessList />
 

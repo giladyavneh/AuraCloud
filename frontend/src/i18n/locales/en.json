@@ -266,7 +266,7 @@
         "retry": "Retry",
         "timing": "Connected {{connected}} · Last used {{lastUsed}}",
         "neverUsed": "never",
-        "nameNotice": "Calls itself \"{{clientName}}\" — a name the app chose for itself, which we don't check.",
+        "nameNotice": "Calls itself \"{{clientName}}\".",
         "unnamed": "This app didn't give itself a name.",
         "unknownAddress": "an unknown address",
         "externalTag": "External server",
@@ -275,7 +275,8 @@
         "disconnect": "Disconnect",
         "disconnectAria": "Disconnect the client at {{origin}}",
         "disconnectSuccess": "Disconnected {{origin}}. It can't come back without your approval.",
-        "disconnectError": "Couldn't disconnect {{origin}}. Try again."
+        "disconnectError": "Couldn't disconnect {{origin}}. Try again.",
+        "nameCaveat": "App names are chosen by the apps themselves and we don't check them — judge a connection by its address."
       },
       "confirmDisconnect": {
         "title": "Disconnect this AI client?",

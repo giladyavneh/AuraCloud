@@ -87,9 +87,8 @@ function toClientInformation(client: OAuthClient): OAuthClientInformationFull {
 }
 
 /**
- * Callers must mint before they write the grant. Minting can fail (the account may be
- * gone, the read may error), and a rotation that has already committed leaves the client
- * holding a dead refresh token with no replacement — an unrecoverable grant.
+ * Callers must mint before writing the grant: minting can fail, and a rotation that
+ * already committed would leave the client holding a dead refresh token with no replacement.
  */
 async function mintAccessToken(
   customerId: string,
@@ -236,9 +235,9 @@ export const oauthProvider: OAuthServerProvider = {
     const accessToken = await mintAccessToken(grant.customerId, client.client_id, grant.scopes);
 
     const rotatedToken = randomToken();
-    // Conditioning the write on the presented hash is what makes rotation safe: the old
-    // token stops matching the moment the new one lands, so a replay — or the loser of a
-    // race between two concurrent refreshes — finds no grant to update.
+    // Conditioning the write on the presented hash makes rotation safe: the old token stops
+    // matching once the new one lands, so neither a replay nor the loser of a concurrent
+    // refresh finds a grant to update.
     const rotated = await OAuthGrantModel.findOneAndUpdate(
       { clientId: client.client_id, refreshTokenHash: presentedHash },
       { refreshTokenHash: hashToken(rotatedToken), lastUsedAt: new Date() },
@@ -283,12 +282,8 @@ export const oauthProvider: OAuthServerProvider = {
 };
 
 /**
- * What the consent screen needs to describe the request, and — the part that matters —
- * whether the redirect target is one the client actually registered. The consent screen's
- * deny path navigates to that URI, so without this answer our own origin would redirect
- * anywhere an attacker put in the query string.
- *
- * Returns null for an unknown client so the caller can 404 it.
+ * The consent screen's deny path navigates to the redirect_uri from the query string, so
+ * without checking it here, our own origin becomes an open redirect. Null means unknown client.
  */
 export async function describeConsentRequest(
   clientId: string,
@@ -306,13 +301,11 @@ export async function describeConsentRequest(
 }
 
 /**
- * A grant records only which client it is for. The name and the addresses that client
- * registered live on OAuthClient, and the address is the only part of a connection a
- * reader can recognise — so the list is worthless without the join. A grant whose client
- * registration has since gone still lists, with nothing invented to fill the gap: the
- * access is real and has to stay revocable.
- *
- * One entry per grant, in the order given. Never returns refreshTokenHash.
+ * A grant only records which client it is for; the name and addresses live on OAuthClient,
+ * and the address is the only part a reader can recognise — so the list is worthless
+ * without this join. A grant whose client registration is gone still lists, with nothing
+ * invented to fill the gap: the access is real and must stay revocable. Never returns
+ * refreshTokenHash.
  */
 async function describeGrants(grants: GrantRecord[]): Promise<ConnectedClient[]> {
   if (grants.length === 0) return [];
@@ -345,17 +338,12 @@ export async function listConnectedClients(customerId: string): Promise<Connecte
 }
 
 /**
- * A grant records no company, so the roster is what scopes the list: a connection is only
- * reachable through a Customer this company owns. A grant whose owner was deleted outside
- * the app is therefore invisible here — and unreachable from that owner's own settings
- * too, since the login is gone. Nothing in either surface can cut it.
- *
- * Grouped by person and newest-first within a person, because the rows a manager has to
- * tell apart are that person's own. The sort key lives on Customer, so it cannot be a
- * Mongo sort on the grants.
- *
- * Employee fields are listed rather than spread: these are Customer documents, and a
- * spread would hand passwordHash to every manager in the company.
+ * OAuthGrant has no companyId, so the roster is what scopes the list — and a grant whose
+ * owner was deleted outside the app is invisible on both this surface and the owner's own,
+ * since neither can look it up. Grouped by person, newest first within a person, since
+ * that is what a manager reads by; the sort key lives on Customer, so it can't be a Mongo
+ * sort on the grants. Fields are listed explicitly, not spread — a spread would hand
+ * passwordHash to every manager in the company.
  */
 export async function listCompanyConnectedClients(
   companyId: string,

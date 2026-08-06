@@ -4,6 +4,8 @@ import ConnectAiSection from "@/pages/settings/components/ConnectAiSection";
 import InviteCodeSection from "@/pages/settings/components/InviteCodeSection";
 import ProfileSection from "@/pages/settings/components/ProfileSection";
 import {
+  SettingsColumn,
+  SettingsColumns,
   SettingsHeader,
   SettingsRoot,
 } from "@/pages/settings/components/settings.styled";
@@ -14,6 +16,8 @@ import { useTranslation } from "react-i18next";
 const Settings: React.FC = () => {
   const { t } = useTranslation();
   const { customer } = useAuth();
+
+  const isManager = customer?.role === 'manager';
 
   return (
     <SettingsRoot>
@@ -26,14 +30,25 @@ const Settings: React.FC = () => {
         </Typography>
       </SettingsHeader>
 
-      <ProfileSection />
+      <SettingsColumns hasCompanyColumn={isManager}>
+        <SettingsColumn>
+          <ProfileSection />
 
-      {/* Personal sections first: everyone renders these, and half render nothing below */}
-      <ConnectAiSection />
+          <ConnectAiSection />
 
-      {/* Invite code and AWS credentials are company-level — managers only */}
-      {customer?.role === 'manager' && <InviteCodeSection />}
-      {customer?.role === 'manager' && <AwsCredentialsSection />}
+        </SettingsColumn>
+
+        {/* Invite code and AWS credentials are company-level — managers only */}
+        {isManager && (
+          <SettingsColumn>
+            <InviteCodeSection />
+
+            <AwsCredentialsSection />
+
+          </SettingsColumn>
+        )}
+
+      </SettingsColumns>
 
     </SettingsRoot>
   );

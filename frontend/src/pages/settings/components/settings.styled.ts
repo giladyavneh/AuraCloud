@@ -1,3 +1,7 @@
+import {
+  SETTINGS_COLUMN_MAX_WIDTH,
+  SETTINGS_TWO_COLUMN_MAX_WIDTH,
+} from "@/pages/settings/constants";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import { styled } from "@mui/material/styles";
@@ -6,7 +10,31 @@ export const SettingsRoot = styled(Box)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
   gap: theme.spacing(4),
-  maxWidth: 640,
+}));
+
+/**
+ * Personal settings beside company ones. An employee has no company column, so the grid
+ * collapses to the single-column width rather than leaving a half-width page.
+ */
+export const SettingsColumns = styled(Box, {
+  shouldForwardProp: (prop) => prop !== "hasCompanyColumn",
+})<{ hasCompanyColumn: boolean }>(({ theme, hasCompanyColumn }) => ({
+  display: "grid",
+  gridTemplateColumns: hasCompanyColumn ? "1fr 1fr" : "1fr",
+  alignItems: "start",
+  gap: theme.spacing(4),
+  maxWidth: hasCompanyColumn ? SETTINGS_TWO_COLUMN_MAX_WIDTH : SETTINGS_COLUMN_MAX_WIDTH,
+
+  [theme.breakpoints.down("lg")]: {
+    gridTemplateColumns: "1fr",
+    maxWidth: SETTINGS_COLUMN_MAX_WIDTH,
+  },
+}));
+
+export const SettingsColumn = styled(Box)(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  gap: theme.spacing(4),
 }));
 
 export const SettingsHeader = styled(Box)(({ theme }) => ({

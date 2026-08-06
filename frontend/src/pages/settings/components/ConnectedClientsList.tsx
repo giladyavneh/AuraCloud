@@ -1,4 +1,5 @@
 import ErrorRetryRow from "@/components/errorRetryRow/ErrorRetryRow";
+import { classifyRedirectUri } from "@/helpers/redirectUri.helpers";
 import { ClientList } from "@/pages/settings/components/connectAi.styled";
 import ConnectedClientRow from "@/pages/settings/components/ConnectedClientRow";
 import type { ConnectedClientsListProps } from "@/pages/settings/types/settings.types";
@@ -38,6 +39,12 @@ const ConnectedClientsList: React.FC<ConnectedClientsListProps> = ({
     );
   }
 
+  // Said once, and only when a connection can actually carry data off this machine. Repeating
+  // it on every row is how a warning stops being read by the third one.
+  const hasExternal = clients.some(
+    (client) => classifyRedirectUri(client.redirectUris[0] ?? "", true) !== "local",
+  );
+
   return (
     <ClientList>
       {clients.map((client) => (
@@ -47,6 +54,12 @@ const ConnectedClientsList: React.FC<ConnectedClientsListProps> = ({
           onDisconnect={() => onDisconnect(client)}
         />
       ))}
+
+      {hasExternal && (
+        <Typography variant="caption" color="textSecondary">
+          {t("settings.connectAi.clients.nameCaveat")}
+        </Typography>
+      )}
 
     </ClientList>
   );

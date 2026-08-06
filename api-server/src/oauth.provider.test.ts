@@ -4,6 +4,7 @@ import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import express, { type Request, type Response } from "express";
 import jwt from "jsonwebtoken";
+import { MongoMemoryServer } from "mongodb-memory-server";
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import type { OAuthClientInformationFull } from "@modelcontextprotocol/sdk/shared/auth.js";
 import {
@@ -11,103 +12,9 @@ import {
   InvalidRequestError,
   InvalidTokenError,
 } from "@modelcontextprotocol/sdk/server/auth/errors.js";
-import { MCP_TOKEN_AUDIENCE } from "utils";
-
-type FakeDoc = Record<string, unknown>;
-
-interface FakeQuery<T> extends Promise<T> {
-  lean: () => Promise<T>;
-  sort: (spec: Record<string, 1 | -1>) => FakeQuery<T>;
-}
-
-/** Awaitable stand-in for a Mongoose query, which is both a promise and chainable. */
-function fakeQuery<T>(value: T): FakeQuery<T> {
-  const query = Promise.resolve(value) as FakeQuery<T>;
-  query.lean = () => Promise.resolve(value);
-  query.sort = (spec) => {
-    const [key, direction] = Object.entries(spec)[0] ?? [];
-    if (Array.isArray(value) && key && direction) {
-      (value as FakeDoc[]).sort(
-        (left, right) => (Number(left[key]) - Number(right[key])) * direction,
-      );
-    }
-    return query;
-  };
-  return query;
-}
-
-function matchesValue(actual: unknown, expected: unknown): boolean {
-  if (expected && typeof expected === "object" && "$in" in expected) {
-    return (expected.$in as unknown[]).includes(actual);
-  }
-  return actual === expected;
-}
-
-function matches(doc: FakeDoc, filter: FakeDoc): boolean {
-  return Object.entries(filter).every(([key, value]) => matchesValue(doc[key], value));
-}
-
-/** Just enough of a Mongoose model to exercise the provider without a database. */
-class FakeModel {
-  readonly docs: FakeDoc[] = [];
-
-  create(doc: FakeDoc) {
-    const stored = { ...doc };
-    this.docs.push(stored);
-    return fakeQuery(stored);
-  }
-
-  findById(id: string) {
-    return fakeQuery(this.docs.find((doc) => doc._id === id) ?? null);
-  }
-
-  find(filter: FakeDoc) {
-    return fakeQuery(this.docs.filter((doc) => matches(doc, filter)));
-  }
-
-  findOne(filter: FakeDoc) {
-    return fakeQuery(this.docs.find((doc) => matches(doc, filter)) ?? null);
-  }
-
-  findOneAndDelete(filter: FakeDoc) {
-    const index = this.docs.findIndex((doc) => matches(doc, filter));
-    if (index === -1) return fakeQuery(null);
-    const [removed] = this.docs.splice(index, 1);
-    return fakeQuery(removed ?? null);
-  }
-
-  findOneAndUpdate(filter: FakeDoc, update: FakeDoc, options?: { upsert?: boolean }) {
-    const existing = this.docs.find((doc) => matches(doc, filter));
-    if (!existing) {
-      if (options?.upsert) this.docs.push({ ...filter, ...update });
-      return fakeQuery(null);
-    }
-
-    const before = { ...existing };
-    Object.assign(existing, update);
-    return fakeQuery(before);
-  }
-
-  deleteOne(filter: FakeDoc) {
-    const index = this.docs.findIndex((doc) => matches(doc, filter));
-    if (index !== -1) this.docs.splice(index, 1);
-    return fakeQuery({ deletedCount: index === -1 ? 0 : 1 });
-  }
-}
-
-const CustomerModel = new FakeModel();
-const OAuthClientModel = new FakeModel();
-const OAuthGrantModel = new FakeModel();
-const OAuthAuthCodeModel = new FakeModel();
-
-vi.mock("./db.js", () => ({
-  CustomerModel,
-  OAuthClientModel,
-  OAuthGrantModel,
-  OAuthAuthCodeModel,
-}));
-
-const {
+import { MCP_TOKEN_AUDIENCE, mongoose, type OAuthGrantDoc } from "utils";
+import { CustomerModel, OAuthAuthCodeModel, OAuthClientModel, OAuthGrantModel } from "./db.js";
+import {
   approveAuthorization,
   describeConsentRequest,
   listCompanyConnectedClients,
@@ -115,17 +22,21 @@ const {
   listRevocableCustomerIds,
   oauthProvider,
   revokeGrant,
-} = await import("./oauth.provider.js");
-const { requireAuth, signToken } = await import("./middleware/auth.middleware.js");
-const { default: oauthRoutes } = await import("./routes/oauth.routes.js");
+} from "./oauth.provider.js";
+import { requireAuth, signToken } from "./middleware/auth.middleware.js";
+import oauthRoutes from "./routes/oauth.routes.js";
 
-const CUSTOMER_ID = "customer-1";
+function newObjectId(): string {
+  return new mongoose.Types.ObjectId().toString();
+}
+
+const CUSTOMER_ID = newObjectId();
 const CUSTOMER_EMAIL = "dev@example.com";
-const COMPANY_ID = "company-1";
-const MANAGER_ID = "manager-1";
-const OTHER_COMPANY_ID = "company-2";
-const OTHER_MANAGER_ID = "manager-2";
-const OTHER_COMPANY_EMPLOYEE_ID = "customer-9";
+const COMPANY_ID = newObjectId();
+const MANAGER_ID = newObjectId();
+const OTHER_COMPANY_ID = newObjectId();
+const OTHER_MANAGER_ID = newObjectId();
+const OTHER_COMPANY_EMPLOYEE_ID = newObjectId();
 const REDIRECT_URI = "http://localhost:41234/callback";
 const CODE_CHALLENGE = "hLDQ2Rl0Wl0m0k0KPqZ0eZ0mQe0mQe0mQe0mQe0mQe0";
 
@@ -135,11 +46,25 @@ const client: OAuthClientInformationFull = {
   redirect_uris: [REDIRECT_URI],
 };
 
-function resetCollections(): void {
-  for (const model of [CustomerModel, OAuthClientModel, OAuthGrantModel, OAuthAuthCodeModel]) {
-    model.docs.length = 0;
-  }
-}
+let mongo: MongoMemoryServer;
+
+beforeAll(async () => {
+  mongo = await MongoMemoryServer.create();
+  await mongoose.connect(mongo.getUri());
+
+  // Mongoose builds indexes in the background on first use, so without waiting here a
+  // test could write before the unique keys it is meant to run against exist.
+  await Promise.all(
+    [CustomerModel, OAuthClientModel, OAuthGrantModel, OAuthAuthCodeModel].map((model) =>
+      model.createIndexes(),
+    ),
+  );
+}, 120_000);
+
+afterAll(async () => {
+  await mongoose.disconnect();
+  await mongo.stop();
+});
 
 async function approveAndGetCode(): Promise<string> {
   const redirectTo = await approveAuthorization({
@@ -155,14 +80,18 @@ async function approveAndGetCode(): Promise<string> {
   return code;
 }
 
-beforeEach(() => {
-  resetCollections();
-  CustomerModel.docs.push(
+beforeEach(async () => {
+  await Promise.all(
+    Object.values(mongoose.connection.collections).map((collection) => collection.deleteMany({})),
+  );
+
+  await CustomerModel.create([
     {
       _id: CUSTOMER_ID,
       firstName: "Dana",
       lastName: "Levi",
       email: CUSTOMER_EMAIL,
+      roleTitle: "Developer",
       passwordHash: "a-password-hash",
       role: "employee",
       companyId: COMPANY_ID,
@@ -172,6 +101,7 @@ beforeEach(() => {
       firstName: "Avi",
       lastName: "Cohen",
       email: "avi@example.com",
+      roleTitle: "Engineering Manager",
       passwordHash: "a-manager-password-hash",
       role: "manager",
       companyId: COMPANY_ID,
@@ -181,6 +111,7 @@ beforeEach(() => {
       firstName: "Rina",
       lastName: "Katz",
       email: "rina@other.example.com",
+      roleTitle: "Engineering Manager",
       passwordHash: "another-password-hash",
       role: "manager",
       companyId: OTHER_COMPANY_ID,
@@ -190,12 +121,14 @@ beforeEach(() => {
       firstName: "Noa",
       lastName: "Barak",
       email: "noa@other.example.com",
+      roleTitle: "Developer",
       passwordHash: "yet-another-password-hash",
       role: "employee",
       companyId: OTHER_COMPANY_ID,
     },
-  );
-  OAuthClientModel.docs.push({
+  ]);
+
+  await OAuthClientModel.create({
     clientId: client.client_id,
     clientName: client.client_name,
     redirectUris: client.redirect_uris,
@@ -203,6 +136,25 @@ beforeEach(() => {
     clientSecretExpiresAt: null,
   });
 });
+
+interface GrantOverrides {
+  _id?: string;
+  clientId?: string;
+  lastUsedAt?: Date | null;
+  createdAt?: Date;
+}
+
+function seedGrant(customerId: string, overrides: GrantOverrides = {}): Promise<OAuthGrantDoc> {
+  return OAuthGrantModel.create({
+    customerId,
+    clientId: client.client_id,
+    refreshTokenHash: "a-secret-hash",
+    scopes: ["full"],
+    lastUsedAt: null,
+    createdAt: new Date("2026-08-01T10:00:00.000Z"),
+    ...overrides,
+  });
+}
 
 describe("authorize", () => {
   test("sends the browser to the frontend consent screen with everything it must hand back", async () => {
@@ -261,7 +213,7 @@ describe("describeConsentRequest", () => {
   });
 
   test("reports a null clientName rather than inventing one", async () => {
-    OAuthClientModel.docs.push({
+    await OAuthClientModel.create({
       clientId: "anonymous-client",
       clientName: null,
       redirectUris: [REDIRECT_URI],
@@ -285,9 +237,12 @@ describe("authorization code", () => {
   });
 
   test("expires within a minute of being issued", async () => {
-    vi.useFakeTimers();
+    const code = await approveAndGetCode();
+
+    // Only Date is faked, and only after the code is written: the driver's pool and
+    // heartbeat timers have to keep running or the queries below never settle.
+    vi.useFakeTimers({ toFake: ["Date"] });
     try {
-      const code = await approveAndGetCode();
       vi.advanceTimersByTime(61_000);
 
       await expect(
@@ -336,12 +291,12 @@ describe("authorization code", () => {
   // employees.routes.ts, so no grant may be created before the customer is confirmed.
   test("redeemed after the account was deleted leaves no grant behind", async () => {
     const code = await approveAndGetCode();
-    CustomerModel.docs.length = 0;
+    await CustomerModel.deleteMany({});
 
     await expect(
       oauthProvider.exchangeAuthorizationCode(client, code, undefined, REDIRECT_URI),
     ).rejects.toBeInstanceOf(InvalidGrantError);
-    expect(OAuthGrantModel.docs).toHaveLength(0);
+    await expect(OAuthGrantModel.countDocuments()).resolves.toBe(0);
   });
 
   test("is not issued for a redirect_uri the client never registered", async () => {
@@ -354,7 +309,7 @@ describe("authorization code", () => {
         scopes: ["full"],
       }),
     ).rejects.toBeInstanceOf(InvalidRequestError);
-    expect(OAuthAuthCodeModel.docs).toHaveLength(0);
+    await expect(OAuthAuthCodeModel.countDocuments()).resolves.toBe(0);
   });
 });
 
@@ -368,9 +323,10 @@ describe("challengeForAuthorizationCode", () => {
   });
 
   test("rejects an expired code", async () => {
-    vi.useFakeTimers();
+    const code = await approveAndGetCode();
+
+    vi.useFakeTimers({ toFake: ["Date"] });
     try {
-      const code = await approveAndGetCode();
       vi.advanceTimersByTime(61_000);
 
       await expect(
@@ -409,7 +365,8 @@ describe("refresh token", () => {
       .createHash("sha256")
       .update(tokens.refresh_token!)
       .digest("hex");
-    const stored = OAuthGrantModel.docs.map((grant) => grant.refreshTokenHash);
+    const grants = await OAuthGrantModel.find().lean();
+    const stored = grants.map((grant) => grant.refreshTokenHash);
     expect(stored).toEqual([expectedHash]);
     expect(stored).not.toContain(tokens.refresh_token);
   });
@@ -444,14 +401,14 @@ describe("refresh token", () => {
       undefined,
       REDIRECT_URI,
     );
-    const hashBefore = OAuthGrantModel.docs[0]?.refreshTokenHash;
+    const hashBefore = (await OAuthGrantModel.findOne().lean())?.refreshTokenHash;
 
-    CustomerModel.docs.length = 0;
+    await CustomerModel.deleteMany({});
 
     await expect(
       oauthProvider.exchangeRefreshToken(client, issued.refresh_token!),
     ).rejects.toBeInstanceOf(InvalidGrantError);
-    expect(OAuthGrantModel.docs[0]?.refreshTokenHash).toEqual(hashBefore);
+    expect((await OAuthGrantModel.findOne().lean())?.refreshTokenHash).toEqual(hashBefore);
   });
 
   test("stops working once the grant is revoked", async () => {
@@ -519,29 +476,16 @@ describe("access token", () => {
 });
 
 describe("connected clients", () => {
-  const OTHER_CUSTOMER_ID = "customer-2";
-
-  function seedGrant(overrides: FakeDoc = {}): FakeDoc {
-    const grant: FakeDoc = {
-      _id: `grant-${OAuthGrantModel.docs.length + 1}`,
-      customerId: CUSTOMER_ID,
-      clientId: client.client_id,
-      refreshTokenHash: "a-secret-hash",
-      scopes: ["full"],
-      lastUsedAt: null,
-      createdAt: new Date("2026-08-01T10:00:00.000Z"),
-      ...overrides,
-    };
-    OAuthGrantModel.docs.push(grant);
-    return grant;
-  }
+  const OTHER_CUSTOMER_ID = newObjectId();
 
   test("names the client and its registered addresses, which only the join knows", async () => {
-    seedGrant({ lastUsedAt: new Date("2026-08-04T09:00:00.000Z") });
+    const grant = await seedGrant(CUSTOMER_ID, {
+      lastUsedAt: new Date("2026-08-04T09:00:00.000Z"),
+    });
 
     await expect(listConnectedClients(CUSTOMER_ID)).resolves.toEqual([
       {
-        id: "grant-1",
+        id: String(grant._id),
         clientId: client.client_id,
         clientName: "Claude Code",
         redirectUris: [REDIRECT_URI],
@@ -552,8 +496,8 @@ describe("connected clients", () => {
   });
 
   test("returns nobody else's connections", async () => {
-    seedGrant();
-    seedGrant({ customerId: OTHER_CUSTOMER_ID, clientId: "client-2" });
+    await seedGrant(CUSTOMER_ID);
+    await seedGrant(OTHER_CUSTOMER_ID, { clientId: "client-2" });
 
     const clients = await listConnectedClients(CUSTOMER_ID);
 
@@ -564,7 +508,7 @@ describe("connected clients", () => {
   // The hash is a bearer credential in everything but name — a rendered list is one
   // screenshot away from being shared.
   test("never carries the refresh token hash", async () => {
-    seedGrant();
+    await seedGrant(CUSTOMER_ID);
 
     const [connectedClient] = await listConnectedClients(CUSTOMER_ID);
 
@@ -575,11 +519,11 @@ describe("connected clients", () => {
   // The registration is permanent today, but the access is what matters: a row the
   // list cannot describe is still a row the user has to be able to cut.
   test("still lists a grant whose client registration is gone", async () => {
-    seedGrant({ clientId: "client-deleted" });
+    const grant = await seedGrant(CUSTOMER_ID, { clientId: "client-deleted" });
 
     await expect(listConnectedClients(CUSTOMER_ID)).resolves.toEqual([
       {
-        id: "grant-1",
+        id: String(grant._id),
         clientId: "client-deleted",
         clientName: null,
         redirectUris: [],
@@ -590,65 +534,58 @@ describe("connected clients", () => {
   });
 
   test("puts the newest connection first", async () => {
-    seedGrant({ createdAt: new Date("2026-07-01T10:00:00.000Z") });
-    seedGrant({ clientId: "client-2", createdAt: new Date("2026-08-03T10:00:00.000Z") });
+    const older = await seedGrant(CUSTOMER_ID, { createdAt: new Date("2026-07-01T10:00:00.000Z") });
+    const newer = await seedGrant(CUSTOMER_ID, {
+      clientId: "client-2",
+      createdAt: new Date("2026-08-03T10:00:00.000Z"),
+    });
 
     const clients = await listConnectedClients(CUSTOMER_ID);
 
-    expect(clients.map((connected) => connected.id)).toEqual(["grant-2", "grant-1"]);
+    expect(clients.map((connected) => connected.id)).toEqual([
+      String(newer._id),
+      String(older._id),
+    ]);
   });
 
   test("revoking removes the grant, so the refresh token stops working", async () => {
-    const grant = seedGrant();
+    const grant = await seedGrant(CUSTOMER_ID);
 
     await expect(revokeGrant(String(grant._id), [CUSTOMER_ID])).resolves.toBe(true);
-    expect(OAuthGrantModel.docs).toHaveLength(0);
+    await expect(OAuthGrantModel.countDocuments()).resolves.toBe(0);
   });
 
   // False is what the route turns into a 404 — a 403 would confirm the grant exists.
   test("revoking someone else's connection reports it as missing and leaves it alone", async () => {
-    const grant = seedGrant({ customerId: OTHER_CUSTOMER_ID });
+    const grant = await seedGrant(OTHER_CUSTOMER_ID);
 
     await expect(revokeGrant(String(grant._id), [CUSTOMER_ID])).resolves.toBe(false);
-    expect(OAuthGrantModel.docs).toHaveLength(1);
+    await expect(OAuthGrantModel.countDocuments()).resolves.toBe(1);
   });
 
   test("revoking a grant that is already gone reports it as missing", async () => {
-    await expect(revokeGrant("grant-does-not-exist", [CUSTOMER_ID])).resolves.toBe(false);
+    await expect(revokeGrant(newObjectId(), [CUSTOMER_ID])).resolves.toBe(false);
   });
 
   // An empty allowance must delete nothing. The predicate is the only tenancy check
   // there is, so a caller allowed to touch nobody has to reach nothing.
   test("revoking with an empty allowance deletes nothing", async () => {
-    const grant = seedGrant();
+    const grant = await seedGrant(CUSTOMER_ID);
 
     await expect(revokeGrant(String(grant._id), [])).resolves.toBe(false);
-    expect(OAuthGrantModel.docs).toHaveLength(1);
+    await expect(OAuthGrantModel.countDocuments()).resolves.toBe(1);
   });
 });
 
 describe("company connections", () => {
-  function seedGrant(customerId: string, overrides: FakeDoc = {}): FakeDoc {
-    const grant: FakeDoc = {
-      _id: `grant-${OAuthGrantModel.docs.length + 1}`,
-      customerId,
-      clientId: client.client_id,
-      refreshTokenHash: "a-secret-hash",
-      scopes: ["full"],
-      lastUsedAt: null,
-      createdAt: new Date("2026-08-01T10:00:00.000Z"),
-      ...overrides,
-    };
-    OAuthGrantModel.docs.push(grant);
-    return grant;
-  }
-
   test("names the person behind each connection", async () => {
-    seedGrant(CUSTOMER_ID, { lastUsedAt: new Date("2026-08-04T09:00:00.000Z") });
+    const grant = await seedGrant(CUSTOMER_ID, {
+      lastUsedAt: new Date("2026-08-04T09:00:00.000Z"),
+    });
 
     await expect(listCompanyConnectedClients(COMPANY_ID)).resolves.toEqual([
       {
-        id: "grant-1",
+        id: String(grant._id),
         clientId: client.client_id,
         clientName: "Claude Code",
         redirectUris: [REDIRECT_URI],
@@ -665,9 +602,9 @@ describe("company connections", () => {
   });
 
   test("lists nothing from another company", async () => {
-    seedGrant(CUSTOMER_ID);
-    seedGrant(OTHER_COMPANY_EMPLOYEE_ID);
-    seedGrant(OTHER_MANAGER_ID);
+    await seedGrant(CUSTOMER_ID);
+    await seedGrant(OTHER_COMPANY_EMPLOYEE_ID);
+    await seedGrant(OTHER_MANAGER_ID);
 
     const clients = await listCompanyConnectedClients(COMPANY_ID);
 
@@ -678,7 +615,7 @@ describe("company connections", () => {
   // The response is built from Customer documents, so a spread would leak the login
   // credential alongside the connection it was meant to describe.
   test("never carries token material or a password hash", async () => {
-    seedGrant(CUSTOMER_ID);
+    await seedGrant(CUSTOMER_ID);
 
     const clients = await listCompanyConnectedClients(COMPANY_ID);
 
@@ -688,43 +625,49 @@ describe("company connections", () => {
   });
 
   test("keeps one person's connections together, newest first", async () => {
-    seedGrant(CUSTOMER_ID, { createdAt: new Date("2026-07-01T10:00:00.000Z") });
-    seedGrant(MANAGER_ID, { clientId: "client-2" });
-    seedGrant(CUSTOMER_ID, {
+    const olderOwn = await seedGrant(CUSTOMER_ID, {
+      createdAt: new Date("2026-07-01T10:00:00.000Z"),
+    });
+    const colleagueGrant = await seedGrant(MANAGER_ID, { clientId: "client-2" });
+    const newerOwn = await seedGrant(CUSTOMER_ID, {
       clientId: "client-2",
       createdAt: new Date("2026-08-03T10:00:00.000Z"),
     });
 
     const clients = await listCompanyConnectedClients(COMPANY_ID);
 
-    expect(clients.map((connected) => connected.id)).toEqual(["grant-2", "grant-3", "grant-1"]);
+    expect(clients.map((connected) => connected.id)).toEqual([
+      String(colleagueGrant._id),
+      String(newerOwn._id),
+      String(olderOwn._id),
+    ]);
   });
 
   test("a manager may cut a connection belonging to someone they manage", async () => {
-    const grant = seedGrant(CUSTOMER_ID);
+    const grant = await seedGrant(CUSTOMER_ID);
 
     const revocable = await listRevocableCustomerIds(MANAGER_ID);
 
     await expect(revokeGrant(String(grant._id), revocable)).resolves.toBe(true);
-    expect(OAuthGrantModel.docs).toHaveLength(0);
+    await expect(OAuthGrantModel.countDocuments()).resolves.toBe(0);
   });
 
   // The predicate the delete carries is the whole tenancy check — if the roster ever
   // stopped scoping it, this is the test that fails.
   test("a manager of another company cuts nothing and the connection survives", async () => {
-    const grant = seedGrant(CUSTOMER_ID);
+    const grant = await seedGrant(CUSTOMER_ID);
 
     const revocable = await listRevocableCustomerIds(OTHER_MANAGER_ID);
 
     expect(revocable).not.toContain(CUSTOMER_ID);
     await expect(revokeGrant(String(grant._id), revocable)).resolves.toBe(false);
-    expect(OAuthGrantModel.docs).toHaveLength(1);
+    await expect(OAuthGrantModel.countDocuments()).resolves.toBe(1);
   });
 
   // A token outlives the account it was signed for, and that caller must not end up with
   // a wider allowance than the one they had while the account existed.
   test("a caller whose account is gone may still cut only their own", async () => {
-    CustomerModel.docs.length = 0;
+    await CustomerModel.deleteMany({});
 
     await expect(listRevocableCustomerIds(CUSTOMER_ID)).resolves.toEqual([CUSTOMER_ID]);
   });
@@ -732,11 +675,11 @@ describe("company connections", () => {
   // The registration is permanent today, but the access is what matters: a row the list
   // cannot describe is still a row the manager has to be able to cut.
   test("still lists a grant whose client registration is gone, with its owner named", async () => {
-    seedGrant(CUSTOMER_ID, { clientId: "client-deleted" });
+    const grant = await seedGrant(CUSTOMER_ID, { clientId: "client-deleted" });
 
     await expect(listCompanyConnectedClients(COMPANY_ID)).resolves.toEqual([
       {
-        id: "grant-1",
+        id: String(grant._id),
         clientId: "client-deleted",
         clientName: null,
         redirectUris: [],
@@ -753,13 +696,13 @@ describe("company connections", () => {
   });
 
   test("an employee may cut only their own connection", async () => {
-    const colleagueGrant = seedGrant(MANAGER_ID);
+    const colleagueGrant = await seedGrant(MANAGER_ID);
 
     const revocable = await listRevocableCustomerIds(CUSTOMER_ID);
 
     expect(revocable).toEqual([CUSTOMER_ID]);
     await expect(revokeGrant(String(colleagueGrant._id), revocable)).resolves.toBe(false);
-    expect(OAuthGrantModel.docs).toHaveLength(1);
+    await expect(OAuthGrantModel.countDocuments()).resolves.toBe(1);
   });
 });
 
@@ -803,16 +746,12 @@ describe("/api/oauth/grants routes", () => {
   }
 
   test("answers 204 and removes the grant", async () => {
-    OAuthGrantModel.docs.push({
-      _id: GRANT_ID,
-      customerId: CUSTOMER_ID,
-      clientId: client.client_id,
-    });
+    await seedGrant(CUSTOMER_ID, { _id: GRANT_ID });
 
     const response = await disconnect(GRANT_ID);
 
     expect(response.status).toBe(204);
-    expect(OAuthGrantModel.docs).toHaveLength(0);
+    await expect(OAuthGrantModel.countDocuments()).resolves.toBe(0);
   });
 
   test("answers 404 for a connection this account does not have", async () => {
@@ -839,51 +778,27 @@ describe("/api/oauth/grants routes", () => {
   });
 
   test("lets a manager disconnect someone in their own company", async () => {
-    OAuthGrantModel.docs.push({
-      _id: GRANT_ID,
-      customerId: CUSTOMER_ID,
-      clientId: client.client_id,
-    });
+    await seedGrant(CUSTOMER_ID, { _id: GRANT_ID });
 
     const response = await disconnect(GRANT_ID, MANAGER_ID);
 
     expect(response.status).toBe(204);
-    expect(OAuthGrantModel.docs).toHaveLength(0);
+    await expect(OAuthGrantModel.countDocuments()).resolves.toBe(0);
   });
 
   // 404 rather than 403: a manager elsewhere must not learn this connection exists.
   test("answers 404 for a manager of another company and leaves the grant alone", async () => {
-    OAuthGrantModel.docs.push({
-      _id: GRANT_ID,
-      customerId: CUSTOMER_ID,
-      clientId: client.client_id,
-    });
+    await seedGrant(CUSTOMER_ID, { _id: GRANT_ID });
 
     const response = await disconnect(GRANT_ID, OTHER_MANAGER_ID);
 
     expect(response.status).toBe(404);
-    expect(OAuthGrantModel.docs).toHaveLength(1);
+    await expect(OAuthGrantModel.countDocuments()).resolves.toBe(1);
   });
 
   test("gives a manager their own company's connections and nobody else's", async () => {
-    OAuthGrantModel.docs.push(
-      {
-        _id: GRANT_ID,
-        customerId: CUSTOMER_ID,
-        clientId: client.client_id,
-        refreshTokenHash: "a-secret-hash",
-        lastUsedAt: null,
-        createdAt: new Date("2026-08-01T10:00:00.000Z"),
-      },
-      {
-        _id: UNUSED_GRANT_ID,
-        customerId: OTHER_COMPANY_EMPLOYEE_ID,
-        clientId: client.client_id,
-        refreshTokenHash: "a-secret-hash",
-        lastUsedAt: null,
-        createdAt: new Date("2026-08-01T10:00:00.000Z"),
-      },
-    );
+    await seedGrant(CUSTOMER_ID, { _id: GRANT_ID });
+    await seedGrant(OTHER_COMPANY_EMPLOYEE_ID, { _id: UNUSED_GRANT_ID });
 
     const response = await listCompanyGrants(MANAGER_ID);
     const body = (await response.json()) as { id: string; employee: { email: string } }[];

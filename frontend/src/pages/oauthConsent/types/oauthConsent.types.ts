@@ -48,6 +48,7 @@ export interface ConsentDestinationProps {
 
 export interface ConsentClientRowProps {
   clientName: string | null;
+  redirectClass: RenderedRedirectClass;
 }
 
 export interface ConsentAccessItemProps {

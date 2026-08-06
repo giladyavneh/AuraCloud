@@ -52,14 +52,16 @@ const ConsentDestination: React.FC<ConsentDestinationProps> = ({ redirectUri, re
 
   return (
     <SectionBlock>
-      <Typography
-        id={DESTINATION_LABEL_ELEMENT_ID}
-        variant="caption"
-        color="textSecondary"
-        component="h2"
-      >
-        {t('consent.destination.sectionLabel')}
-      </Typography>
+      {redirectClass === 'remote' && (
+        <Typography
+          id={DESTINATION_LABEL_ELEMENT_ID}
+          variant="caption"
+          color="textSecondary"
+          component="h2"
+        >
+          {t('consent.destination.sectionLabel')}
+        </Typography>
+      )}
 
       <DestinationPanel
         ref={panelRef}
@@ -69,46 +71,83 @@ const ConsentDestination: React.FC<ConsentDestinationProps> = ({ redirectUri, re
         aria-labelledby={DESTINATION_LABEL_ELEMENT_ID}
         aria-describedby={DESTINATION_HEADLINE_ELEMENT_ID}
       >
-        <StatusTag
-          variant={TAG_VARIANTS[redirectClass]}
-          label={t(`consent.destination.tag.${redirectClass}`)}
-        />
-
-        <Typography
-          id={DESTINATION_HEADLINE_ELEMENT_ID}
-          variant="subtitle1"
-          color={HEADLINE_COLORS[redirectClass]}
-        >
-          {t(`consent.destination.headline.${redirectClass}`)}
-        </Typography>
-
         {/* The origin, not the raw URI: `http://login.auracloud.com@evil.io/cb` has its
             userinfo stripped by URL, so a screen reader hears the host that actually
-            receives the code. The full URI stays reachable through CopyField below. */}
+            receives the code. */}
         <VisuallyHidden id={DESTINATION_URL_ELEMENT_ID}>
           {url?.origin ?? redirectUri}
         </VisuallyHidden>
 
-        <OriginLine aria-hidden="true">
-          {url && <SchemeText>{`${url.protocol}//`}</SchemeText>}
-          {hostLabels.dim && <HostLabel isEmphasised={false}>{hostLabels.dim}</HostLabel>}
-          <HostLabel isEmphasised>{hostLabels.emphasised}</HostLabel>
-        </OriginLine>
+        {/* A loopback destination cannot leak the code off this machine, so it gets a plain
+            address. The split emphasis and the warning only earn their space when a domain
+            is involved and the user actually has something to check. */}
+        {redirectClass === 'local' ? (
+          <>
+            <Typography
+              id={DESTINATION_LABEL_ELEMENT_ID}
+              variant="subtitle1"
+              component="h2"
+              color="textPrimary"
+            >
+              {t('consent.destination.sectionLabel')}
+            </Typography>
 
-        {url && <PathText aria-hidden="true">{formatRedirectPath(url)}</PathText>}
+            <CopyField
+              label={t('consent.destination.addressLabel')}
+              value={redirectUri}
+              copyLabel={t('consent.destination.copy')}
+              copiedLabel={t('consent.destination.copied')}
+            >
+              <MonoValue>{redirectUri}</MonoValue>
+            </CopyField>
 
-        <Typography variant="body2" color="textSecondary">
-          {t(`consent.destination.hint.${redirectClass}`)}
-        </Typography>
+            <Typography
+              id={DESTINATION_HEADLINE_ELEMENT_ID}
+              variant="caption"
+              color="textSecondary"
+            >
+              {t('consent.destination.headline.local')}
+            </Typography>
 
-        <CopyField
-          label={t('consent.destination.fullUrlLabel')}
-          value={redirectUri}
-          copyLabel={t('consent.destination.copy')}
-          copiedLabel={t('consent.destination.copied')}
-        >
-          <MonoValue>{redirectUri}</MonoValue>
-        </CopyField>
+          </>
+        ) : (
+          <>
+            <StatusTag
+              variant={TAG_VARIANTS.remote}
+              label={t('consent.destination.tag.remote')}
+            />
+
+            <Typography
+              id={DESTINATION_HEADLINE_ELEMENT_ID}
+              variant="subtitle1"
+              color={HEADLINE_COLORS.remote}
+            >
+              {t('consent.destination.headline.remote')}
+            </Typography>
+
+            <OriginLine aria-hidden="true">
+              {url && <SchemeText>{`${url.protocol}//`}</SchemeText>}
+              {hostLabels.dim && <HostLabel isEmphasised={false}>{hostLabels.dim}</HostLabel>}
+              <HostLabel isEmphasised>{hostLabels.emphasised}</HostLabel>
+            </OriginLine>
+
+            {url && <PathText aria-hidden="true">{formatRedirectPath(url)}</PathText>}
+
+            <Typography variant="body2" color="textSecondary">
+              {t('consent.destination.hint.remote')}
+            </Typography>
+
+            <CopyField
+              label={t('consent.destination.fullUrlLabel')}
+              value={redirectUri}
+              copyLabel={t('consent.destination.copy')}
+              copiedLabel={t('consent.destination.copied')}
+            >
+              <MonoValue>{redirectUri}</MonoValue>
+            </CopyField>
+
+          </>
+        )}
 
       </DestinationPanel>
 

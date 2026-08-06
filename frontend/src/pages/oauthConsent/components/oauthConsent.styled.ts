@@ -7,7 +7,7 @@ import type { RenderedRedirectClass } from '@/pages/oauthConsent/types/oauthCons
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
-import { styled } from '@mui/material/styles';
+import { alpha, styled } from '@mui/material/styles';
 
 /** Maps a destination class onto the same palette triple StatusTag uses for its variant. */
 const classPalette = {
@@ -16,6 +16,7 @@ const classPalette = {
 } as const satisfies Record<RenderedRedirectClass, 'success' | 'warning'>;
 
 export const ConsentRoot = styled('main')(({ theme }) => ({
+  position: 'relative',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -28,11 +29,20 @@ export const ConsentRoot = styled('main')(({ theme }) => ({
   },
 }));
 
+export const BackgroundLayer = styled(Box)({
+  position: 'absolute',
+  inset: 0,
+  zIndex: 0,
+});
+
 export const ConsentCard = styled(Card)(({ theme }) => ({
+  position: 'relative',
+  zIndex: 1,
   width: '100%',
   maxWidth: CONSENT_CARD_MAX_WIDTH,
   padding: theme.spacing(5),
-  backgroundColor: theme.palette.surface.base,
+  backgroundColor: alpha(theme.palette.surface.base, 0.5),
+  backdropFilter: 'blur(24px)',
   border: `1px solid ${theme.palette.border.default}`,
   borderRadius: (theme.shape.borderRadius as number) * 2,
   display: 'flex',
@@ -131,10 +141,17 @@ export const SectionBlock = styled(Box)(({ theme }) => ({
   gap: theme.spacing(2),
 }));
 
-/** One leading icon beside one line of text — the access rows and the unverified notice. */
+/** One leading icon beside text that may wrap — the icon stays level with the first line. */
 export const IconRow = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'flex-start',
+  gap: theme.spacing(2),
+}));
+
+/** The attribution line, which never wraps, so its icon centres against the text instead. */
+export const NoticeRow = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
   gap: theme.spacing(2),
 }));
 
@@ -173,6 +190,17 @@ export const InvalidBlock = styled(Box)(({ theme }) => ({
   textAlign: 'center',
   gap: theme.spacing(3),
 }));
+
+export const InvalidHeading = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: theme.spacing(1.5),
+}));
+
+export const InvalidBody = styled(Box)({
+  // Keeps the last line from collapsing to a single orphan word.
+  textWrap: 'pretty',
+});
 
 export const VisuallyHidden = styled('span')({
   position: 'absolute',

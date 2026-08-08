@@ -5,6 +5,7 @@ type RedisClient = Awaited<ReturnType<typeof getRedisClient>>;
 function getResourceTypeFromArn(arn: string): string {
     const parts = arn.split(':');
     if (parts[2] === 's3') return 'S3Bucket';
+    if (parts[2] === 'ec2') return 'EC2Instance';
     return 'S3Bucket';
 }
 

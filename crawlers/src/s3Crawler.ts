@@ -10,7 +10,6 @@ const GLOBAL_S3_REGION = "us-east-1";
 
 export class S3Crawler extends BaseCrawler {
     protected s3Client = new S3Client({ region: this.region, credentials: this.credentials });
-    protected stsClient = new STSClient({ region: this.region, credentials: this.credentials });
     public intervalMs = 1000;
     private regionalClientsCache = new Map<string, S3Client>();
 
@@ -24,11 +23,6 @@ export class S3Crawler extends BaseCrawler {
             this.regionalClientsCache.set(region, client);
         }
         return client;
-    }
-
-    private async callAwsAndExtract<T, K extends keyof T>(fn: () => Promise<T>, key: K): Promise<T[K]|null> {
-        const response = await this.callAndHandleThrotteling(fn);
-        return response ? response[key] : null;
     }
 
     private async getPermissionsFromAwsConfigFallback(bucketName: string, region: string): Promise<string | undefined> {

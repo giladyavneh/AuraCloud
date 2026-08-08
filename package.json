@@ -19,5 +19,8 @@
     "start:api-server": "npm run dev -w api-server",
     "start:all": "npx concurrently -n crawlers,logic,api,frontend -c blue,magenta,green,cyan \"npm run dev -w crawlers\" \"npm run dev -w logic\" \"npm run dev -w api-server\" \"npm run dev -w frontend\"",
     "redis:up": "npm run redis:up -w utils"
+  },
+  "dependencies": {
+    "@aws-sdk/client-ssm": "^3.1106.0"
   }
 }

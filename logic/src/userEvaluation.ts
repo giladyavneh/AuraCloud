@@ -1,5 +1,9 @@
-import { attemptDeepParse, type RedisClientType, type UserResourceWatchlist } from 'utils';
-import { RESOURCES } from 'utils/src/consts.js';
+import {
+  attemptDeepParse,
+  getResourceTypeFromArn,
+  type RedisClientType,
+  type UserResourceWatchlist,
+} from 'utils';
 import { getResourceField } from './dataAccess.js';
 import { evaluate } from './evaluator.js';
 import { resolveIdentity, toEvalUser } from './identity/resolveIdentity.js';
@@ -28,10 +32,4 @@ export async function evaluateUser(user: UserResourceWatchlist, redis: RedisClie
   });
 
   return { userId: user.userId, resources: await Promise.all(resources) };
-}
-
-export function getResourceTypeFromArn(arn: string): RESOURCES | 'unknown' {
-  const arnParts = arn.split(':');
-  if (arnParts[2] === 's3') return RESOURCES.S3_BUCKETS;
-  return 'unknown';
 }

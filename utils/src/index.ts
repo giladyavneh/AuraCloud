@@ -158,7 +158,7 @@ const awsResourceSchema = new mongoose.Schema(
     arn: { type: String, required: true },
     resourceType: {
       type: String,
-      enum: ['S3Bucket', 'IAMUser', 'IAMRole', 'IAMGroup', 'SSOUser', 'SSOGroup', 'PermissionSet'],
+      enum: ['S3Bucket', 'IAMUser', 'IAMRole', 'IAMGroup', 'SSOUser', 'SSOGroup', 'PermissionSet', 'EC2Instance'],
       required: true,
     },
     name: { type: String, required: true },
@@ -311,3 +311,4 @@ export { mongoose };
 export type { RedisClientType } from 'redis';
 export * from './utils.js';
 export * from './crypto.js';
+export * from './consts.js';

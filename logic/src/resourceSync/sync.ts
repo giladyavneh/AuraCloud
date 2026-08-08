@@ -1,22 +1,6 @@
-import { AwsResourceModel, getRedisClient, print } from 'utils';
+import { AwsResourceModel, getNormalizedResourceType, getRedisClient, print } from 'utils';
 
 type RedisClient = Awaited<ReturnType<typeof getRedisClient>>;
-
-function getResourceTypeFromArn(arn: string): string {
-    const parts = arn.split(':');
-    if (parts[2] === 's3') return 'S3Bucket';
-    if (parts[2] === 'ec2') return 'EC2Instance';
-    return 'S3Bucket';
-}
-
-function getNormalizedResourceType(rawType: string, arn: string): string {
-    if (!rawType) {
-        return getResourceTypeFromArn(arn);
-    }
-    const lower = rawType.toLowerCase();
-    if (lower === 's3bucket' || lower === 's3buckets') return 'S3Bucket';
-    return getResourceTypeFromArn(arn);
-}
 
 export async function runResourceSyncCycle(redis: RedisClient): Promise<void> {
     const cycleStart = Date.now();
@@ -35,10 +19,11 @@ export async function runResourceSyncCycle(redis: RedisClient): Promise<void> {
             try {
                 const parsed = JSON.parse(value);
                 const resourceType = getNormalizedResourceType(parsed.resourceType || parsed.ResourceType, arn);
+                const instanceNameTag = Array.isArray(parsed.Tags) ? parsed.Tags.find((t: any) => t.Key === 'Name')?.Value : undefined;
                 resourceRecords.push({
                     arn,
                     resourceType: resourceType as any,
-                    name: parsed.name || parsed.Name || arn.split(':').pop() || '',
+                    name: parsed.name || parsed.Name || instanceNameTag || parsed.InstanceId || arn.split(':').pop() || '',
                     accountId: parsed.accountId || parsed.AccountId || arn.split(':')[4] || '',
                     region: parsed.region || parsed.Region || arn.split(':')[3] || '',
                     metadata: parsed,

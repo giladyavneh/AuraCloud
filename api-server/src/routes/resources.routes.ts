@@ -11,6 +11,7 @@ function toServiceKey(resourceType: string | undefined, arn: string): string {
     if (lowerType.includes("s3")) return "s3";
     if (lowerType.includes("iam")) return "iam";
     if (lowerType.includes("sso") || lowerType.includes("permissionset")) return "sso";
+    if (lowerType.includes("ec2")) return "ec2";
   }
 
   const arnSegments = arn.split(":");

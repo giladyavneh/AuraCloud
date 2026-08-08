@@ -1,3 +1,24 @@
+import { RESOURCES, AwsResourceType } from './consts.js';
+
+export function getResourceTypeFromArn(arn: string): RESOURCES | 'unknown' {
+    const parts = arn.split(':');
+    const service = parts[2]?.toLowerCase();
+    if (service === 's3') return RESOURCES.S3_BUCKETS;
+    if (service === 'ec2') return RESOURCES.EC2_INSTANCES;
+    return 'unknown';
+}
+
+export function getNormalizedResourceType(rawType: string | undefined, arn: string): AwsResourceType {
+    if (rawType) {
+        const lower = rawType.toLowerCase();
+        if (lower === 's3bucket' || lower === 's3buckets') return AwsResourceType.S3Bucket;
+        if (lower === 'ec2instance' || lower === 'ec2instances' || lower === 'instance' || lower === 'instances') return AwsResourceType.EC2Instance;
+    }
+    const derived = getResourceTypeFromArn(arn);
+    if (derived === RESOURCES.EC2_INSTANCES) return AwsResourceType.EC2Instance;
+    return AwsResourceType.S3Bucket;
+}
+
 export function attemptDeepParse(data: any): any {
     if (typeof data === 'string') {
         try {

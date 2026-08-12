@@ -158,7 +158,7 @@ const awsResourceSchema = new mongoose.Schema(
     arn: { type: String, required: true },
     resourceType: {
       type: String,
-      enum: ['S3Bucket', 'IAMUser', 'IAMRole', 'IAMGroup', 'SSOUser', 'SSOGroup', 'PermissionSet'],
+      enum: ['S3Bucket', 'IAMUser', 'IAMRole', 'IAMGroup', 'SSOUser', 'SSOGroup', 'PermissionSet', 'EC2Instance'],
       required: true,
     },
     name: { type: String, required: true },

@@ -44,7 +44,9 @@ describe("buildEvaluationSubject", () => {
       "aura:iam:roles": {},
     });
 
-    const subject = await buildEvaluationSubject(redis, "sso-1", "999");
+    const subject = await buildEvaluationSubject(redis, "sso-1", [
+      "arn:aws:ec2:us-east-1:999:instance/i-x",
+    ]);
     expect(subject?.identityType).toBe("SSO");
     expect(subject?.accountId).toBe("111");
     expect(subject?.policies).toEqual([
@@ -82,7 +84,7 @@ describe("buildEvaluationSubject", () => {
       },
     });
 
-    const subject = await buildEvaluationSubject(redis, "AIDAIAM1");
+    const subject = await buildEvaluationSubject(redis, "AIDAIAM1", []);
     expect(subject?.identityType).toBe("IAM");
     expect(subject?.awsUserId).toBe("AIDAIAM1");
     expect(subject?.policies).toEqual([
@@ -97,7 +99,7 @@ describe("buildEvaluationSubject", () => {
       "aura:sso:users": {},
       "aura:iam:users": {},
     });
-    expect(await buildEvaluationSubject(redis, "missing")).toBeNull();
+    expect(await buildEvaluationSubject(redis, "missing", [])).toBeNull();
   });
 });
 

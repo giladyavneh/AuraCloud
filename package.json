@@ -28,6 +28,7 @@
     "redis:up": "npm run redis:up -w utils"
   },
   "dependencies": {
+    "@aws-sdk/client-ssm": "^3.1106.0",
     "@modelcontextprotocol/sdk": "^1.29.0"
   },
   "devDependencies": {

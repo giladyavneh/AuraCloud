@@ -51,10 +51,9 @@ const isArnWatched = async (ctx: UserContext, arn: string): Promise<boolean> =>
 
 /**
  * Live, read-only "would I be allowed?" evaluation for any discovered resource,
- * watched or not. Runs the same subject assembly and shared evaluation step as
- * the logic service (the documented account-fallback edge below is the one
- * known divergence), so a theoretical verdict matches what the dashboard would
- * show if the resource were watched. Never writes anything.
+ * watched or not. Same `buildEvaluationSubject` + `evaluateResourceActions`
+ * path as the logic service, so a theoretical verdict matches what the
+ * dashboard would show if the resource were watched. Never writes anything.
  */
 export const checkTheoreticalPermission = async (
   ctx: UserContext,
@@ -80,12 +79,7 @@ export const checkTheoreticalPermission = async (
   const warnings = await unknownActionWarnings(arn, [action]);
 
   const redis = await crawlerCache();
-  // Divergence trade-off vs the logic service: logic derives this fallback from
-  // the first watched-resource ARN with an account segment, we use the target
-  // ARN's. Identical for the S3-only catalogue (account segment always empty);
-  // can differ once multi-account IAM/SSO resources are crawled — revisit then.
-  const accountFromArn = arn.split(":")[4] || "";
-  const subject = await buildEvaluationSubject(redis, ctx.linkedAwsUserId, accountFromArn);
+  const subject = await buildEvaluationSubject(redis, ctx.linkedAwsUserId, [arn]);
   if (!subject) {
     throw new DomainError(
       `No crawled identity data for your linked AWS user (${ctx.linkedAwsUserId}). The evaluator covers SSO and IAM users the crawlers have synced — freshly linked users appear after the next crawl cycle.`,

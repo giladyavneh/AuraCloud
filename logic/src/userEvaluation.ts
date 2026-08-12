@@ -1,37 +1,22 @@
-import { attemptDeepParse, type RedisClientType, type UserResourceWatchlist } from 'utils';
-import { RESOURCES } from 'utils/src/consts.js';
-import { getResourceField } from './dataAccess.js';
-import { evaluate } from './evaluator.js';
-import { resolveIdentity, toEvalUser } from './identity/resolveIdentity.js';
+import {
+  buildEvaluationSubject,
+  evaluateResourceActions,
+  type RedisClientType,
+  type UserResourceWatchlist,
+} from 'utils';
 
 export async function evaluateUser(user: UserResourceWatchlist, redis: RedisClientType) {
-  const resourceArns = user.resources.map((resource) => resource.arn);
-  const identity = await resolveIdentity(redis, user.userId, resourceArns);
-
-  if (!identity) {
-    console.warn(
-      `User data not found in Redis for user ${user.userId} (checked SSO & IAM). Actions will be marked as 'stale'.`,
-    );
+  const accountFromResourceArn = user.resources.map((r) => r.arn.split(':')[4]).find(Boolean) ?? '';
+  const evalUser = await buildEvaluationSubject(redis, user.userId, accountFromResourceArn);
+  if (!evalUser) {
+    console.warn(`User data not found in Redis for user ${user.userId}. Actions will be marked as 'stale'.`);
     return;
   }
 
-  const evalUser = toEvalUser(identity);
-
   const resources = user.resources.map(async (resource) => {
-    const resourceType = getResourceTypeFromArn(resource.arn);
-    const resourceData = await getResourceField(redis, resourceType, resource.arn);
-    const parsedData = resourceData ? attemptDeepParse(resourceData) : null;
-    const actionResults = resource.actions.map((action) => ({
-      [action]: evaluate(parsedData ?? {}, action, evalUser),
-    }));
+    const results = await evaluateResourceActions(redis, resource.arn, resource.actions, evalUser);
+    const actionResults = resource.actions.map((action) => ({ [action]: results[action] }));
     return { [resource.arn]: actionResults };
   });
-
   return { userId: user.userId, resources: await Promise.all(resources) };
-}
-
-export function getResourceTypeFromArn(arn: string): RESOURCES | 'unknown' {
-  const arnParts = arn.split(':');
-  if (arnParts[2] === 's3') return RESOURCES.S3_BUCKETS;
-  return 'unknown';
 }

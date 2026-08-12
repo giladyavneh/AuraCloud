@@ -13,8 +13,7 @@ export const JWT_SECRET: string = process.env.JWT_SECRET;
 
 export const BCRYPT_ROUNDS = 10;
 
-/** Internal Aura infrastructure identities — never exposed as linkable AWS users. */
-export const INTERNAL_AWS_USER_ARNS = [
-  "arn:aws:iam::589523296424:user/Aura-Crawlers-Sevice",
-  "arn:aws:iam::589523296424:user/Aura-SaaS-Crawler",
-];
+// Internal Aura infrastructure identities — single source of truth lives in
+// utils/src/consts.ts (shared with mcp-server); re-exported here so routes can
+// keep importing from config.
+export { INTERNAL_AWS_USER_ARNS } from "utils";

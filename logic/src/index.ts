@@ -55,7 +55,9 @@ async function main() {
 
             permissionsData[arn][actionName] = actionStatus;
 
-            // Strip the service prefix and camelCase (e.g. s3:GetObject -> getObject) for frontend compatibility
+            // Strip the service prefix and camelCase (e.g. s3:GetObject -> getObject) for frontend compatibility.
+            // NOTE: mcp-server/src/permissions.ts reverse-engineers this exact alias formula to dedupe
+            // reads — keep them in sync (or remove this alias write; no frontend lookup depends on it).
             const camelCaseAction = actionName.split(':').pop()!;
             const camelCaseName = camelCaseAction.charAt(0).toLowerCase() + camelCaseAction.slice(1);
             if (camelCaseName !== actionName) {

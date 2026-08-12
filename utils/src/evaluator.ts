@@ -1,6 +1,5 @@
 import type { RedisClientType } from 'redis';
-import { RESOURCES } from './consts.js';
-import { attemptDeepParse } from './utils.js';
+import { attemptDeepParse, getResourceTypeFromArn } from './utils.js';
 
 export type EvalResult = 'ALLOW' | 'DENY' | 'IMPLICIT_DENY';
 
@@ -291,12 +290,6 @@ export function getResourceField(
   arn: string,
 ): Promise<string | null> {
   return redis.hGet(`aura:resource:${resourceType}`, arn);
-}
-
-export function getResourceTypeFromArn(arn: string): RESOURCES | 'unknown' {
-  const arnParts = arn.split(':');
-  if (arnParts[2] === 's3') return RESOURCES.S3_BUCKETS;
-  return 'unknown';
 }
 
 /**

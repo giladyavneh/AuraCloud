@@ -150,17 +150,12 @@ export function toEvalUser(identity: ResolvedIdentity): Record<string, unknown> 
   };
 }
 
-/**
- * Shared subject assembly for logic (watchlist cycle) and mcp-server theoretical
- * checks. Tries SSO, then IAM. `fallbackAccountId` is last-resort account
- * (logic: watched resource ARNs; theoretical: the target ARN).
- */
+/** SSO then IAM, then flatten for `evaluateResourceActions`. */
 export async function buildEvaluationSubject(
   redis: RedisClientType,
   awsUserId: string,
-  fallbackAccountId = '',
+  resourceArns: string[],
 ): Promise<Record<string, unknown> | null> {
-  const resourceArns = fallbackAccountId ? [`arn:aws:iam::${fallbackAccountId}:user/_`] : [];
   const identity = await resolveIdentity(redis, awsUserId, resourceArns);
   return identity ? toEvalUser(identity) : null;
 }

@@ -15,6 +15,7 @@ import {
   decryptSecret,
 } from "utils";
 import type { BaseCrawler, AwsCredentials } from "./crawlerBase.js";
+import { IAMPoliciesCrawler } from "./iamPoliciesCrawler.js";
 
 type CrawlerCtor = new (credentials: AwsCredentials) => BaseCrawler;
 
@@ -59,6 +60,7 @@ async function reconcileCompanies(redis: any) {
       );
       runCrawler(BasicIamCrawler, companyId, `IAM[${tag}]`, redis);
       runCrawler(S3Crawler, companyId, `S3[${tag}]`, redis);
+      runCrawler(IAMPoliciesCrawler, companyId, `IAMPolicies[${tag}]`, redis);
     }
   } catch (err: any) {
     console.error("reconcileCompanies failed:", err.message);

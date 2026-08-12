@@ -20,7 +20,7 @@ const InviteCodeSection: React.FC = () => {
   return (
     <SettingsCard elevation={0}>
       <SectionHeader>
-        <Typography variant="subtitle1" color="textPrimary">
+        <Typography variant="subtitle1" color="textPrimary" component="h2">
           {t("settings.invite.title")}
         </Typography>
         <Typography variant="body2" color="textSecondary">

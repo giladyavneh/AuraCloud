@@ -113,6 +113,14 @@ export const InviteLoadingBox = styled(Box)(({ theme }) => ({
   minHeight: theme.spacing(20),
 }));
 
+// Two sentences that wrap as one paragraph — the second only exists when something is
+// connected from outside the company.
+export const SummaryLine = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: theme.spacing(1),
+}));
+
 export const LoadingBox = styled(Box)(({ theme }) => ({
   display: 'flex',
   justifyContent: 'center',

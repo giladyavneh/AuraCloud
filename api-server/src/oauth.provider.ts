@@ -1,0 +1,446 @@
+import crypto from "node:crypto";
+import type { Response } from "express";
+import jwt from "jsonwebtoken";
+import type { OAuthRegisteredClientsStore } from "@modelcontextprotocol/sdk/server/auth/clients.js";
+import type {
+  AuthorizationParams,
+  OAuthServerProvider,
+} from "@modelcontextprotocol/sdk/server/auth/provider.js";
+import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import { redirectUriMatches } from "@modelcontextprotocol/sdk/server/auth/handlers/authorize.js";
+import {
+  InvalidClientError,
+  InvalidGrantError,
+  InvalidRequestError,
+  InvalidTokenError,
+} from "@modelcontextprotocol/sdk/server/auth/errors.js";
+import type {
+  OAuthClientInformationFull,
+  OAuthTokenRevocationRequest,
+  OAuthTokens,
+} from "@modelcontextprotocol/sdk/shared/auth.js";
+import { MCP_TOKEN_AUDIENCE, mongoose, type OAuthClient, type OAuthGrant } from "utils";
+import { CustomerModel, OAuthAuthCodeModel, OAuthClientModel, OAuthGrantModel } from "./db.js";
+import { FRONTEND_URL, JWT_SECRET } from "./config.js";
+
+export interface ApprovalRequest {
+  customerId: string;
+  clientId: string;
+  redirectUri: string;
+  codeChallenge: string;
+  scopes: string[];
+  state?: string;
+}
+
+export interface ConsentRequestInfo {
+  clientId: string;
+  clientName: string | null;
+  redirectUri: string;
+  isRedirectUriRegistered: boolean;
+}
+
+export interface ConnectedClient {
+  id: string;
+  clientId: string;
+  clientName: string | null;
+  redirectUris: string[];
+  connectedAt: string;
+  lastUsedAt: string | null;
+}
+
+export interface CompanyConnectedClient extends ConnectedClient {
+  employee: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+}
+
+/** Timestamps and _id are outside InferSchemaType, and both are part of the row. */
+type GrantRecord = OAuthGrant & { _id: mongoose.Types.ObjectId; createdAt: Date };
+
+const ACCESS_TOKEN_TTL_SECONDS = 60 * 60;
+const AUTHORIZATION_CODE_TTL_SECONDS = 60;
+const CONSENT_PATH = "/oauth/authorize";
+
+function randomToken(): string {
+  return crypto.randomBytes(32).toString("base64url");
+}
+
+function hashToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+function isRedirectUriRegistered(client: OAuthClient, redirectUri: string): boolean {
+  return client.redirectUris.some((registered) => redirectUriMatches(redirectUri, registered));
+}
+
+function toClientInformation(client: OAuthClient): OAuthClientInformationFull {
+  return {
+    client_id: client.clientId,
+    client_name: client.clientName ?? undefined,
+    redirect_uris: client.redirectUris,
+    client_secret: client.clientSecret ?? undefined,
+    client_secret_expires_at: client.clientSecretExpiresAt ?? undefined,
+  };
+}
+
+/**
+ * Callers must mint before writing the grant: minting can fail, and a rotation that
+ * already committed would leave the client holding a dead refresh token with no replacement.
+ */
+async function mintAccessToken(
+  customerId: string,
+  clientId: string,
+  scopes: string[],
+): Promise<string> {
+  const customer = await CustomerModel.findById(customerId).lean();
+  if (!customer) throw new InvalidGrantError("The authorizing account no longer exists");
+
+  return jwt.sign({ customerId, email: customer.email, clientId, scopes }, JWT_SECRET, {
+    audience: MCP_TOKEN_AUDIENCE,
+    expiresIn: ACCESS_TOKEN_TTL_SECONDS,
+  });
+}
+
+function toTokenResponse(accessToken: string, refreshToken: string, scopes: string[]): OAuthTokens {
+  const tokens: OAuthTokens = {
+    access_token: accessToken,
+    token_type: "Bearer",
+    expires_in: ACCESS_TOKEN_TTL_SECONDS,
+    refresh_token: refreshToken,
+  };
+  if (scopes.length > 0) tokens.scope = scopes.join(" ");
+
+  return tokens;
+}
+
+export const oauthClientsStore: OAuthRegisteredClientsStore = {
+  async getClient(clientId: string): Promise<OAuthClientInformationFull | undefined> {
+    const client = await OAuthClientModel.findOne({ clientId }).lean();
+    return client ? toClientInformation(client) : undefined;
+  },
+
+  async registerClient(
+    client: Omit<OAuthClientInformationFull, "client_id" | "client_id_issued_at">,
+  ): Promise<OAuthClientInformationFull> {
+    // The SDK's registration handler generates the client id and attaches it before
+    // calling in, but types the argument as if it had not.
+    const registered = client as OAuthClientInformationFull;
+
+    await OAuthClientModel.create({
+      clientId: registered.client_id,
+      clientName: registered.client_name ?? null,
+      redirectUris: registered.redirect_uris,
+      clientSecret: registered.client_secret ?? null,
+      clientSecretExpiresAt: registered.client_secret_expires_at ?? null,
+    });
+
+    return registered;
+  },
+};
+
+export const oauthProvider: OAuthServerProvider = {
+  get clientsStore(): OAuthRegisteredClientsStore {
+    return oauthClientsStore;
+  },
+
+  async authorize(
+    client: OAuthClientInformationFull,
+    params: AuthorizationParams,
+    res: Response,
+  ): Promise<void> {
+    // ponytail: RFC 8707 `resource` is dropped — not forwarded to consent, not stored, not
+    // bound into the token. Harmless while mcp-server is the only resource server; with a
+    // second one, carry it onto OAuthAuthCode and into the token audience so a token cannot
+    // be replayed against a resource it was not minted for.
+    const consentUrl = new URL(CONSENT_PATH, FRONTEND_URL);
+    consentUrl.searchParams.set("client_id", client.client_id);
+    consentUrl.searchParams.set("redirect_uri", params.redirectUri);
+    consentUrl.searchParams.set("code_challenge", params.codeChallenge);
+    if (params.state) consentUrl.searchParams.set("state", params.state);
+    if (params.scopes?.length) consentUrl.searchParams.set("scope", params.scopes.join(" "));
+
+    res.redirect(302, consentUrl.href);
+  },
+
+  async challengeForAuthorizationCode(
+    client: OAuthClientInformationFull,
+    authorizationCode: string,
+  ): Promise<string> {
+    const authCode = await OAuthAuthCodeModel.findOne({
+      code: authorizationCode,
+      clientId: client.client_id,
+    }).lean();
+    if (!authCode || authCode.expiresAt.getTime() <= Date.now()) {
+      throw new InvalidGrantError("Authorization code is invalid or expired");
+    }
+
+    return authCode.codeChallenge;
+  },
+
+  async exchangeAuthorizationCode(
+    client: OAuthClientInformationFull,
+    authorizationCode: string,
+    _codeVerifier?: string,
+    redirectUri?: string,
+  ): Promise<OAuthTokens> {
+    // Deleting as we read is what makes the code single-use: a replay finds nothing,
+    // and two concurrent exchanges cannot both win the delete.
+    const authCode = await OAuthAuthCodeModel.findOneAndDelete({
+      code: authorizationCode,
+      clientId: client.client_id,
+    }).lean();
+    if (!authCode || authCode.expiresAt.getTime() <= Date.now()) {
+      throw new InvalidGrantError("Authorization code is invalid or expired");
+    }
+    // Omitting redirect_uri is legal when it was absent from the authorization request
+    // too (RFC 6749 §4.1.3), so only a present-and-different value is a mismatch.
+    if (redirectUri !== undefined && redirectUri !== authCode.redirectUri) {
+      throw new InvalidGrantError("redirect_uri does not match the authorization request");
+    }
+
+    const accessToken = await mintAccessToken(
+      authCode.customerId,
+      client.client_id,
+      authCode.scopes,
+    );
+
+    const refreshToken = randomToken();
+    await OAuthGrantModel.findOneAndUpdate(
+      { customerId: authCode.customerId, clientId: client.client_id },
+      {
+        refreshTokenHash: hashToken(refreshToken),
+        scopes: authCode.scopes,
+        lastUsedAt: new Date(),
+      },
+      { upsert: true },
+    );
+
+    return toTokenResponse(accessToken, refreshToken, authCode.scopes);
+  },
+
+  async exchangeRefreshToken(
+    client: OAuthClientInformationFull,
+    refreshToken: string,
+  ): Promise<OAuthTokens> {
+    const presentedHash = hashToken(refreshToken);
+    const grant = await OAuthGrantModel.findOne({
+      clientId: client.client_id,
+      refreshTokenHash: presentedHash,
+    }).lean();
+    if (!grant) throw new InvalidGrantError("Refresh token is invalid or has been revoked");
+
+    const accessToken = await mintAccessToken(grant.customerId, client.client_id, grant.scopes);
+
+    const rotatedToken = randomToken();
+    // Conditioning the write on the presented hash makes rotation safe: the old token stops
+    // matching once the new one lands, so neither a replay nor the loser of a concurrent
+    // refresh finds a grant to update.
+    const rotated = await OAuthGrantModel.findOneAndUpdate(
+      { clientId: client.client_id, refreshTokenHash: presentedHash },
+      { refreshTokenHash: hashToken(rotatedToken), lastUsedAt: new Date() },
+    ).lean();
+    if (!rotated) throw new InvalidGrantError("Refresh token is invalid or has been revoked");
+
+    return toTokenResponse(accessToken, rotatedToken, grant.scopes);
+  },
+
+  async verifyAccessToken(token: string): Promise<AuthInfo> {
+    try {
+      const payload = jwt.verify(token, JWT_SECRET, { audience: MCP_TOKEN_AUDIENCE }) as {
+        customerId: string;
+        clientId: string;
+        scopes?: string[];
+        exp?: number;
+      };
+
+      return {
+        token,
+        clientId: payload.clientId,
+        scopes: payload.scopes ?? [],
+        expiresAt: payload.exp,
+        extra: { customerId: payload.customerId },
+      };
+    } catch {
+      throw new InvalidTokenError("Access token is invalid or expired");
+    }
+  },
+
+  async revokeToken(
+    client: OAuthClientInformationFull,
+    request: OAuthTokenRevocationRequest,
+  ): Promise<void> {
+    // Only refresh tokens can be revoked: access tokens are stateless, so an issued one
+    // stays valid until it expires. That is the one-hour lag the TTL is chosen for.
+    await OAuthGrantModel.deleteOne({
+      clientId: client.client_id,
+      refreshTokenHash: hashToken(request.token),
+    });
+  },
+};
+
+/**
+ * The consent screen's deny path navigates to the redirect_uri from the query string, so
+ * without checking it here, our own origin becomes an open redirect. Null means unknown client.
+ */
+export async function describeConsentRequest(
+  clientId: string,
+  redirectUri: string,
+): Promise<ConsentRequestInfo | null> {
+  const client = await OAuthClientModel.findOne({ clientId }).lean();
+  if (!client) return null;
+
+  return {
+    clientId,
+    clientName: client.clientName ?? null,
+    redirectUri,
+    isRedirectUriRegistered: isRedirectUriRegistered(client, redirectUri),
+  };
+}
+
+/**
+ * A grant only records which client it is for; the name and addresses live on OAuthClient,
+ * and the address is the only part a reader can recognise — so the list is worthless
+ * without this join. A grant whose client registration is gone still lists, with nothing
+ * invented to fill the gap: the access is real and must stay revocable. Never returns
+ * refreshTokenHash.
+ */
+async function describeGrants(grants: GrantRecord[]): Promise<ConnectedClient[]> {
+  if (grants.length === 0) return [];
+
+  const clients = await OAuthClientModel.find({
+    clientId: { $in: grants.map((grant) => grant.clientId) },
+  }).lean();
+  const clientsById = new Map(clients.map((client) => [client.clientId, client]));
+
+  return grants.map((grant) => {
+    const client = clientsById.get(grant.clientId);
+
+    return {
+      id: String(grant._id),
+      clientId: grant.clientId,
+      clientName: client?.clientName ?? null,
+      redirectUris: client?.redirectUris ?? [],
+      connectedAt: grant.createdAt.toISOString(),
+      lastUsedAt: grant.lastUsedAt?.toISOString() ?? null,
+    };
+  });
+}
+
+export async function listConnectedClients(customerId: string): Promise<ConnectedClient[]> {
+  const grants = await OAuthGrantModel.find({ customerId })
+    .sort({ createdAt: -1 })
+    .lean<GrantRecord[]>();
+
+  return describeGrants(grants);
+}
+
+/**
+ * OAuthGrant has no companyId, so the roster is what scopes the list — and a grant whose
+ * owner was deleted outside the app is invisible on both this surface and the owner's own,
+ * since neither can look it up. Grouped by person, newest first within a person, since
+ * that is what a manager reads by; the sort key lives on Customer, so it can't be a Mongo
+ * sort on the grants. Fields are listed explicitly, not spread — a spread would hand
+ * passwordHash to every manager in the company.
+ */
+export async function listCompanyConnectedClients(
+  companyId: string,
+): Promise<CompanyConnectedClient[]> {
+  const roster = await CustomerModel.find(
+    { companyId },
+    { firstName: true, lastName: true, email: true },
+  ).lean();
+  if (roster.length === 0) return [];
+
+  const employeesById = new Map(roster.map((member) => [String(member._id), member]));
+  const grants = await OAuthGrantModel.find({
+    customerId: { $in: [...employeesById.keys()] },
+  }).lean<GrantRecord[]>();
+
+  const connected = await describeGrants(grants);
+  const ownerIdByGrantId = new Map(grants.map((grant) => [String(grant._id), grant.customerId]));
+
+  return connected
+    .map((client) => {
+      const owner = employeesById.get(ownerIdByGrantId.get(client.id) ?? "");
+
+      return {
+        ...client,
+        employee: {
+          id: String(owner?._id ?? ""),
+          firstName: owner?.firstName ?? "",
+          lastName: owner?.lastName ?? "",
+          email: owner?.email ?? "",
+        },
+      };
+    })
+    .sort(
+      (left, right) =>
+        left.employee.lastName.localeCompare(right.employee.lastName) ||
+        left.employee.firstName.localeCompare(right.employee.firstName) ||
+        right.connectedAt.localeCompare(left.connectedAt),
+    );
+}
+
+/**
+ * Whose connections a caller may cut: their own, and every colleague's when they manage
+ * the company. Building the list here is what lets the delete carry its own tenancy
+ * predicate — a cross-company id never enters it, so there is no separate check to skip.
+ */
+export async function listRevocableCustomerIds(customerId: string): Promise<string[]> {
+  const customer = await CustomerModel.findById(customerId).lean();
+  if (customer?.role !== "manager") return [customerId];
+
+  const roster = await CustomerModel.find({ companyId: customer.companyId }, { _id: true }).lean();
+
+  return roster.map((member) => String(member._id));
+}
+
+/**
+ * False when the grant does not exist or belongs outside `allowedCustomerIds` — the caller
+ * answers both with 404, so a probe cannot learn that someone else's connection exists.
+ * The scope lives in the delete's own filter: one atomic write, with no window between
+ * deciding the grant is reachable and removing it.
+ */
+export async function revokeGrant(
+  grantId: string,
+  allowedCustomerIds: string[],
+): Promise<boolean> {
+  const revoked = await OAuthGrantModel.findOneAndDelete({
+    _id: grantId,
+    customerId: { $in: allowedCustomerIds },
+  });
+
+  return revoked !== null;
+}
+
+/** Throws an OAuthError if the client or its redirect URI does not check out. */
+export async function approveAuthorization(request: ApprovalRequest): Promise<string> {
+  const client = await OAuthClientModel.findOne({ clientId: request.clientId }).lean();
+  if (!client) throw new InvalidClientError("Unknown client");
+
+  // These parameters travel through the browser, so the redirect target has to be
+  // re-checked against the registration before a code is minted for it.
+  if (!isRedirectUriRegistered(client, request.redirectUri)) {
+    throw new InvalidRequestError("Unregistered redirect_uri");
+  }
+
+  const code = randomToken();
+  await OAuthAuthCodeModel.create({
+    code,
+    customerId: request.customerId,
+    clientId: request.clientId,
+    redirectUri: request.redirectUri,
+    codeChallenge: request.codeChallenge,
+    scopes: request.scopes,
+    expiresAt: new Date(Date.now() + AUTHORIZATION_CODE_TTL_SECONDS * 1000),
+  });
+
+  const redirectTo = new URL(request.redirectUri);
+  redirectTo.searchParams.set("code", code);
+  if (request.state) redirectTo.searchParams.set("state", request.state);
+
+  return redirectTo.href;
+}

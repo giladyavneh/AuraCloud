@@ -50,7 +50,7 @@ const AwsCredentialsSection: React.FC = () => {
   return (
     <SettingsCard elevation={0}>
       <SectionHeader>
-        <Typography variant="subtitle1" color="textPrimary">
+        <Typography variant="subtitle1" color="textPrimary" component="h2">
           {t("settings.aws.title")}
         </Typography>
         <Typography variant="body2" color="textSecondary">

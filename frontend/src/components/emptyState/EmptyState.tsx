@@ -5,7 +5,14 @@ import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import React from "react";
 
-const EmptyState: React.FC<EmptyStateProps> = ({ icon, title, description, ctaLabel, onCta }) => (
+const EmptyState: React.FC<EmptyStateProps> = ({
+  icon,
+  title,
+  description,
+  ctaLabel,
+  onCta,
+  ctaRef,
+}) => (
   <EmptyStateRoot>
     {icon}
 
@@ -18,7 +25,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({ icon, title, description, ctaLa
       </Typography>
     </Box>
 
-    <Button variant="contained" size="large" onClick={onCta}>
+    <Button ref={ctaRef} variant="contained" size="large" onClick={onCta}>
       {ctaLabel}
     </Button>
   </EmptyStateRoot>

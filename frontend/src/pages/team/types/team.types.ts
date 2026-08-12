@@ -1,4 +1,5 @@
 import type { WatchlistResource } from '@/services/resources.service';
+import type { CompanyConnectedClient } from '@/services/types/oauth.types';
 import type {
   Employee,
   PresetScopeType,
@@ -6,6 +7,7 @@ import type {
   WatchlistPreset,
 } from '@/services/types/team.types';
 
+export type { CompanyConnectedClient } from '@/services/types/oauth.types';
 export type { Employee, PresetResource, PresetScopeType, Team, WatchlistPreset } from '@/services/types/team.types';
 export type { SnackbarState } from '@/components/feedbackSnackbar/types/feedbackSnackbar.types';
 
@@ -112,6 +114,15 @@ export interface EmployeesTableProps {
   employees: Employee[];
   teams: Team[];
   renderRowActions: (employee: Employee) => React.ReactNode;
+}
+
+export interface AiAccessTableProps {
+  grants: CompanyConnectedClient[];
+  /** Marks the manager's own rows; passed in so the table stays presentational. */
+  currentCustomerId: string | undefined;
+  searchInputRef: React.RefObject<HTMLInputElement | null>;
+  onDisconnect: (grant: CompanyConnectedClient) => void;
+  isRowPending: (grantId: string) => boolean;
 }
 
 export interface PresetsTableProps {

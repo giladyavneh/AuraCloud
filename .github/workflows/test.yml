@@ -1,0 +1,27 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # redis-memory-server's postinstall compiles Redis Stack from source, which fails
+    # on the runner's toolchain. No test starts Redis, so the binary is never needed.
+    env:
+      REDISMS_DISABLE_POSTINSTALL: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build:all
+
+      - run: npm test

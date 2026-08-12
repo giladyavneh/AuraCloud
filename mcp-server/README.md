@@ -30,7 +30,7 @@ Your AuraCloud account must have a linked AWS user (done once in the UI); otherw
 
 | Env var | Purpose |
 |---|---|
-| `MONGO_URI` | MongoDB connection string. Resolution order: process env → `mcp-server/.env` (symlink to the repo-root `.env`) → `api-server/.env` fallback — so if you already run the stack, no extra setup is needed. |
+| `MONGO_URI` | MongoDB connection string. Resolution order: process env → `mcp-server/.env` (not present by default) → `api-server/.env`, which is the symlink to the repo-root `.env` — so if you already run the stack, no extra setup is needed. |
 | `MCP_USER_EMAIL` | Email of the AuraCloud customer this server instance acts as. `.mcp.json` sets it via `${AURA_MCP_USER:-admin@aura.com}`, so switch identity by exporting `AURA_MCP_USER` — never by editing `.mcp.json`. |
 
 The user identity is resolved once at startup; restart the server (or reconnect via `/mcp`) after changing the linked AWS user.
@@ -49,6 +49,33 @@ MCP_USER_EMAIL=admin@aura.com node mcp-server/dist/index.js
 The server speaks MCP over **stdio** — stdout is the protocol channel. All logging goes to stderr (`src/bootstrap.ts` reroutes `console.log`/`info`/`debug` before anything else loads).
 
 Note: SDK 1.29 rejects `tools/call` requests that omit the spec-optional `arguments` field; `buildServer` installs a small normalization shim so bare calls (e.g. `get_permission_status` with no filters) work with any client.
+
+## Remote (HTTP) mode
+
+A second entry point serves MCP over **Streamable HTTP**, acting as an OAuth 2.1 **resource server** — no repo, `.env`, or Node setup on the client side, and no token for the user to handle:
+
+```sh
+npm run dev:http -w mcp-server
+```
+
+| Env var | Purpose |
+|---|---|
+| `MCP_HTTP_PORT` | Listen port (default 3001); endpoint is `POST /mcp`, liveness at `GET /healthz` |
+| `JWT_SECRET` | **Required.** Same secret the api-server signs tokens with (picked up from `api-server/.env` via the fallback chain) |
+| `MCP_SERVER_URL` | This server's public resource identifier (default `http://localhost:3001/mcp`). Must match what api-server advertises, or clients discover the wrong resource |
+| `ISSUER_URL` | The api-server that issues tokens (default `http://localhost:${PORT}`, falling back to port 3000) |
+
+The api-server is the authorization server: it registers clients, runs the consent screen, and mints the access tokens. This server only verifies them. Every request must carry `Authorization: Bearer <access token>`; tokens must carry the `auracloud-mcp` audience, so an api-server **login** JWT is rejected here — and an MCP access token is rejected by api-server's `requireAuth`. Identity is resolved **per request** from the token's `customerId`, so re-linking an AWS user applies immediately. The server is stateless (fresh transport per request): no sessions, horizontally scalable.
+
+Discovery: `GET /.well-known/oauth-protected-resource` (also served at the RFC 9728 path-specific URL derived from `MCP_SERVER_URL`) names the authorization server, and every 401 carries `WWW-Authenticate: Bearer resource_metadata="<that URL>"` so a rejected client can find it.
+
+Connect a client — no token, the browser consent flow supplies it:
+
+```sh
+claude mcp add --transport http auracloud http://localhost:3001/mcp
+```
+
+When testing with `curl`, send `Accept: application/json, text/event-stream` — the MCP SDK 406s without it (real MCP clients always send both).
 
 ## Connecting an AI client
 

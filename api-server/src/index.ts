@@ -12,6 +12,7 @@ import authRoutes from "./routes/auth.routes.js";
 import awsRoutes from "./routes/aws.routes.js";
 import companiesRoutes from "./routes/companies.routes.js";
 import employeesRoutes from "./routes/employees.routes.js";
+import oauthRoutes from "./routes/oauth.routes.js";
 import resourcesRoutes from "./routes/resources.routes.js";
 import teamsRoutes from "./routes/teams.routes.js";
 import userRoutes from "./routes/user.routes.js";
@@ -32,6 +33,7 @@ app.use(awsRoutes);
 app.use(employeesRoutes);
 app.use(teamsRoutes);
 app.use(watchlistPresetsRoutes);
+app.use(oauthRoutes);
 
 connectDB()
   .then(() => {

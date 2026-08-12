@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { CustomerModel } from "../db.js";
-import type { CustomerDoc } from "utils";
+import { MCP_TOKEN_AUDIENCE, type CustomerDoc } from "utils";
 import { JWT_SECRET } from "../config.js";
 
 export interface JwtPayload {
@@ -30,7 +30,17 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   }
   try {
     const token = header.slice(7);
-    req.customer = jwt.verify(token, JWT_SECRET) as JwtPayload;
+    const payload = jwt.verify(token, JWT_SECRET) as JwtPayload & { aud?: string | string[] };
+
+    // MCP access tokens are signed with the same secret, so without this they would
+    // verify as login tokens and turn a scoped AI grant into full account access.
+    const audiences = typeof payload.aud === "string" ? [payload.aud] : (payload.aud ?? []);
+    if (audiences.includes(MCP_TOKEN_AUDIENCE)) {
+      res.status(401).json({ message: "This token cannot be used to sign in" });
+      return;
+    }
+
+    req.customer = payload;
     next();
   } catch {
     res.status(401).json({ message: "Invalid or expired token" });

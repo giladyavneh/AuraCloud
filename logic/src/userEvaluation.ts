@@ -1,12 +1,10 @@
 import {
-  attemptDeepParse,
-  getResourceTypeFromArn,
+  evaluateResourceActions,
+  resolveIdentity,
+  toEvalUser,
   type RedisClientType,
   type UserResourceWatchlist,
 } from 'utils';
-import { getResourceField } from './dataAccess.js';
-import { evaluate } from './evaluator.js';
-import { resolveIdentity, toEvalUser } from './identity/resolveIdentity.js';
 
 export async function evaluateUser(user: UserResourceWatchlist, redis: RedisClientType) {
   const resourceArns = user.resources.map((resource) => resource.arn);
@@ -22,12 +20,8 @@ export async function evaluateUser(user: UserResourceWatchlist, redis: RedisClie
   const evalUser = toEvalUser(identity);
 
   const resources = user.resources.map(async (resource) => {
-    const resourceType = getResourceTypeFromArn(resource.arn);
-    const resourceData = await getResourceField(redis, resourceType, resource.arn);
-    const parsedData = resourceData ? attemptDeepParse(resourceData) : null;
-    const actionResults = resource.actions.map((action) => ({
-      [action]: evaluate(parsedData ?? {}, action, evalUser),
-    }));
+    const results = await evaluateResourceActions(redis, resource.arn, resource.actions, evalUser);
+    const actionResults = resource.actions.map((action) => ({ [action]: results[action] }));
     return { [resource.arn]: actionResults };
   });
 

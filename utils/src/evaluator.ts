@@ -1,3 +1,7 @@
+import type { RedisClientType } from 'redis';
+import { RESOURCES } from './consts.js';
+import { attemptDeepParse } from './utils.js';
+
 export type EvalResult = 'ALLOW' | 'DENY' | 'IMPLICIT_DENY';
 
 function resolveResourceAwsAccountId(resource: Record<string, unknown> | null | undefined): string | undefined {
@@ -279,4 +283,38 @@ function principalMatches(principal: unknown, userArn: string): boolean {
   const principals = Array.isArray(awsPrincipal) ? awsPrincipal : [awsPrincipal];
 
   return principals.some((p: unknown) => p === '*' || p === userArn);
+}
+
+export function getResourceField(
+  redis: RedisClientType,
+  resourceType: string,
+  arn: string,
+): Promise<string | null> {
+  return redis.hGet(`aura:resource:${resourceType}`, arn);
+}
+
+export function getResourceTypeFromArn(arn: string): RESOURCES | 'unknown' {
+  const arnParts = arn.split(':');
+  if (arnParts[2] === 's3') return RESOURCES.S3_BUCKETS;
+  return 'unknown';
+}
+
+/**
+ * Fetch one resource's crawled data and evaluate a set of actions against an
+ * assembled subject. This is the single shared step behind both the logic
+ * service's stored verdicts and mcp-server's theoretical checks — keeping the
+ * fetch/parse/evaluate contract in one place so the two can never diverge.
+ */
+export async function evaluateResourceActions(
+  redis: RedisClientType,
+  arn: string,
+  actions: string[],
+  subject: Record<string, unknown>,
+): Promise<Record<string, EvaluationResult>> {
+  const resourceType = getResourceTypeFromArn(arn);
+  const resourceData = await getResourceField(redis, resourceType, arn);
+  const parsedData = resourceData ? attemptDeepParse(resourceData) : null;
+  return Object.fromEntries(
+    actions.map((action) => [action, evaluate(parsedData ?? {}, action, subject)]),
+  );
 }

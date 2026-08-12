@@ -31,6 +31,15 @@ export const AURA_CLOUD_DOMAIN = "https://aura-cloud.com";
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 
+/**
+ * Where an AI client reaches the MCP server. Set via `VITE_MCP_SERVER_URL`, the same
+ * way as API_BASE_URL — the install command carries no secret, so it is safe to bundle.
+ */
+export const MCP_SERVER_URL =
+  import.meta.env.VITE_MCP_SERVER_URL ?? "http://localhost:3001/mcp";
+
+export const MCP_INSTALL_COMMAND = `claude mcp add --transport http auracloud ${MCP_SERVER_URL}`;
+
 export const WATCHLIST_DOWNLOAD_FILENAME = "watchlist.json";
 
 export const CLOUDFORMATION_URL =

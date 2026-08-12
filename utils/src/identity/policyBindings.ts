@@ -1,4 +1,4 @@
-import type { RedisClientType } from 'utils';
+import type { RedisClientType } from 'redis';
 import { getPolicyDocuments } from '../policyCache.js';
 import type { PolicyRefs } from './types.js';
 
@@ -6,7 +6,11 @@ function emptyPolicyRefs(): PolicyRefs {
   return { inlineDocuments: [], attachedArns: [] };
 }
 
-function collectPolicyRefs(entity: Record<string, unknown>, refs: PolicyRefs, shape: 'iam-entity' | 'permission-set'): void {
+function collectPolicyRefs(
+  entity: Record<string, unknown>,
+  refs: PolicyRefs,
+  shape: 'iam-entity' | 'permission-set',
+): void {
   if (shape === 'iam-entity') {
     for (const doc of (entity.InlinePolicies as unknown[]) ?? []) {
       if (doc && typeof doc === 'object') {

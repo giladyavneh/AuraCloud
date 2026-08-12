@@ -11,4 +11,10 @@ export const QUERY_KEYS = {
   employees: ['employees'],
   teams: ['teams'],
   watchlistPresets: ['watchlistPresets'],
+  // Keyed on the redirect URI too: the answer includes whether that exact URI is
+  // registered, so two requests from the same client are not interchangeable.
+  consentRequest: (clientId: string, redirectUri: string) =>
+    ['consentRequest', clientId, redirectUri],
+  oauthGrants: ['oauthGrants'],
+  oauthCompanyGrants: ['oauthCompanyGrants'],
 } as const;

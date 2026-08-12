@@ -1,4 +1,5 @@
 import { useAuth } from "@/context/auth/AuthContext";
+import AiAccessTab from "@/pages/team/components/AiAccessTab";
 import EmployeesTab from "@/pages/team/components/EmployeesTab";
 import PresetsTab from "@/pages/team/components/PresetsTab";
 import TeamsTab from "@/pages/team/components/TeamsTab";
@@ -18,6 +19,7 @@ const TEAM_TABS = [
   { path: "/team", labelKey: "team.tabs.employees" },
   { path: "/team/teams", labelKey: "team.tabs.teams" },
   { path: "/team/presets", labelKey: "team.tabs.presets" },
+  { path: "/team/ai-access", labelKey: "team.tabs.aiAccess" },
 ] as const;
 
 const Team: React.FC = () => {
@@ -57,6 +59,7 @@ const Team: React.FC = () => {
       <TabContent>
         {location.pathname === "/team/teams" && <TeamsTab />}
         {location.pathname === "/team/presets" && <PresetsTab />}
+        {location.pathname === "/team/ai-access" && <AiAccessTab />}
         {location.pathname === "/team" && <EmployeesTab />}
       </TabContent>
     </PageRoot>

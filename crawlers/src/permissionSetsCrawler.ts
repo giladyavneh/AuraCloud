@@ -8,9 +8,12 @@ import {
   SSOAdminClient,
   type AttachedManagedPolicy,
   type CustomerManagedPolicyReference,
-} from '@aws-sdk/client-sso-admin';
-import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
-import { BaseCrawler } from './crawlerBase.js';
+} from "@aws-sdk/client-sso-admin";
+import { GetPolicyCommand, GetPolicyVersionCommand, IAMClient } from "@aws-sdk/client-iam";
+import { GetCallerIdentityCommand, STSClient } from "@aws-sdk/client-sts";
+import { BaseCrawler } from "./crawlerBase.js";
+import { print, AwsResourceModel, ResourceActionModel } from "utils";
+import { extractActionsFromPolicyDocument } from "./utils.js";
 
 function parseInlinePolicy(policyText: string | undefined): Record<string, unknown> | undefined {
   if (!policyText?.trim()) return undefined;
@@ -32,7 +35,37 @@ export class PermissionSetsCrawler extends BaseCrawler {
   protected region = "eu-central-1";
   public intervalMs = 5000;
   protected ssoAdmin = new SSOAdminClient({ region: this.region, credentials: this.credentials });
+  protected iam = new IAMClient({ region: this.region, credentials: this.credentials });
   protected sts = new STSClient({ region: this.region, credentials: this.credentials });
+
+  private async fetchPolicyDocument(policyArn: string): Promise<Record<string, unknown> | undefined> {
+  if (policyArn === "arn:aws:iam::aws:policy/AdministratorAccess") {
+    return { "Version": "2012-10-17", "Statement": [{ "Effect": "Allow", "Action": "*", "Resource": "*" }] };
+  }
+
+  try {
+    const pol = await this.callAndHandleThrotteling(() =>
+      this.iam.send(new GetPolicyCommand({ PolicyArn: policyArn })),
+    );
+
+    const versionId = pol.Policy?.DefaultVersionId;
+    if (!versionId) return undefined;
+
+    const ver = await this.callAndHandleThrotteling(() =>
+      this.iam.send(new GetPolicyVersionCommand({ PolicyArn: policyArn, VersionId: versionId })),
+    );
+
+    // Some SDK versions return the document as a URL-encoded string
+    const doc = ver.PolicyVersion?.Document;
+    if (typeof doc === 'string') {
+        return JSON.parse(decodeURIComponent(doc));
+    }
+    return doc &&  doc as Record<string, unknown>;
+  } catch (err: any) {
+    console.error(`Skipping policy ${policyArn}: ${err.message}`);
+    return undefined;
+  }
+}
 
   private async listAllManagedAttachments(
     instanceArn: string,
@@ -99,14 +132,16 @@ export class PermissionSetsCrawler extends BaseCrawler {
     ]);
 
     const inlinePolicyDocument = parseInlinePolicy(rawInline);
-    const attachedPolicyArns: string[] = [];
+
+    const attachedIamPolicyDocuments: Record<string, unknown>[] = [];
     const seenArn = new Set<string>();
 
     for (const managedPolicy of managedAttachments) {
       const arn = managedPolicy.Arn;
       if (!arn || seenArn.has(arn)) continue;
       seenArn.add(arn);
-      attachedPolicyArns.push(arn);
+      const doc = await this.fetchPolicyDocument(arn);
+      if (doc) attachedIamPolicyDocuments.push(doc);
     }
 
     if (accountId) {
@@ -115,16 +150,17 @@ export class PermissionSetsCrawler extends BaseCrawler {
         const arn = customerManagedPolicyArn(accountId, ref);
         if (seenArn.has(arn)) continue;
         seenArn.add(arn);
-        attachedPolicyArns.push(arn);
+        const doc = await this.fetchPolicyDocument(arn);
+        if (doc) attachedIamPolicyDocuments.push(doc);
       }
     }
 
     return {
       ...(described ?? {}),
       inlinePolicyDocument,
-      attachedPolicyArns,
-      awsManagedAttachments: managedAttachments.map((m) => ({ Name: m.Name, Arn: m.Arn })),
+      attachedIamPolicyDocuments,
       customerManagedReferences: customerRefs,
+      awsManagedAttachments: managedAttachments.map((m) => ({ Name: m.Name, Arn: m.Arn })),
     };
   }
 

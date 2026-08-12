@@ -1,5 +1,10 @@
-import { evaluateResourceActions, type RedisClientType, type UserResourceWatchlist } from 'utils';
-import { resolveIdentity, toEvalUser } from './identity/resolveIdentity.js';
+import {
+  evaluateResourceActions,
+  resolveIdentity,
+  toEvalUser,
+  type RedisClientType,
+  type UserResourceWatchlist,
+} from 'utils';
 
 export async function evaluateUser(user: UserResourceWatchlist, redis: RedisClientType) {
   const resourceArns = user.resources.map((resource) => resource.arn);

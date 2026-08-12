@@ -386,3 +386,8 @@ export * from './utils.js';
 export * from './crypto.js';
 export * from './consts.js';
 export * from './evaluator.js';
+export * from './identity/types.js';
+export * from './identity/policyBindings.js';
+export * from './identity/loadUser.js';
+export * from './identity/resolveIdentity.js';
+export * from './policyCache.js';

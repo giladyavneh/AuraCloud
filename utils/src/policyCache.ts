@@ -1,5 +1,5 @@
 import { LRUCache } from 'lru-cache';
-import type { RedisClientType } from 'utils';
+import type { RedisClientType } from 'redis';
 
 export const IAM_POLICIES_HASH = 'aura:iam:policies';
 

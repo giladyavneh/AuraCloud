@@ -88,7 +88,7 @@ export const checkTheoreticalPermission = async (
   const subject = await buildEvaluationSubject(redis, ctx.linkedAwsUserId, accountFromArn);
   if (!subject) {
     throw new DomainError(
-      `No crawled identity data for your linked AWS user (${ctx.linkedAwsUserId}). The evaluator covers SSO users the crawlers have synced — IAM-linked users are not evaluated yet, and freshly linked SSO users appear after the next crawl cycle.`,
+      `No crawled identity data for your linked AWS user (${ctx.linkedAwsUserId}). The evaluator covers SSO and IAM users the crawlers have synced — freshly linked users appear after the next crawl cycle.`,
     );
   }
 

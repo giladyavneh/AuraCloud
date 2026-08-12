@@ -2,10 +2,23 @@ import {
   IAMClient, ListUsersCommand, ListRolesCommand, ListGroupsCommand,
   ListGroupsForUserCommand, ListAttachedUserPoliciesCommand,
   ListAttachedGroupPoliciesCommand, ListGroupPoliciesCommand,
+  ListUserPoliciesCommand, GetUserPolicyCommand, GetGroupPolicyCommand,
   type User, type Role, type Group
 } from "@aws-sdk/client-iam";
 import { BaseCrawler } from "./crawlerBase.js";
-import { AwsResourceModel, ResourceActionModel } from "utils";
+
+function parseInlinePolicyDocument(policyText: string | undefined): Record<string, unknown> | undefined {
+  if (!policyText?.trim()) return undefined;
+  try {
+    return JSON.parse(decodeURIComponent(policyText)) as Record<string, unknown>;
+  } catch {
+    try {
+      return JSON.parse(policyText) as Record<string, unknown>;
+    } catch {
+      return undefined;
+    }
+  }
+}
 
 export class BasicIamCrawler extends BaseCrawler {
     public intervalMs = 1000;
@@ -44,6 +57,40 @@ export class BasicIamCrawler extends BaseCrawler {
         return res;
     }
 
+    private async fetchUserInlinePolicies(userName: string): Promise<Record<string, unknown>[]> {
+        const listed = await this.callAndHandleThrotteling(() =>
+            this.iamClient.send(new ListUserPoliciesCommand({ UserName: userName })),
+        );
+        const policies: Record<string, unknown>[] = [];
+
+        for (const policyName of listed.PolicyNames ?? []) {
+            const response = await this.callAndHandleThrotteling(() =>
+                this.iamClient.send(new GetUserPolicyCommand({ UserName: userName, PolicyName: policyName })),
+            );
+            const document = parseInlinePolicyDocument(response.PolicyDocument);
+            if (document) policies.push(document);
+        }
+
+        return policies;
+    }
+
+    private async fetchGroupInlinePolicies(groupName: string): Promise<Record<string, unknown>[]> {
+        const listed = await this.callAndHandleThrotteling(() =>
+            this.iamClient.send(new ListGroupPoliciesCommand({ GroupName: groupName })),
+        );
+        const policies: Record<string, unknown>[] = [];
+
+        for (const policyName of listed.PolicyNames ?? []) {
+            const response = await this.callAndHandleThrotteling(() =>
+                this.iamClient.send(new GetGroupPolicyCommand({ GroupName: groupName, PolicyName: policyName })),
+            );
+            const document = parseInlinePolicyDocument(response.PolicyDocument);
+            if (document) policies.push(document);
+        }
+
+        return policies;
+    }
+
     async crawl() {
         const [users, roles, groups] = await Promise.all([
             this.fetchUsers(), 
@@ -54,28 +101,39 @@ export class BasicIamCrawler extends BaseCrawler {
         // 1. Enrich Users (Who are they and what groups do they belong to?)
         const enrichedUsers = [];
         for (const user of users) {
-            const [g, p] = await Promise.all([
-                this.iamClient.send(new ListGroupsForUserCommand({ UserName: user.UserName })),
-                this.iamClient.send(new ListAttachedUserPoliciesCommand({ UserName: user.UserName }))
+            const [g, p, inlinePolicies] = await Promise.all([
+                this.callAndHandleThrotteling(() =>
+                    this.iamClient.send(new ListGroupsForUserCommand({ UserName: user.UserName })),
+                ),
+                this.callAndHandleThrotteling(() =>
+                    this.iamClient.send(new ListAttachedUserPoliciesCommand({ UserName: user.UserName })),
+                ),
+                this.fetchUserInlinePolicies(user.UserName!),
             ]);
-            enrichedUsers.push({ 
-                ...user, 
-                Groups: g.Groups?.map(x => x.GroupName), 
-                AttachedPolicies: p.AttachedPolicies 
+            const groupNames = g.Groups
+                ?.map((x) => x.GroupName)
+                .filter((name): name is string => typeof name === 'string');
+            enrichedUsers.push({
+                ...user,
+                ...(groupNames?.length ? { Groups: groupNames } : {}),
+                ...(p.AttachedPolicies?.length ? { AttachedPolicies: p.AttachedPolicies } : {}),
+                ...(inlinePolicies.length ? { InlinePolicies: inlinePolicies } : {}),
             });
         }
 
         // 2. Enrich Groups (What permissions does each group actually have?)
         const enrichedGroups = [];
         for (const group of groups) {
-            const [attached, inline] = await Promise.all([
-                this.iamClient.send(new ListAttachedGroupPoliciesCommand({ GroupName: group.GroupName })),
-                this.iamClient.send(new ListGroupPoliciesCommand({ GroupName: group.GroupName }))
+            const [attached, inlinePolicies] = await Promise.all([
+                this.callAndHandleThrotteling(() =>
+                    this.iamClient.send(new ListAttachedGroupPoliciesCommand({ GroupName: group.GroupName })),
+                ),
+                this.fetchGroupInlinePolicies(group.GroupName!),
             ]);
             enrichedGroups.push({
                 ...group,
-                AttachedPolicies: attached.AttachedPolicies,
-                InlinePolicyNames: inline.PolicyNames
+                ...(attached.AttachedPolicies?.length ? { AttachedPolicies: attached.AttachedPolicies } : {}),
+                ...(inlinePolicies.length ? { InlinePolicies: inlinePolicies } : {}),
             });
         }
 
@@ -83,7 +141,7 @@ export class BasicIamCrawler extends BaseCrawler {
     }
 
     async save(redis: any, data: any) {
-        for (const user of data.users) await redis.hSet("aura:iam:users", user.UserName, JSON.stringify(user));
+        for (const user of data.users) await redis.hSet("aura:iam:users", user.UserId, JSON.stringify(user));
         for (const role of data.roles) await redis.hSet("aura:iam:roles", role.RoleName, JSON.stringify(role));
         for (const group of data.groups) await redis.hSet("aura:iam:groups", group.GroupName, JSON.stringify(group));
     }

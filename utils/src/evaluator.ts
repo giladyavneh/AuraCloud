@@ -65,8 +65,9 @@ export function evaluate(resource: unknown, action: string, user: Record<string,
 
     const scpResult: PolicyCheckResult = { status: 'ALLOW' }; // Fallback
 
+    const resourceArn = (res.arn ?? res.Arn ?? res.BucketArn ?? '') as string;
     const policies = user.policies as unknown[] | undefined;
-    const idResult = checkIdentityPolicy(policies, action, context);
+    const idResult = checkIdentityPolicy(policies, action, resourceArn, context);
     
     const userArn = typeof user.arn === 'string' ? user.arn : '';
     const resResult = checkResourcePolicy(res.bucketPolicies || res.policy, action, userArn, context);
@@ -126,6 +127,15 @@ function matchesAny(patterns: string | string[], actual: string): boolean {
   return arr.some((p) => isMatch(p, actual));
 }
 
+function matchesResource(patterns: unknown, resourceArn: string): boolean {
+  if (!patterns || !resourceArn) return true;
+  const arr = Array.isArray(patterns) ? patterns : [patterns];
+  return arr.some((p) => {
+    if (typeof p !== 'string') return false;
+    return isMatch(p, resourceArn) || isMatch(p, `${resourceArn}/*`);
+  });
+}
+
 export function matchesCondition(condition: unknown, context: Record<string, unknown>): boolean {
   if (!condition || typeof condition !== 'object') return true;
 
@@ -182,9 +192,10 @@ export function matchesCondition(condition: unknown, context: Record<string, unk
   return true;
 }
 
-export function checkIdentityPolicy(
+function checkIdentityPolicy(
   policies: unknown[] | undefined,
   action: string,
+  resourceArn: string,
   context: Record<string, unknown>
 ): PolicyCheckResult {
     let hasAllow = false;
@@ -200,8 +211,9 @@ export function checkIdentityPolicy(
         const statements = Array.isArray(p.Statement) ? p.Statement : [p.Statement];
         for (const stmt of statements) {
             if (!stmt || typeof stmt !== 'object') continue;
-            const s = stmt as { Action?: unknown; Effect?: unknown; Condition?: unknown; Sid?: string };
+            const s = stmt as { Action?: unknown; Effect?: unknown; Condition?: unknown; Sid?: string; Resource?: unknown };
             if (matchesAny((s.Action as string | string[]) ?? '', action)) {
+                if (s.Resource && !matchesResource(s.Resource, resourceArn)) continue;
                 if (s.Condition && !matchesCondition(s.Condition, context)) continue;
                 if (s.Effect === 'Deny') {
                     return { 
@@ -307,7 +319,8 @@ export async function evaluateResourceActions(
   const resourceType = getResourceTypeFromArn(arn);
   const resourceData = await getResourceField(redis, resourceType, arn);
   const parsedData = resourceData ? attemptDeepParse(resourceData) : null;
+  const resourceObj = parsedData && typeof parsedData === 'object' ? { arn, ...parsedData } : { arn };
   return Object.fromEntries(
-    actions.map((action) => [action, evaluate(parsedData ?? {}, action, subject)]),
+    actions.map((action) => [action, evaluate(resourceObj, action, subject)]),
   );
 }

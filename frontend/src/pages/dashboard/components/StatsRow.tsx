@@ -4,7 +4,7 @@ import { useUserPermissions, useUserResourceWatchlist } from "@/hooks/resources.
 import { useTheme } from "@mui/material";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { countResourceStatuses } from "../helpers/dashboard.helpers";
+import { countResourceStatuses, getHealthScoreBand } from "../helpers/dashboard.helpers";
 import { StatsRowContainer } from "./dashboard.styled";
 import { DASHBOARD_IDS } from "@/pages/dashboard/constants";
 
@@ -19,13 +19,22 @@ const StatsRow: React.FC = () => {
   const totalResources = watchedArns.length;
   const statusCounts = countResourceStatuses(watchedArns, permission?.resourceStatuses ?? {});
 
-  // Unscanned counts against the score, so it cannot read 100% before the first scan.
-  const hasPermissionData = totalResources > 0;
+  const hasWatchedResources = totalResources > 0;
   const activeBlockers = statusCounts.blocked;
   const staleResources = statusCounts.stale + statusCounts.unscanned;
-  const healthScore = hasPermissionData
-    ? `${Math.round((statusCounts.healthy / totalResources) * 100)}%`
-    : "—";
+
+  // Unscanned counts against the score, so it stays blank until something has
+  // actually been evaluated rather than reporting 0% of nothing.
+  const scannedCount = totalResources - statusCounts.unscanned;
+  const healthScore = scannedCount > 0
+    ? Math.round((statusCounts.healthy / totalResources) * 100)
+    : undefined;
+
+  const healthScoreColor = {
+    good: theme.palette.success.main,
+    fair: theme.palette.warning.main,
+    poor: theme.palette.error.main,
+  };
 
   const stats: Array<StatCardProps & { id: string }> = [
     {
@@ -36,20 +45,23 @@ const StatsRow: React.FC = () => {
     {
       id: "activeBlockers",
       title: t("dashboard.stats.activeBlockers"),
-      value: hasPermissionData ? activeBlockers : "—",
-      valueColor: theme.palette.error.main,
+      value: hasWatchedResources ? activeBlockers : "—",
+      // A zero count stays neutral; red on "0" reads as a problem.
+      ...(activeBlockers > 0 ? { valueColor: theme.palette.error.main } : {}),
     },
     {
       id: "staleResources",
       title: t("dashboard.stats.staleResources"),
-      value: hasPermissionData ? staleResources : "—",
-      valueColor: theme.palette.warning.main,
+      value: hasWatchedResources ? staleResources : "—",
+      ...(staleResources > 0 ? { valueColor: theme.palette.warning.main } : {}),
     },
     {
       id: "healthScore",
       title: t("dashboard.stats.healthScore"),
-      value: healthScore,
-      valueColor: theme.palette.success.main,
+      value: healthScore === undefined ? "—" : `${healthScore}%`,
+      ...(healthScore === undefined
+        ? {}
+        : { valueColor: healthScoreColor[getHealthScoreBand(healthScore)] }),
     },
   ];
 

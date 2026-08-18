@@ -1,4 +1,5 @@
 import { inferServiceFromArn } from "@/helpers/arn.helpers";
+import { HEALTH_SCORE_FAIR, HEALTH_SCORE_GOOD } from "@/pages/dashboard/constants";
 import type { StatusTagVariant } from "@/components/statusTag/types/statusTag.types";
 import type { FilterTabValue } from "@/pages/dashboard/types/dashboard.types";
 import type {
@@ -87,6 +88,15 @@ export const filterResourcesByTab = <ResourceWithArn extends { arn: string }>(
 
     return getServiceCategory(inferServiceFromArn(arn)) === activeFilter;
   });
+};
+
+export type HealthScoreBand = "good" | "fair" | "poor";
+
+export const getHealthScoreBand = (score: number): HealthScoreBand => {
+  if (score >= HEALTH_SCORE_GOOD) return "good";
+  if (score >= HEALTH_SCORE_FAIR) return "fair";
+
+  return "poor";
 };
 
 export type ResourceStatusCounts = Record<ResourceStatus, number>;

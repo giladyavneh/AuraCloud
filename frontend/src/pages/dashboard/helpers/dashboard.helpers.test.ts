@@ -3,6 +3,7 @@ import {
   countResourceStatuses,
   deriveStatusMessage,
   deriveSystemStatus,
+  getHealthScoreBand,
 } from "@/pages/dashboard/helpers/dashboard.helpers";
 import englishTranslations from "@/i18n/locales/en.json";
 
@@ -135,5 +136,16 @@ describe("deriveSystemStatus", () => {
 
   it("stays online when nothing is monitored", () => {
     expect(deriveSystemStatus(false, false, 0, 0)).toEqual({ variant: "online" });
+  });
+});
+
+describe("getHealthScoreBand", () => {
+  it("holds each band at its own boundary", () => {
+    expect(getHealthScoreBand(100)).toBe("good");
+    expect(getHealthScoreBand(90)).toBe("good");
+    expect(getHealthScoreBand(89)).toBe("fair");
+    expect(getHealthScoreBand(60)).toBe("fair");
+    expect(getHealthScoreBand(59)).toBe("poor");
+    expect(getHealthScoreBand(0)).toBe("poor");
   });
 });

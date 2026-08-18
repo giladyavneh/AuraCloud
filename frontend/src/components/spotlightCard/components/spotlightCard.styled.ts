@@ -1,13 +1,9 @@
 import { SPOTLIGHT_TINT_ALPHA } from "@/constants";
-import Box from "@mui/material/Box";
-import { alpha, styled, type CSSObject, type Theme } from "@mui/material/styles";
+import { alpha, type CSSObject, type Theme } from "@mui/material/styles";
 
 /**
  * Cursor-following spotlight overlay.
  *
- * Exported on its own so cards that already own their border, background and
- * radius (StatCard, ResourceCard) can opt into the effect without nesting an
- * extra SpotlightCardRoot around themselves and doubling up those borders.
  * The CSS variables are written by `useSpotlight` on mouse move.
  */
 export const spotlightOverlayStyles = (theme: Theme): CSSObject => ({
@@ -44,13 +40,3 @@ export const spotlightOverlayStyles = (theme: Theme): CSSObject => ({
     },
   },
 });
-
-// Standalone spotlight card — supplies its own surface, used by GlowCard.
-export const SpotlightCardRoot = styled(Box)(({ theme }) => ({
-  borderRadius: (theme.shape.borderRadius as number) * 2,
-  border: `1px solid ${theme.palette.border.default}`,
-  backgroundColor: theme.palette.surface.base,
-  padding: theme.spacing(6),
-  overflow: "hidden",
-  ...spotlightOverlayStyles(theme),
-}));

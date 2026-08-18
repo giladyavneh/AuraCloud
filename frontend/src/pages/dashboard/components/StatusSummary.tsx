@@ -7,8 +7,9 @@ import { ArrowsClockwiseIcon } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUserPermissions, useUserResourceWatchlist } from "@/hooks/resources.hooks";
 import { QUERY_KEYS } from "@/constants/queryKeys";
+import { DASHBOARD_IDS } from "@/pages/dashboard/constants";
 import {
-  deriveStatusFromArnData,
+  countResourceStatuses,
   deriveStatusMessage,
   deriveSystemStatus,
 } from "@/pages/dashboard/helpers/dashboard.helpers";
@@ -31,7 +32,6 @@ const StatusSummary: React.FC = () => {
     data: permission,
     isLoading: isPermissionLoading,
     isError: isPermissionError,
-    error: permissionError,
   } = useUserPermissions();
 
   // Cursor-following spotlight, same wiring the dashboard resource cards use.
@@ -43,35 +43,28 @@ const StatusSummary: React.FC = () => {
   };
 
   const monitoredResources = watchlistItems[0]?.resources ?? [];
-  const permissionsMap = permission?.permissionsData ?? {};
+  const resourceStatuses = permission?.resourceStatuses ?? {};
 
-  const blockedCount = monitoredResources.filter(({ arn }) => {
-    const arnData = permissionsMap[arn];
-    return arnData ? deriveStatusFromArnData(arnData) === "blocked" : false;
-  }).length;
-
-  // Not yet reported on by the Brain counts as stale.
-  const staleCount = monitoredResources.filter(({ arn }) => {
-    const arnData = permissionsMap[arn];
-    return !arnData || deriveStatusFromArnData(arnData) === "stale";
-  }).length;
+  const watchedArns = monitoredResources.map((resource) => resource.arn);
+  const statusCounts = countResourceStatuses(watchedArns, resourceStatuses);
 
   const statusMessage = deriveStatusMessage({
     isLoading: isWatchlistLoading || isPermissionLoading,
-    monitoredCount: monitoredResources.length,
-    hasPermissionData: Object.keys(permissionsMap).length > 0,
-    blockedCount,
-    staleCount,
+    monitoredCount: watchedArns.length,
+    blockedCount: statusCounts.blocked,
+    staleCount: statusCounts.stale,
+    unscannedCount: statusCounts.unscanned,
   });
 
   const systemStatus = deriveSystemStatus(
     isPermissionLoading,
     isPermissionError,
-    permissionError?.message,
+    watchedArns.length,
+    statusCounts.stale,
   );
 
   return (
-    <StatusSummaryRoot ref={ref} onMouseMove={onMouseMove}>
+    <StatusSummaryRoot id={DASHBOARD_IDS.statusSummary} ref={ref} onMouseMove={onMouseMove}>
       <AuroraBackdrop />
 
       <StatusSummaryLeft>

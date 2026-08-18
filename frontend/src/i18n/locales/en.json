@@ -73,7 +73,6 @@
     },
     "systemStatus": {
       "checking": "Checking system…",
-      "awaitingData": "Awaiting first scan",
       "degraded": "Data unavailable"
     }
   },
@@ -321,7 +320,8 @@
     "healthy": "Healthy",
     "blocked": "Blocked",
     "stale": "Stale",
-    "warning": "Warning",
+    "unscanned": "Unscanned",
+    "external": "External",
     "online": "System Online"
   },
   "team": {

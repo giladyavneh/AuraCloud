@@ -1,5 +1,8 @@
 export const SIDEBAR_WIDTH = 260;
 
+/** theme.spacing units of padding around routed page content. */
+export const MAIN_CONTENT_PADDING = 6;
+
 // UI constants
 export const MONO_LABEL_FONT_SIZE = "11px";
 export const INVITE_CODE_FONT_SIZE = "20px";

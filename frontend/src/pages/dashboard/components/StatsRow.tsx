@@ -4,29 +4,27 @@ import { useUserPermissions, useUserResourceWatchlist } from "@/hooks/resources.
 import { useTheme } from "@mui/material";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { deriveStatusFromArnData } from "../helpers/dashboard.helpers";
+import { countResourceStatuses } from "../helpers/dashboard.helpers";
 import { StatsRowContainer } from "./dashboard.styled";
+import { DASHBOARD_IDS } from "@/pages/dashboard/constants";
 
 const StatsRow: React.FC = () => {
   const { t } = useTranslation();
   const theme = useTheme();
 
-  // Total resources comes from the watchlist (what the user is monitoring)
   const { data: watchlistItems = [] } = useUserResourceWatchlist();
-  const totalResources = watchlistItems[0]?.resources.length ?? 0;
-
-  // Blocker / stale / health stats come from the Brain output (UserPermissions)
-  // Until the Brain is implemented these will be empty — show — rather than 0
   const { data: permission } = useUserPermissions();
-  const arnStatuses = Object.values(permission?.permissionsData ?? {}).map(
-    deriveStatusFromArnData,
-  );
-  const hasPermissionData = arnStatuses.length > 0;
-  const activeBlockers = arnStatuses.filter((status) => status === "blocked").length;
-  const staleResources = arnStatuses.filter((status) => status === "stale").length;
-  const healthyCount = arnStatuses.filter((status) => status === "healthy").length;
+
+  const watchedArns = (watchlistItems[0]?.resources ?? []).map((resource) => resource.arn);
+  const totalResources = watchedArns.length;
+  const statusCounts = countResourceStatuses(watchedArns, permission?.resourceStatuses ?? {});
+
+  // Unscanned counts against the score, so it cannot read 100% before the first scan.
+  const hasPermissionData = totalResources > 0;
+  const activeBlockers = statusCounts.blocked;
+  const staleResources = statusCounts.stale + statusCounts.unscanned;
   const healthScore = hasPermissionData
-    ? `${Math.round((healthyCount / arnStatuses.length) * 100)}%`
+    ? `${Math.round((statusCounts.healthy / totalResources) * 100)}%`
     : "—";
 
   const stats: Array<StatCardProps & { id: string }> = [
@@ -56,7 +54,7 @@ const StatsRow: React.FC = () => {
   ];
 
   return (
-    <StatsRowContainer>
+    <StatsRowContainer id={DASHBOARD_IDS.statsRow}>
       {stats.map(({ id, ...props }) => (
         <StatCard key={id} {...props} />
       ))}

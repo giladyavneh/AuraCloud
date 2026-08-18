@@ -1,4 +1,4 @@
-import { MONO_LABEL_FONT_SIZE } from "@/constants";
+import { MAIN_CONTENT_PADDING, MONO_LABEL_FONT_SIZE } from "@/constants";
 import { spotlightOverlayStyles } from "@/components/spotlightCard/components/spotlightCard.styled";
 import { getTagStyles } from "@/components/statusTag/helpers/statusTag.helpers";
 import type { StatusTagVariant } from "@/components/statusTag/types/statusTag.types";
@@ -6,13 +6,34 @@ import { styled } from "@mui/material/styles";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 
+// Fills the wrapper exactly so the page itself never scrolls — only the resource grid does.
 export const PageRoot = styled(Box)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
   gap: theme.spacing(6),
+  height: `calc(100dvh - ${theme.spacing(MAIN_CONTENT_PADDING * 2)})`,
+  overflow: "hidden",
 }));
 
+export const ResourceSectionRoot = styled(Box)(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  gap: theme.spacing(4),
+  flex: 1,
+  // Without this a flex child refuses to shrink below its content, and the grid never scrolls.
+  minHeight: 0,
+}));
+
+export const ResourceScrollArea = styled(Box)({
+  flex: 1,
+  minHeight: 0,
+  overflowY: "auto",
+  // Reserve the scrollbar track always, so content does not shift when it appears.
+  scrollbarGutter: "stable",
+});
+
 export const StatusSummaryRoot = styled(Box)(({ theme }) => ({
+  flexShrink: 0,
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
@@ -44,12 +65,14 @@ export const StatusSummaryRight = styled(Box)(({ theme }) => ({
 }));
 
 export const StatsRowContainer = styled(Box)(({ theme }) => ({
+  flexShrink: 0,
   display: "flex",
   gap: theme.spacing(4),
 }));
 
 /** Row containing the section title/description (left) and filter tabs (right) */
 export const ResourceSectionHeader = styled(Box)(({ theme }) => ({
+  flexShrink: 0,
   display: "flex",
   alignItems: "flex-start",
   justifyContent: "space-between",

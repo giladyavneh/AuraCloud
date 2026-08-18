@@ -1,3 +1,4 @@
+import { MAIN_CONTENT_PADDING } from "@/constants";
 import { styled } from "@mui/material/styles";
 import Box from "@mui/material/Box";
 
@@ -10,7 +11,7 @@ export const LayoutRoot = styled(Box)(({ theme }) => ({
 export const MainContent = styled(Box)(({ theme }) => ({
   flex: 1,
   overflowY: "auto",
-  padding: theme.spacing(6),
+  padding: theme.spacing(MAIN_CONTENT_PADDING),
   minWidth: 0,
   maxHeight: "100dvh",
   backgroundImage: `radial-gradient(circle, ${theme.palette.border.default} 1px, transparent 1px)`,

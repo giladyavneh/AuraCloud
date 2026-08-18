@@ -20,11 +20,16 @@ export const getTagStyles = (palette: Palette, variant: StatusTagVariant): TagSt
       color: palette.error.main,
     },
     stale: {
+      bg: palette.warning.dark,
+      border: palette.warning.contrastText,
+      color: palette.warning.main,
+    },
+    unscanned: {
       bg: palette.divider,
       border: palette.border.strong,
       color: palette.text.disabled,
     },
-    warning: {
+    external: {
       bg: palette.warning.dark,
       border: palette.warning.contrastText,
       color: palette.warning.main,
@@ -43,6 +48,7 @@ export const DEFAULT_LABELS: Record<StatusTagVariant, string> = {
   healthy: 'status.healthy',
   blocked: 'status.blocked',
   stale: 'status.stale',
-  warning: 'status.warning',
+  unscanned: 'status.unscanned',
+  external: 'status.external',
   online: 'status.online',
 };

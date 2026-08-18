@@ -1,83 +1,62 @@
-import type { FilterTabValue } from "@/pages/dashboard/types/dashboard.types";
-import ResourceCard from "@/components/resourceCard/ResourceCard";
-
-const FILTER_TABS: FilterTabValue[] = ["all", "iam", "resource", "network", "healthy"];
 import { useUserPermissions, useUserResourceWatchlist } from "@/hooks/resources.hooks";
+import DashboardEmptyState from "@/pages/dashboard/components/DashboardEmptyState";
+import ResourceFilterTabs from "@/pages/dashboard/components/ResourceFilterTabs";
+import ResourceGrid from "@/pages/dashboard/components/ResourceGrid";
 import {
-  deriveStatusFromArnData,
-  formatTimestamp,
-  getErrorReasonFromArnData,
-  getServiceCategory,
-  getTimestampFromArnData,
-  inferServiceFromArn,
-} from "@/pages/dashboard/helpers/dashboard.helpers";
-import { extractResourceName } from "@/helpers/arn.helpers";
-import type { ArnPermissionData } from "@/services/types/resources.types";
-import {
-  EmptyStateCard,
-  FilterTab,
-  FilterTabsRow,
-  FilterTabCount,
+  ResourceScrollArea,
   ResourceSectionHeader,
+  ResourceSectionRoot,
 } from "@/pages/dashboard/components/dashboard.styled";
+import { DASHBOARD_IDS } from "@/pages/dashboard/constants";
+import {
+  countFilterTabs,
+  filterResourcesByTab,
+} from "@/pages/dashboard/helpers/dashboard.helpers";
+import type { FilterTabValue } from "@/pages/dashboard/types/dashboard.types";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
-import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
-import { useTheme } from "@mui/material/styles";
-import { DatabaseIcon, ArrowRightIcon } from "@phosphor-icons/react";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
 
 const ResourceSection: React.FC = () => {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState<FilterTabValue>("all");
 
-  const { data: watchlistItems = [], isLoading: watchlistLoading } = useUserResourceWatchlist();
-  const { data: permission, isLoading: permissionsLoading, isError, error } = useUserPermissions();
+  const { data: watchlistItems = [], isLoading: isWatchlistLoading } = useUserResourceWatchlist();
+  const {
+    data: permission,
+    isLoading: isPermissionsLoading,
+    isError,
+    error: permissionError,
+  } = useUserPermissions();
 
-  const watchlistResources = watchlistItems[0]?.resources ?? [];
-  const permissionsMap = useMemo<Record<string, ArnPermissionData>>(
-    () => (permission?.permissionsData as Record<string, ArnPermissionData>) ?? {},
-    [permission?.permissionsData],
+  const watchedResources = useMemo(
+    () => watchlistItems[0]?.resources ?? [],
+    [watchlistItems],
+  );
+  const permissionsMap = permission?.permissionsData ?? {};
+  const resourceStatuses = useMemo(
+    () => permission?.resourceStatuses ?? {},
+    [permission?.resourceStatuses],
   );
 
-  const isLoading = watchlistLoading || permissionsLoading;
+  const isLoading = isWatchlistLoading || isPermissionsLoading;
 
-  // A 404 just means the Brain hasn't run yet — not a real error
-  const isRealError = isError && !error?.message.includes("404");
+  // A 404 means nothing is watched yet, which the empty state covers.
+  const isRealError = isError && !permissionError?.message.includes("404");
 
-  const tabCounts = useMemo<Record<FilterTabValue, number>>(() => {
-    const counts: Record<FilterTabValue, number> = { all: watchlistResources.length, iam: 0, resource: 0, network: 0, healthy: 0 };
-    for (const { arn } of watchlistResources) {
-      const service = inferServiceFromArn(arn);
-      const arnData = permissionsMap[arn];
-      const status = arnData ? deriveStatusFromArnData(arnData) : "stale";
-      const category = getServiceCategory(service);
-      counts[category]++;
-      if (status === "healthy") counts.healthy++;
-    }
-    return counts;
-  }, [watchlistResources, permissionsMap]);
+  const tabCounts = useMemo(
+    () => countFilterTabs(watchedResources, resourceStatuses),
+    [watchedResources, resourceStatuses],
+  );
+  const filteredResources = filterResourcesByTab(watchedResources, resourceStatuses, activeFilter);
 
-  const filteredResources = watchlistResources.filter(({ arn }) => {
-    if (activeFilter === "all") return true;
-
-    const service = inferServiceFromArn(arn);
-    const arnData = permissionsMap[arn];
-    const status = arnData ? deriveStatusFromArnData(arnData) : "stale";
-
-    if (activeFilter === "healthy") return status === "healthy";
-    return getServiceCategory(service) === activeFilter;
-  });
+  const hasResources = watchedResources.length > 0;
 
   return (
-    <>
-      <ResourceSectionHeader>
+    <ResourceSectionRoot id={DASHBOARD_IDS.resourceSection}>
+      <ResourceSectionHeader id={DASHBOARD_IDS.resourceSectionHeader}>
         <Box>
           <Typography variant="h5" color="textPrimary">
             {t("dashboard.resourceStatus")}
@@ -86,102 +65,53 @@ const ResourceSection: React.FC = () => {
           <Typography variant="body2" color="textDisabled">
             {t("dashboard.resourceStatusDescription")}
           </Typography>
+
         </Box>
 
-        <FilterTabsRow>
-          {FILTER_TABS.map((tab) => (
-            <FilterTab
-              key={tab}
-              isActive={activeFilter === tab}
-              onClick={() => setActiveFilter(tab)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  setActiveFilter(tab);
-                }
-              }}
-            >
-              {t(`dashboard.filterTabs.${tab}`)}
-              {watchlistResources.length > 0 && (
-                <FilterTabCount isActive={activeFilter === tab}>{tabCounts[tab]}</FilterTabCount>
-              )}
-            </FilterTab>
-          ))}
-        </FilterTabsRow>
+        <ResourceFilterTabs
+          activeFilter={activeFilter}
+          tabCounts={tabCounts}
+          showCounts={hasResources}
+          onFilterChange={setActiveFilter}
+        />
+
       </ResourceSectionHeader>
 
-      {isLoading && (
-        <Box sx={{ display: "flex", justifyContent: "center", paddingBlock: 4 }}>
-          <CircularProgress color="primary" />
-        </Box>
-      )}
-
-      {isRealError && (
-        <Typography variant="body2" color="error">
-          {t("dashboard.permissionsLoadError")}
-        </Typography>
-      )}
-
-      {!isLoading && !isRealError && watchlistResources.length === 0 && (
-        <EmptyStateCard>
-          <DatabaseIcon size={48} color={theme.palette.text.disabled} />
-
-          <Box>
-            <Typography variant="h6" color="textPrimary">
-              {t("dashboard.emptyState.title")}
-            </Typography>
-            <Typography variant="body2" color="textSecondary" sx={{ marginTop: 1 }}>
-              {t("dashboard.emptyState.description")}
-            </Typography>
-          </Box>
-
-          <Button
-            variant="contained"
-            size="large"
-            endIcon={<ArrowRightIcon size={theme.iconSize.sm} />}
-            onClick={() => navigate("/resource-watch-list")}
+      <ResourceScrollArea id={DASHBOARD_IDS.resourceScroll}>
+        {isLoading && (
+          <Box
+            id={DASHBOARD_IDS.loading}
+            sx={{ display: "flex", justifyContent: "center", paddingBlock: 4 }}
           >
-            {t("dashboard.emptyState.cta")}
-          </Button>
-        </EmptyStateCard>
-      )}
+            <CircularProgress color="primary" />
+          </Box>
+        )}
 
-      {!isLoading && !isRealError && watchlistResources.length > 0 && filteredResources.length === 0 && (
-        <Typography variant="body2" color="textSecondary">
-          {t("dashboard.noResourcesForFilter")}
-        </Typography>
-      )}
+        {!isLoading && isRealError && (
+          <Typography id={DASHBOARD_IDS.error} variant="body2" color="error">
+            {t("dashboard.permissionsLoadError")}
+          </Typography>
+        )}
 
-      {!isLoading && !isRealError && filteredResources.length > 0 && (
-        <Grid container spacing={2}>
-          {filteredResources.map(({ arn, actions }) => {
-            const arnData = permissionsMap[arn];
-            const service = inferServiceFromArn(arn);
-            const resourceName = extractResourceName(arn);
+        {!isLoading && !isRealError && !hasResources && <DashboardEmptyState />}
 
-            // If Brain hasn't analysed this resource yet, show it as stale
-            const status = arnData ? deriveStatusFromArnData(arnData) : "stale";
-            const errorReason = arnData ? getErrorReasonFromArnData(arnData) : undefined;
-            const timestamp = arnData ? getTimestampFromArnData(arnData) : "";
+        {!isLoading && !isRealError && hasResources && filteredResources.length === 0 && (
+          <Typography id={DASHBOARD_IDS.noFilterMatches} variant="body2" color="textSecondary">
+            {t("dashboard.noResourcesForFilter")}
+          </Typography>
+        )}
 
-            return (
-              <Grid key={arn} size={{ xs: 12, md: 6, lg: 4 }}>
-                <ResourceCard
-                  service={service}
-                  title={resourceName}
-                  lastUpdated={formatTimestamp(timestamp)}
-                  status={status}
-                  actions={actions}
-                  errorMessage={status === "blocked" ? errorReason : undefined}
-                />
-              </Grid>
-            );
-          })}
-        </Grid>
-      )}
-    </>
+        {!isLoading && !isRealError && filteredResources.length > 0 && (
+          <ResourceGrid
+            resources={filteredResources}
+            permissionsMap={permissionsMap}
+            resourceStatuses={resourceStatuses}
+          />
+        )}
+
+      </ResourceScrollArea>
+
+    </ResourceSectionRoot>
   );
 };
 

@@ -1,4 +1,4 @@
-export type StatusTagVariant = 'healthy' | 'blocked' | 'stale' | 'warning' | 'online';
+export type StatusTagVariant = 'healthy' | 'blocked' | 'stale' | 'unscanned' | 'external' | 'online';
 
 export interface StatusTagProps {
   variant: StatusTagVariant;

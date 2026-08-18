@@ -8,8 +8,9 @@ export const getResourceDotColor = (palette: Palette, status: StatusTagVariant):
     healthy: palette.success.main,
     blocked: palette.error.main,
     stale: palette.warning.main,
+    unscanned: palette.text.disabled,
     online: palette.success.main,
-    warning: palette.warning.main,
+    external: palette.warning.main,
   };
 
   return map[status] ?? palette.text.disabled;

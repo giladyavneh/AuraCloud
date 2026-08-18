@@ -1,7 +1,10 @@
+import { inferServiceFromArn } from "@/helpers/arn.helpers";
 import type { StatusTagVariant } from "@/components/statusTag/types/statusTag.types";
+import type { FilterTabValue } from "@/pages/dashboard/types/dashboard.types";
 import type {
-  ArnPermissionData,
   ActionData,
+  ArnPermissionData,
+  ResourceStatus,
 } from "@/services/types/resources.types";
 import type { AwsService } from "@/components/awsServiceIcon/types/awsServiceIcon.types";
 
@@ -31,42 +34,6 @@ export const isTopLevelArnData = (
   data: ArnPermissionData,
 ): data is ActionData => typeof (data as HasStatus).status === "string";
 
-/** Returns action names for per-action ARN data; empty array for top-level status. */
-export const getActionsFromArnData = (data: ArnPermissionData): string[] => {
-  if (isTopLevelArnData(data)) return [];
-  return Object.keys(data as Record<string, ActionData>);
-};
-
-const toStatusTagVariant = (status: string): StatusTagVariant => {
-  if (status === "error") return "blocked";
-  if (status === "warning") return "warning";
-  if (status === "stale") return "stale";
-  return "healthy";
-};
-
-const STATUS_PRIORITY: Record<string, number> = {
-  error: 3,
-  warning: 2,
-  stale: 2,
-  valid: 1,
-};
-
-/** Derives the card StatusTagVariant from ARN permission data. */
-export const deriveStatusFromArnData = (
-  data: ArnPermissionData,
-): StatusTagVariant => {
-  if (isTopLevelArnData(data)) return toStatusTagVariant(data.status);
-
-  const actionValues = Object.values(data as Record<string, ActionData>);
-  const worstStatus = actionValues.reduce<string>((worst, action) => {
-    return (STATUS_PRIORITY[action.status] ?? 0) > (STATUS_PRIORITY[worst] ?? 0)
-      ? action.status
-      : worst;
-  }, "valid");
-
-  return toStatusTagVariant(worstStatus);
-};
-
 /** Returns an error reason string when an action or the ARN itself is in error state. */
 export const getErrorReasonFromArnData = (
   data: ArnPermissionData,
@@ -87,27 +54,76 @@ export const getTimestampFromArnData = (data: ArnPermissionData): string => {
   return firstAction?.timestamp ?? "";
 };
 
+
+export const countFilterTabs = (
+  watchedResources: Array<{ arn: string }>,
+  resourceStatuses: Record<string, ResourceStatus>,
+): Record<FilterTabValue, number> => {
+  const counts: Record<FilterTabValue, number> = {
+    all: watchedResources.length,
+    iam: 0,
+    resource: 0,
+    network: 0,
+    healthy: 0,
+  };
+
+  for (const { arn } of watchedResources) {
+    counts[getServiceCategory(inferServiceFromArn(arn))]++;
+    if (resourceStatuses[arn] === "healthy") counts.healthy++;
+  }
+
+  return counts;
+};
+
+export const filterResourcesByTab = <ResourceWithArn extends { arn: string }>(
+  watchedResources: ResourceWithArn[],
+  resourceStatuses: Record<string, ResourceStatus>,
+  activeFilter: FilterTabValue,
+): ResourceWithArn[] => {
+  if (activeFilter === "all") return watchedResources;
+
+  return watchedResources.filter(({ arn }) => {
+    if (activeFilter === "healthy") return resourceStatuses[arn] === "healthy";
+
+    return getServiceCategory(inferServiceFromArn(arn)) === activeFilter;
+  });
+};
+
+export type ResourceStatusCounts = Record<ResourceStatus, number>;
+
+/** Keyed by the watchlist, so an ARN the server did not resolve still counts as unscanned. */
+export const countResourceStatuses = (
+  watchedArns: string[],
+  resourceStatuses: Record<string, ResourceStatus>,
+): ResourceStatusCounts => {
+  const counts: ResourceStatusCounts = { healthy: 0, blocked: 0, stale: 0, unscanned: 0 };
+
+  for (const arn of watchedArns) {
+    counts[resourceStatuses[arn] ?? "unscanned"]++;
+  }
+
+  return counts;
+};
+
 export interface SystemStatus {
   variant: StatusTagVariant;
   labelKey?: string;
 }
 
-/**
- * Derives the system-health tag from the permissions query — the only live health
- * signal available until a dedicated health endpoint exists. A 404 means the Brain
- * has not produced data yet, which is a waiting state rather than an outage.
- */
 export const deriveSystemStatus = (
   isLoading: boolean,
   isError: boolean,
-  errorMessage?: string,
+  monitoredCount: number,
+  staleCount: number,
 ): SystemStatus => {
   if (isLoading) return { variant: "stale", labelKey: "dashboard.systemStatus.checking" };
 
-  if (isError) {
-    return errorMessage?.includes("404")
-      ? { variant: "stale", labelKey: "dashboard.systemStatus.awaitingData" }
-      : { variant: "warning", labelKey: "dashboard.systemStatus.degraded" };
+  if (isError) return { variant: "stale", labelKey: "dashboard.systemStatus.degraded" };
+
+  // Every watched resource going stale means the Brain stopped writing, which the
+  // API answering successfully does not reveal.
+  if (monitoredCount > 0 && staleCount === monitoredCount) {
+    return { variant: "stale", labelKey: "dashboard.systemStatus.degraded" };
   }
 
   return { variant: "online" };
@@ -122,18 +138,18 @@ export interface StatusMessage {
 export interface StatusMessageInput {
   isLoading: boolean;
   monitoredCount: number;
-  hasPermissionData: boolean;
   blockedCount: number;
   staleCount: number;
+  unscannedCount: number;
 }
 
 // Unmeasurable states first: their zero counts would otherwise read as healthy.
 export const deriveStatusMessage = ({
   isLoading,
   monitoredCount,
-  hasPermissionData,
   blockedCount,
   staleCount,
+  unscannedCount,
 }: StatusMessageInput): StatusMessage => {
   if (isLoading) {
     return {
@@ -149,17 +165,20 @@ export const deriveStatusMessage = ({
     };
   }
 
-  if (!hasPermissionData) {
+  if (unscannedCount === monitoredCount) {
     return {
       headingKey: "dashboard.healthHeading.awaitingScan",
       adviceKey: "dashboard.statusAdvice.awaitingScan",
     };
   }
 
-  if (blockedCount > 0 && staleCount > 0) {
+  // Unscanned folds into stale here: both mean there is no verdict worth trusting.
+  const unverifiedCount = staleCount + unscannedCount;
+
+  if (blockedCount > 0 && unverifiedCount > 0) {
     return {
       headingKey: "dashboard.healthHeading.mixed",
-      headingValues: { blockers: blockedCount, stale: staleCount },
+      headingValues: { blockers: blockedCount, stale: unverifiedCount },
       adviceKey: "dashboard.statusAdvice.mixed",
     };
   }
@@ -172,10 +191,10 @@ export const deriveStatusMessage = ({
     };
   }
 
-  if (staleCount > 0) {
+  if (unverifiedCount > 0) {
     return {
       headingKey: "dashboard.healthHeading.stale",
-      headingValues: { count: staleCount },
+      headingValues: { count: unverifiedCount },
       adviceKey: "dashboard.statusAdvice.stale",
     };
   }

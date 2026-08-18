@@ -118,6 +118,9 @@ and supplies the `JWT_SECRET` that `config.ts` requires.
 - `api-server/src/presets.test.ts` — preset merge semantics
 - `api-server/src/oauth.provider.test.ts` — OAuth code/token lifecycle; mocks the models, so no live Mongo
 - `api-server/src/lastManagerRace.manual.ts` — manual integration check; needs a running server and live Mongo
+- `utils/src/resourceStatus.test.ts` — status resolution rules and precedence
+- `mcp-server/src/permissions.test.ts` — the watchlist × permissions join; mocks the model and the watchlist
+- `frontend/src/pages/dashboard/helpers/dashboard.helpers.test.ts` — heading, counts, and that every i18n key resolves
 
 ## Immediate Next Steps
 1. **Brain** — replace mock/absent status data with real analysis output

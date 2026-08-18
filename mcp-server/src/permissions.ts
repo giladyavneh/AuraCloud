@@ -1,4 +1,9 @@
-import { UserPermissionModel } from "utils";
+import {
+  UserPermissionModel,
+  resolveResourceStatus,
+  type ArnPermissionEntry,
+  type ResourceStatus,
+} from "utils";
 import type { UserContext } from "./identity.js";
 import { getWatchlist } from "./watchlist.js";
 
@@ -26,6 +31,8 @@ export interface ActionStatusView {
 
 export interface ResourceStatusView {
   arn: string;
+  /** Resolved the same way the dashboard resolves it. */
+  status: ResourceStatus;
   actions: ActionStatusView[];
 }
 
@@ -34,8 +41,14 @@ export interface PermissionStatusResult {
   userId: string;
   name?: string;
   lastEvaluatedAt?: string;
-  /** Always reflects the full watchlist evaluation, regardless of filters. */
-  summary?: { resources: number; actions: number; valid: number; blocked: number };
+  /** Always reflects the full watchlist, regardless of filters. */
+  summary?: {
+    resources: number;
+    actions: number;
+    valid: number;
+    blocked: number;
+    resourceStatus: Record<ResourceStatus, number>;
+  };
   resources?: ResourceStatusView[];
   message?: string;
 }
@@ -75,43 +88,60 @@ const actionMatches = (actionName: string, filter: string): boolean => {
   );
 };
 
-const noResultsMessage = async (ctx: UserContext): Promise<string> => {
-  const watchlist = await getWatchlist(ctx);
-  const watchedCount = watchlist?.resources.length ?? 0;
-  if (watchedCount === 0) {
-    return "No evaluation results: the watchlist is empty. Add resources with add_watchlist_resource first.";
-  }
-  return `No evaluation results yet for the ${watchedCount} watched resource(s) — the AuraCloud logic service may not be running or hasn't completed an evaluation cycle.`;
-};
+const unscannedMessage = (watchedCount: number): string =>
+  `No evaluation results yet for the ${watchedCount} watched resource(s) — the AuraCloud logic service may not be running or hasn't completed an evaluation cycle.`;
 
 export const getPermissionStatus = async (
   ctx: UserContext,
   filters: PermissionStatusFilters,
 ): Promise<PermissionStatusResult> => {
-  const doc = await UserPermissionModel.findOne({ userId: ctx.linkedAwsUserId }).lean().exec();
+  const [doc, watchlist] = await Promise.all([
+    UserPermissionModel.findOne({ userId: ctx.linkedAwsUserId }).lean().exec(),
+    getWatchlist(ctx),
+  ]);
 
-  if (!doc || !doc.permissionsData || Object.keys(doc.permissionsData).length === 0) {
+  const watchedResources = watchlist?.resources ?? [];
+
+  if (watchedResources.length === 0) {
     return {
       exists: false,
       userId: ctx.linkedAwsUserId,
-      message: await noResultsMessage(ctx),
+      message:
+        "No evaluation results: the watchlist is empty. Add resources with add_watchlist_resource first.",
     };
   }
 
-  const permissionsData = doc.permissionsData as Record<string, Record<string, StoredActionResult>>;
+  const permissionsData = (doc?.permissionsData ?? {}) as Record<
+    string,
+    Record<string, StoredActionResult>
+  >;
 
-  const summary = { resources: 0, actions: 0, valid: 0, blocked: 0 };
+  const summary = {
+    resources: watchedResources.length,
+    actions: 0,
+    valid: 0,
+    blocked: 0,
+    resourceStatus: { healthy: 0, blocked: 0, stale: 0, unscanned: 0 } as Record<
+      ResourceStatus,
+      number
+    >,
+  };
   const resources: ResourceStatusView[] = [];
 
-  for (const [arn, actionMap] of Object.entries(permissionsData)) {
-    if (!actionMap || typeof actionMap !== "object") continue;
-    summary.resources++;
+  // Driven by the watchlist, so a resource the logic service never evaluated is
+  // reported as unscanned rather than omitted.
+  for (const { arn } of watchedResources) {
+    const actionMap = permissionsData[arn];
+    const resourceStatus = resolveResourceStatus(actionMap as ArnPermissionEntry | undefined);
+    summary.resourceStatus[resourceStatus]++;
+
     // ARNs are case-sensitive — exact match only (get_watchlist returns exact ARNs).
     const arnMatch = !filters.arn || arn === filters.arn;
 
     const views: ActionStatusView[] = [];
-    for (const actionName of canonicalActionNames(actionMap)) {
+    for (const actionName of actionMap ? canonicalActionNames(actionMap) : []) {
       const result = actionMap[actionName];
+      if (!result) continue;
       const status = result.status ?? "unknown";
       // The summary always covers the full watchlist, so count before filtering.
       summary.actions++;
@@ -136,18 +166,21 @@ export const getPermissionStatus = async (
     // Keep a resource with zero matching actions only when nothing filtered it out
     // (a watched resource with no monitored actions is itself useful information).
     if (views.length > 0 || (!filters.action && !filters.status)) {
-      resources.push({ arn, actions: views });
+      resources.push({ arn, status: resourceStatus, actions: views });
     }
   }
 
   const filtered = Boolean(filters.arn || filters.action || filters.status);
+  const nothingScanned = summary.resourceStatus.unscanned === watchedResources.length;
+
   return {
     exists: true,
-    userId: doc.userId,
-    name: doc.name,
-    lastEvaluatedAt: (doc as { updatedAt?: Date }).updatedAt?.toISOString(),
+    userId: ctx.linkedAwsUserId,
+    ...(doc?.name ? { name: doc.name } : {}),
+    lastEvaluatedAt: (doc as { updatedAt?: Date } | null)?.updatedAt?.toISOString(),
     summary,
     resources,
+    ...(nothingScanned ? { message: unscannedMessage(watchedResources.length) } : {}),
     ...(resources.length === 0 && filtered
       ? { message: "No watched actions match the given filters." }
       : {}),

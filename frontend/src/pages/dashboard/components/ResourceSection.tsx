@@ -1,4 +1,3 @@
-import GlowCard from "@/components/glowCard/GlowCard";
 import type { FilterTabValue } from "@/pages/dashboard/types/dashboard.types";
 import ResourceCard from "@/components/resourceCard/ResourceCard";
 
@@ -51,40 +50,6 @@ const ResourceSection: React.FC = () => {
 
   // A 404 just means the Brain hasn't run yet — not a real error
   const isRealError = isError && !error?.message.includes("404");
-
-  const blockerCount = useMemo(
-    () =>
-      watchlistResources.filter(({ arn }) => {
-        const arnData = permissionsMap[arn];
-        return arnData ? deriveStatusFromArnData(arnData) === "blocked" : false;
-      }).length,
-    [watchlistResources, permissionsMap],
-  );
-
-  const staleCount = useMemo(
-    () =>
-      watchlistResources.filter(({ arn }) => {
-        const arnData = permissionsMap[arn];
-        return !arnData || deriveStatusFromArnData(arnData) === "stale";
-      }).length,
-    [watchlistResources, permissionsMap],
-  );
-
-  const focusCueText = useMemo(() => {
-    if (isLoading || isRealError || watchlistResources.length === 0) {
-      return t("dashboard.focusCueNoData");
-    }
-    if (blockerCount > 0 && staleCount > 0) {
-      return t("dashboard.focusCueMixed", { blockers: blockerCount, stale: staleCount });
-    }
-    if (blockerCount > 0) {
-      return t("dashboard.focusCueBlockers", { count: blockerCount });
-    }
-    if (staleCount > 0) {
-      return t("dashboard.focueCueStaleOnly", { count: staleCount });
-    }
-    return t("dashboard.focusCueAllHealthy");
-  }, [isLoading, isRealError, watchlistResources.length, blockerCount, staleCount, t]);
 
   const tabCounts = useMemo<Record<FilterTabValue, number>>(() => {
     const counts: Record<FilterTabValue, number> = { all: watchlistResources.length, iam: 0, resource: 0, network: 0, healthy: 0 };
@@ -146,8 +111,6 @@ const ResourceSection: React.FC = () => {
           ))}
         </FilterTabsRow>
       </ResourceSectionHeader>
-
-      <GlowCard focusText={focusCueText} />
 
       {isLoading && (
         <Box sx={{ display: "flex", justifyContent: "center", paddingBlock: 4 }}>

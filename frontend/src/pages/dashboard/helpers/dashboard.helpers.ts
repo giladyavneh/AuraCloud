@@ -113,12 +113,13 @@ export const deriveSystemStatus = (
   return { variant: "online" };
 };
 
-export interface HealthHeading {
-  i18nKey: string;
-  values?: Record<string, number>;
+export interface StatusMessage {
+  headingKey: string;
+  headingValues?: Record<string, number>;
+  adviceKey: string;
 }
 
-export interface HealthHeadingInput {
+export interface StatusMessageInput {
   isLoading: boolean;
   monitoredCount: number;
   hasPermissionData: boolean;
@@ -126,36 +127,61 @@ export interface HealthHeadingInput {
   staleCount: number;
 }
 
-/**
- * Picks the sentence for the global status heading. The unmeasurable states are
- * checked before the counts on purpose: with no watchlist or no Brain output the
- * counts are all zero, which would otherwise render an unscanned account as healthy.
- */
-export const deriveHealthHeading = ({
+// Unmeasurable states first: their zero counts would otherwise read as healthy.
+export const deriveStatusMessage = ({
   isLoading,
   monitoredCount,
   hasPermissionData,
   blockedCount,
   staleCount,
-}: HealthHeadingInput): HealthHeading => {
-  if (isLoading) return { i18nKey: "dashboard.healthHeading.awaitingScan" };
-  if (monitoredCount === 0) return { i18nKey: "dashboard.healthHeading.nothingMonitored" };
-  if (!hasPermissionData) return { i18nKey: "dashboard.healthHeading.awaitingScan" };
+}: StatusMessageInput): StatusMessage => {
+  if (isLoading) {
+    return {
+      headingKey: "dashboard.healthHeading.awaitingScan",
+      adviceKey: "dashboard.statusAdvice.loading",
+    };
+  }
+
+  if (monitoredCount === 0) {
+    return {
+      headingKey: "dashboard.healthHeading.nothingMonitored",
+      adviceKey: "dashboard.statusAdvice.nothingMonitored",
+    };
+  }
+
+  if (!hasPermissionData) {
+    return {
+      headingKey: "dashboard.healthHeading.awaitingScan",
+      adviceKey: "dashboard.statusAdvice.awaitingScan",
+    };
+  }
 
   if (blockedCount > 0 && staleCount > 0) {
     return {
-      i18nKey: "dashboard.healthHeading.mixed",
-      values: { blockers: blockedCount, stale: staleCount },
+      headingKey: "dashboard.healthHeading.mixed",
+      headingValues: { blockers: blockedCount, stale: staleCount },
+      adviceKey: "dashboard.statusAdvice.mixed",
     };
   }
 
   if (blockedCount > 0) {
-    return { i18nKey: "dashboard.healthHeading.degraded", values: { count: blockedCount } };
+    return {
+      headingKey: "dashboard.healthHeading.degraded",
+      headingValues: { count: blockedCount },
+      adviceKey: "dashboard.statusAdvice.degraded",
+    };
   }
 
   if (staleCount > 0) {
-    return { i18nKey: "dashboard.healthHeading.stale", values: { count: staleCount } };
+    return {
+      headingKey: "dashboard.healthHeading.stale",
+      headingValues: { count: staleCount },
+      adviceKey: "dashboard.statusAdvice.stale",
+    };
   }
 
-  return { i18nKey: "dashboard.healthHeading.healthy" };
+  return {
+    headingKey: "dashboard.healthHeading.healthy",
+    adviceKey: "dashboard.statusAdvice.healthy",
+  };
 };

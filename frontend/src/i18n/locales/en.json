@@ -39,15 +39,16 @@
       "stale_other": "Stale — <stale>{{count}} resources</stale> need a refresh",
       "mixed": "Degraded — <blocked>{{blockers}} blocked</blocked>, <stale>{{stale}} stale</stale>"
     },
+    "statusAdvice": {
+      "loading": "Checking your monitored resources…",
+      "nothingMonitored": "Add AWS resources to your watchlist to start monitoring them.",
+      "awaitingScan": "Waiting for Aura to analyse your resources — they stay stale until the first scan.",
+      "healthy": "All monitored resources are healthy.",
+      "degraded": "Check IAM permissions on the blocked resources.",
+      "stale": "Hit Refresh to pull fresh data.",
+      "mixed": "Check IAM permissions on the blocked resources, then hit Refresh."
+    },
     "refresh": "Refresh",
-    "focusCueBadge": "Focus Cue",
-    "focusCueAllHealthy": "All monitored resources are healthy.",
-    "focusCueBlockers_one": "{{count}} resource is blocked — check IAM permissions.",
-    "focusCueBlockers_other": "{{count}} resources are blocked — check IAM permissions.",
-    "focueCueStaleOnly_one": "{{count}} resource is stale. Hit Refresh to update.",
-    "focueCueStaleOnly_other": "{{count}} resources are stale. Hit Refresh to update.",
-    "focusCueMixed": "{{blockers}} blocked, {{stale}} stale — immediate attention needed.",
-    "focusCueNoData": "Waiting for Brain to analyse resources — they will show as stale until the first scan.",
     "resourceStatus": "Resource Status",
     "resourceStatusDescription": "Single source of truth for live infrastructure checks and blockers.",
     "filterTabs": {

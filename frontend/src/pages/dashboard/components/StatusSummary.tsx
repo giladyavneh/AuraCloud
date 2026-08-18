@@ -8,10 +8,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useUserPermissions, useUserResourceWatchlist } from "@/hooks/resources.hooks";
 import { QUERY_KEYS } from "@/constants/queryKeys";
 import {
-  deriveHealthHeading,
   deriveStatusFromArnData,
+  deriveStatusMessage,
   deriveSystemStatus,
 } from "@/pages/dashboard/helpers/dashboard.helpers";
+import AuroraBackdrop from "@/components/aurora/AuroraBackdrop";
 import StatusTag from "@/components/statusTag/StatusTag";
 import { useSpotlight } from "@/components/spotlightCard/hooks/spotlightCard.hooks";
 import {
@@ -49,14 +50,13 @@ const StatusSummary: React.FC = () => {
     return arnData ? deriveStatusFromArnData(arnData) === "blocked" : false;
   }).length;
 
-  // A resource the Brain has not reported on yet counts as stale, same rule the
-  // resource list uses.
+  // Not yet reported on by the Brain counts as stale.
   const staleCount = monitoredResources.filter(({ arn }) => {
     const arnData = permissionsMap[arn];
     return !arnData || deriveStatusFromArnData(arnData) === "stale";
   }).length;
 
-  const healthHeading = deriveHealthHeading({
+  const statusMessage = deriveStatusMessage({
     isLoading: isWatchlistLoading || isPermissionLoading,
     monitoredCount: monitoredResources.length,
     hasPermissionData: Object.keys(permissionsMap).length > 0,
@@ -72,6 +72,8 @@ const StatusSummary: React.FC = () => {
 
   return (
     <StatusSummaryRoot ref={ref} onMouseMove={onMouseMove}>
+      <AuroraBackdrop />
+
       <StatusSummaryLeft>
         <Typography variant="caption" color="textDisabled">
           {t("dashboard.globalStatus")}
@@ -79,14 +81,19 @@ const StatusSummary: React.FC = () => {
 
         <Typography variant="h4" color="textPrimary">
           <Trans
-            i18nKey={healthHeading.i18nKey}
-            values={healthHeading.values}
+            i18nKey={statusMessage.headingKey}
+            values={statusMessage.headingValues}
             components={{
               blocked: <HeadingCount statusVariant="blocked" />,
               stale: <HeadingCount statusVariant="stale" />,
             }}
           />
         </Typography>
+
+        <Typography variant="body2" color="textSecondary">
+          {t(statusMessage.adviceKey)}
+        </Typography>
+
       </StatusSummaryLeft>
 
       <StatusSummaryRight>

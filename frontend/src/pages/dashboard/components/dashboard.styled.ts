@@ -20,16 +20,22 @@ export const StatusSummaryRoot = styled(Box)(({ theme }) => ({
   backgroundColor: theme.palette.surface.base,
   border: `1px solid ${theme.palette.border.default}`,
   borderRadius: theme.shape.borderRadius,
+  overflow: "hidden",
   ...spotlightOverlayStyles(theme),
 }));
 
+// Above the aurora (0), scrim (1) and spotlight (2).
 export const StatusSummaryLeft = styled(Box)(({ theme }) => ({
+  position: "relative",
+  zIndex: 3,
   display: "flex",
   flexDirection: "column",
   gap: theme.spacing(1),
 }));
 
 export const StatusSummaryRight = styled(Box)(({ theme }) => ({
+  position: "relative",
+  zIndex: 3,
   display: "flex",
   flexDirection: "column",
   alignItems: "flex-end",
@@ -117,8 +123,6 @@ export const FilterTab = styled(Box, {
   },
 }));
 
-/** Coloured count inside the status heading — shares the StatusTag palette so a
- * number in the sentence always matches the tag colour for that same status. */
 export const HeadingCount = styled("span", {
   shouldForwardProp: (prop) => prop !== "statusVariant",
 })<{ statusVariant: StatusTagVariant }>(({ theme, statusVariant }) => ({

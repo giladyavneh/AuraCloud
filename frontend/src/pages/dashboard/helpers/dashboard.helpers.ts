@@ -112,3 +112,50 @@ export const deriveSystemStatus = (
 
   return { variant: "online" };
 };
+
+export interface HealthHeading {
+  i18nKey: string;
+  values?: Record<string, number>;
+}
+
+export interface HealthHeadingInput {
+  isLoading: boolean;
+  monitoredCount: number;
+  hasPermissionData: boolean;
+  blockedCount: number;
+  staleCount: number;
+}
+
+/**
+ * Picks the sentence for the global status heading. The unmeasurable states are
+ * checked before the counts on purpose: with no watchlist or no Brain output the
+ * counts are all zero, which would otherwise render an unscanned account as healthy.
+ */
+export const deriveHealthHeading = ({
+  isLoading,
+  monitoredCount,
+  hasPermissionData,
+  blockedCount,
+  staleCount,
+}: HealthHeadingInput): HealthHeading => {
+  if (isLoading) return { i18nKey: "dashboard.healthHeading.awaitingScan" };
+  if (monitoredCount === 0) return { i18nKey: "dashboard.healthHeading.nothingMonitored" };
+  if (!hasPermissionData) return { i18nKey: "dashboard.healthHeading.awaitingScan" };
+
+  if (blockedCount > 0 && staleCount > 0) {
+    return {
+      i18nKey: "dashboard.healthHeading.mixed",
+      values: { blockers: blockedCount, stale: staleCount },
+    };
+  }
+
+  if (blockedCount > 0) {
+    return { i18nKey: "dashboard.healthHeading.degraded", values: { count: blockedCount } };
+  }
+
+  if (staleCount > 0) {
+    return { i18nKey: "dashboard.healthHeading.stale", values: { count: staleCount } };
+  }
+
+  return { i18nKey: "dashboard.healthHeading.healthy" };
+};

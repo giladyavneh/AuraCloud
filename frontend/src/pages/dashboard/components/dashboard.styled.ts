@@ -1,5 +1,7 @@
 import { MONO_LABEL_FONT_SIZE } from "@/constants";
 import { spotlightOverlayStyles } from "@/components/spotlightCard/components/spotlightCard.styled";
+import { getTagStyles } from "@/components/statusTag/helpers/statusTag.helpers";
+import type { StatusTagVariant } from "@/components/statusTag/types/statusTag.types";
 import { styled } from "@mui/material/styles";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
@@ -113,4 +115,12 @@ export const FilterTab = styled(Box, {
     outline: `2px solid ${theme.palette.primary.main}`,
     outlineOffset: 2,
   },
+}));
+
+/** Coloured count inside the status heading — shares the StatusTag palette so a
+ * number in the sentence always matches the tag colour for that same status. */
+export const HeadingCount = styled("span", {
+  shouldForwardProp: (prop) => prop !== "statusVariant",
+})<{ statusVariant: StatusTagVariant }>(({ theme, statusVariant }) => ({
+  color: getTagStyles(theme.palette, statusVariant).color,
 }));

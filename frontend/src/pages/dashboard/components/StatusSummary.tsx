@@ -1,21 +1,21 @@
 import React from "react";
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { ArrowsClockwiseIcon } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useUserPermissions } from "@/hooks/resources.hooks";
+import { useUserPermissions, useUserResourceWatchlist } from "@/hooks/resources.hooks";
 import { QUERY_KEYS } from "@/constants/queryKeys";
 import {
+  deriveHealthHeading,
   deriveStatusFromArnData,
   deriveSystemStatus,
 } from "@/pages/dashboard/helpers/dashboard.helpers";
-import type { ArnPermissionData } from "@/services/types/resources.types";
 import StatusTag from "@/components/statusTag/StatusTag";
 import { useSpotlight } from "@/components/spotlightCard/hooks/spotlightCard.hooks";
 import {
+  HeadingCount,
   StatusSummaryLeft,
   StatusSummaryRight,
   StatusSummaryRoot,
@@ -25,6 +25,7 @@ const StatusSummary: React.FC = () => {
   const { t } = useTranslation();
   const theme = useTheme();
   const queryClient = useQueryClient();
+  const { data: watchlistItems = [], isLoading: isWatchlistLoading } = useUserResourceWatchlist();
   const {
     data: permission,
     isLoading: isPermissionLoading,
@@ -40,14 +41,28 @@ const StatusSummary: React.FC = () => {
     void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.userResourceWatchlist });
   };
 
-  const activeBlockers = Object.values(
-    (permission?.permissionsData as Record<string, ArnPermissionData>) ?? {},
-  )
-    .map(deriveStatusFromArnData)
-    .filter((status) => status === "blocked").length;
+  const monitoredResources = watchlistItems[0]?.resources ?? [];
+  const permissionsMap = permission?.permissionsData ?? {};
 
-  const blockerColor =
-    activeBlockers > 0 ? theme.palette.error.main : theme.palette.success.main;
+  const blockedCount = monitoredResources.filter(({ arn }) => {
+    const arnData = permissionsMap[arn];
+    return arnData ? deriveStatusFromArnData(arnData) === "blocked" : false;
+  }).length;
+
+  // A resource the Brain has not reported on yet counts as stale, same rule the
+  // resource list uses.
+  const staleCount = monitoredResources.filter(({ arn }) => {
+    const arnData = permissionsMap[arn];
+    return !arnData || deriveStatusFromArnData(arnData) === "stale";
+  }).length;
+
+  const healthHeading = deriveHealthHeading({
+    isLoading: isWatchlistLoading || isPermissionLoading,
+    monitoredCount: monitoredResources.length,
+    hasPermissionData: Object.keys(permissionsMap).length > 0,
+    blockedCount,
+    staleCount,
+  });
 
   const systemStatus = deriveSystemStatus(
     isPermissionLoading,
@@ -63,11 +78,14 @@ const StatusSummary: React.FC = () => {
         </Typography>
 
         <Typography variant="h4" color="textPrimary">
-          {t("dashboard.healthHeadingPrefix")}{" "}
-          <Box component="span" sx={{ color: blockerColor }}>
-            {activeBlockers}{" "}
-            {t("dashboard.activeBlockersSuffix", { count: activeBlockers })}
-          </Box>
+          <Trans
+            i18nKey={healthHeading.i18nKey}
+            values={healthHeading.values}
+            components={{
+              blocked: <HeadingCount statusVariant="blocked" />,
+              stale: <HeadingCount statusVariant="stale" />,
+            }}
+          />
         </Typography>
       </StatusSummaryLeft>
 

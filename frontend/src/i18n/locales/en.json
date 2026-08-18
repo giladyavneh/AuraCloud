@@ -29,10 +29,17 @@
   },
   "dashboard": {
     "globalStatus": "Global Infrastructure Status",
-    "healthHeadingPrefix": "Healthy with",
+    "healthHeading": {
+      "awaitingScan": "Awaiting first scan",
+      "nothingMonitored": "Nothing monitored yet",
+      "healthy": "Healthy — no active blockers",
+      "degraded_one": "Degraded — <blocked>{{count}} active blocker</blocked>",
+      "degraded_other": "Degraded — <blocked>{{count}} active blockers</blocked>",
+      "stale_one": "Stale — <stale>{{count}} resource</stale> needs a refresh",
+      "stale_other": "Stale — <stale>{{count}} resources</stale> need a refresh",
+      "mixed": "Degraded — <blocked>{{blockers}} blocked</blocked>, <stale>{{stale}} stale</stale>"
+    },
     "refresh": "Refresh",
-    "activeBlockersSuffix_one": "active blocker",
-    "activeBlockersSuffix_other": "active blockers",
     "focusCueBadge": "Focus Cue",
     "focusCueAllHealthy": "All monitored resources are healthy.",
     "focusCueBlockers_one": "{{count}} resource is blocked — check IAM permissions.",

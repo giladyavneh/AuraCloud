@@ -9,7 +9,6 @@ import type { MRT_ColumnDef } from "material-react-table";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-/** Column definitions for the employees table. */
 export const useEmployeeColumns = (teams: Team[]): MRT_ColumnDef<Employee>[] => {
   const { t } = useTranslation();
   const theme = useTheme();

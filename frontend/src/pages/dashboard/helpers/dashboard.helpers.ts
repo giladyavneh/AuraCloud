@@ -30,7 +30,6 @@ interface HasStatus {
   status: unknown;
 }
 
-/** Returns true when the ARN data is a single top-level status entry (not per-action). */
 export const isTopLevelArnData = (
   data: ArnPermissionData,
 ): data is ActionData => typeof (data as HasStatus).status === "string";

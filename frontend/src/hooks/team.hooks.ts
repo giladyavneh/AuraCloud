@@ -77,7 +77,7 @@ export const useDeleteTeam = () => {
   return useMutation({
     mutationFn: (id: string) => deleteTeam(id),
     onSuccess: () => {
-      // Deleting a team clears members' teamId and deletes the team's preset (§2.1)
+      // Deleting a team clears members' teamId and deletes the team's preset
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.teams });
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.employees });
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.watchlistPresets });

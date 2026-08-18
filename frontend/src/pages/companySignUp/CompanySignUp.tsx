@@ -35,7 +35,6 @@ const CompanySignUp: React.FC = () => {
 
   const { register, handleSubmit, formState: { errors } } = useForm<EmployeeSignUpFormValues>();
 
-  // Redirect already-authenticated users
   useEffect(() => {
     if (customer) {
       navigate('/dashboard', { replace: true });

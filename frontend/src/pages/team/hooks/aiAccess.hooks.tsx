@@ -26,7 +26,6 @@ interface AiAccessColumnActions {
   isRowPending: (grantId: string) => boolean;
 }
 
-/** Column definitions for the company AI-access table. */
 export const useAiAccessColumns = ({
   currentCustomerId,
   onDisconnect,

@@ -23,7 +23,6 @@ export const inferServiceFromArn = (arn: string): AwsService => {
   return match?.service ?? FALLBACK_SERVICE;
 };
 
-/** Derives a human-readable service title from a resource ARN. */
 export const inferTitleFromArn = (arn: string): string => {
   const match = SERVICE_ARN_MAP.find((entry) => arn.includes(entry.segment));
   return match?.title ?? FALLBACK_SERVICE.toUpperCase();

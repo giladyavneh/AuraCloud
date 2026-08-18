@@ -70,7 +70,6 @@ export const StatsRowContainer = styled(Box)(({ theme }) => ({
   gap: theme.spacing(4),
 }));
 
-/** Row containing the section title/description (left) and filter tabs (right) */
 export const ResourceSectionHeader = styled(Box)(({ theme }) => ({
   flexShrink: 0,
   display: "flex",
@@ -79,7 +78,6 @@ export const ResourceSectionHeader = styled(Box)(({ theme }) => ({
   gap: theme.spacing(4),
 }));
 
-/** Pill container that wraps all filter tab buttons */
 export const FilterTabsRow = styled(Box)(({ theme }) => ({
   display: "flex",
   alignItems: "center",
@@ -90,7 +88,6 @@ export const FilterTabsRow = styled(Box)(({ theme }) => ({
   flexShrink: 0,
 }));
 
-/** Small count badge rendered inside a FilterTab */
 export const FilterTabCount = styled("span", {
   shouldForwardProp: (prop) => prop !== "isActive",
 })<{ isActive?: boolean }>(({ theme, isActive }) => ({
@@ -100,7 +97,6 @@ export const FilterTabCount = styled("span", {
   opacity: isActive ? 0.75 : 0.5,
 }));
 
-/** Full-width empty-state card shown when the watchlist has no resources */
 export const EmptyStateCard = styled(Card)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
@@ -114,7 +110,6 @@ export const EmptyStateCard = styled(Card)(({ theme }) => ({
   boxShadow: "none",
 }));
 
-/** Individual filter tab — active state gets a solid primary fill */
 export const FilterTab = styled(Box, {
   shouldForwardProp: (prop) => prop !== "isActive",
 })<{ isActive?: boolean }>(({ theme, isActive }) => ({

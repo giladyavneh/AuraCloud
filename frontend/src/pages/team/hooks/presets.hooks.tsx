@@ -24,7 +24,6 @@ interface PresetColumnActions {
   onDelete: (preset: WatchlistPreset) => void;
 }
 
-/** Column definitions for the presets table. */
 export const usePresetColumns = ({
   teams,
   employees,

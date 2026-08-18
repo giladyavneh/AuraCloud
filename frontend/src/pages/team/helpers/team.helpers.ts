@@ -29,7 +29,7 @@ export const findTeamPreset = (presets: WatchlistPreset[], teamId: string): Watc
 export const resolveTeamName = (employee: Employee, teams: Team[]): string | null =>
   teams.find((team) => team._id === employee.teamId)?.name ?? null;
 
-/** True when an individual preset's target employee no longer exists (account was removed, §6). */
+/** True when an individual preset's target employee no longer exists. */
 export const isOrphanedIndividualPreset = (preset: WatchlistPreset, employees: Employee[]): boolean =>
   preset.scopeType === 'individual' && !employees.some((employee) => employee._id === preset.scopeId);
 
@@ -108,11 +108,9 @@ export const toComparablePresetResources = (
       .sort((first, second) => first.arn.localeCompare(second.arn)),
   );
 
-/** An employee's display name. */
 export const getEmployeeFullName = (employee: Employee): string =>
   `${employee.firstName} ${employee.lastName}`;
 
-/** The display name of the person a connection belongs to. */
 export const getConnectionOwnerName = (grant: CompanyConnectedClient): string =>
   `${grant.employee.firstName} ${grant.employee.lastName}`;
 

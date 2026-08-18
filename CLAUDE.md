@@ -74,9 +74,10 @@ red blocker from a dead pipeline sends people chasing an already-fixed problem.
 watchlist. The second means the pipeline stopped.
 
 Consumers:
-- **api-server** joins watchlist × permissions, resolves, and returns the status on
-  `GET /api/user-permissions`. Freshness is judged against the **server** clock; a skewed
-  client clock must never decide staleness.
+- **api-server** joins watchlist × permissions, resolves, and returns `resourceStatuses`
+  on `GET /api/user-permissions`. Freshness is judged against the **server** clock; a
+  skewed client clock must never decide staleness. That route 404s only when the user has
+  no watched resources at all — otherwise they come back as `unscanned`.
 - **mcp-server** imports the resolver directly — it reads Mongo itself and never calls
   api-server for data.
 - **frontend** renders what the API returns and derives nothing locally.

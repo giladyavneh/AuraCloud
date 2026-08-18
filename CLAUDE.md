@@ -51,6 +51,38 @@ Models are defined **once** in the shared `utils` workspace, not in `api-server`
 
 **Critical identity distinction:** `Customer` is the login account; `User` is a discovered AWS identity. `Customer.linkedAwsUserId` → `User.externalId` links them. `UserResourceWatchlist.userId` is the **AWS externalId**, not a Customer id.
 
+## Resource Status — one vocabulary, one resolver
+
+`logic` writes only `valid` / `error` per action. Every other status is **derived**, in
+exactly one place: `utils/src/resourceStatus.ts`, kept dependency-free (no mongoose, no
+dotenv) so any workspace can import it.
+
+Resolution order, per **watched** ARN — the watchlist is the set of resources, not
+`permissionsData`:
+
+| condition | status |
+|---|---|
+| ARN absent from `permissionsData` | `unscanned` |
+| oldest action `timestamp` older than `STALE_AFTER_MS` (60_000) | `stale` |
+| any action `status === "error"` | `blocked` |
+| otherwise | `healthy` |
+
+`stale` outranks `blocked`: a verdict older than the threshold cannot be trusted, and a
+red blocker from a dead pipeline sends people chasing an already-fixed problem.
+
+`unscanned` and `stale` are distinct. The first means no scan yet — wait, or check the
+watchlist. The second means the pipeline stopped.
+
+Consumers:
+- **api-server** joins watchlist × permissions, resolves, and returns the status on
+  `GET /api/user-permissions`. Freshness is judged against the **server** clock; a skewed
+  client clock must never decide staleness.
+- **mcp-server** imports the resolver directly — it reads Mongo itself and never calls
+  api-server for data.
+- **frontend** renders what the API returns and derives nothing locally.
+
+`warning` is not a status. Nothing emits it.
+
 ## `api-server/` layout
 Routes are split by domain — `index.ts` only wires things together.
 

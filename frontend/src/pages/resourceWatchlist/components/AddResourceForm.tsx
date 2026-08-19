@@ -17,7 +17,7 @@ import TextField from "@mui/material/TextField";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const AddResourceForm: React.FC<AddResourceFormProps> = ({ onAdd }) => {
+const AddResourceForm: React.FC<AddResourceFormProps> = ({ onAdd, draftResources }) => {
   const { t } = useTranslation();
   const [selectedResource, setSelectedResource] = useState<AwsResource | null>(
     null,
@@ -28,6 +28,13 @@ const AddResourceForm: React.FC<AddResourceFormProps> = ({ onAdd }) => {
     useAllResources();
   const { data: actions = [], isLoading: actionsLoading } = useResourceActions(
     selectedResource?.arn ?? null,
+  );
+
+  const watchedActions = new Set(
+    draftResources.find((resource) => resource.arn === selectedResource?.arn)?.actions ?? [],
+  );
+  const selectableActions = actions.filter(
+    (action) => !watchedActions.has(action.actionName),
   );
 
   const handleResourceChange = (
@@ -78,11 +85,17 @@ const AddResourceForm: React.FC<AddResourceFormProps> = ({ onAdd }) => {
 
       <Autocomplete
         multiple
-        options={actions}
+        options={selectableActions}
+        filterSelectedOptions
         value={selectedActions}
         onChange={handleActionsChange}
         loading={actionsLoading}
         disabled={!selectedResource}
+        // MUI's default "No options" would also cover a resource with no known
+        // actions at all, which is a different thing.
+        {...(actions.length > 0
+          ? { noOptionsText: t("resourceWatchlist.allActionsWatched") }
+          : {})}
         getOptionLabel={(option) => option.actionName}
         isOptionEqualToValue={(option, value) => option._id === value._id}
         limitTags={WATCHLIST_ACTIONS_VISIBLE_TAGS}

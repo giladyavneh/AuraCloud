@@ -96,6 +96,7 @@
     "addResource": "Add Resource",
     "selectResource": "Select a resource",
     "selectActions": "Select actions",
+    "allActionsWatched": "All actions already added",
     "add": "Add",
     "noResources": "No resources added yet",
     "emptyState": {

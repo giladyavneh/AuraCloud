@@ -30,4 +30,6 @@ export interface WatchlistTableProps {
 
 export interface AddResourceFormProps {
   onAdd: (resource: WatchlistResource) => void;
+  /** Used to hide actions the selected resource already watches. */
+  draftResources: WatchlistResource[];
 }

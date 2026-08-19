@@ -1,6 +1,6 @@
 import { MONO_LABEL_FONT_SIZE } from "@/constants";
 import AwsServiceIcon from "@/components/awsServiceIcon/AwsServiceIcon";
-import { inferServiceFromArn } from "@/helpers/arn.helpers";
+import { inferServiceFromArn, resolveResourceLabel } from "@/helpers/arn.helpers";
 import type { WatchlistResource } from "@/services/resources.service";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
@@ -30,18 +30,28 @@ export const useWatchlistTableColumns =
                 size={theme.iconSize.lg}
               />
 
-              <Typography
-                variant="body2"
-                color="textPrimary"
-                sx={{
-                  wordBreak: "break-word",
-                  textWrapStyle: "balance",
-                  fontFamily: theme.typography.fontFamilyMono,
-                  fontSize: MONO_LABEL_FONT_SIZE,
-                }}
-              >
-                {row.original.arn}
-              </Typography>
+              <Box>
+                <Typography
+                  variant="body2"
+                  color="textPrimary"
+                  sx={{ wordBreak: "break-word", textWrapStyle: "balance" }}
+                >
+                  {resolveResourceLabel(row.original.arn, row.original.name)}
+                </Typography>
+
+                <Typography
+                  variant="body2"
+                  color="textDisabled"
+                  sx={{
+                    wordBreak: "break-all",
+                    fontFamily: theme.typography.fontFamilyMono,
+                    fontSize: MONO_LABEL_FONT_SIZE,
+                  }}
+                >
+                  {row.original.arn}
+                </Typography>
+
+              </Box>
             </Box>
           ),
         },
@@ -111,6 +121,6 @@ export const useWatchlistTableColumns =
           },
         },
       ],
-      [t, theme.iconSize.lg],
+      [t, theme.iconSize.lg, theme.typography.fontFamilyMono],
     );
   };

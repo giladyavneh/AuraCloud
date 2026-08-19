@@ -25,6 +25,8 @@ export interface ResourceWatchlistItem {
     arn: string;
     actions: string[];
     _id: string;
+    /** From the discovered resource catalogue; absent once a resource leaves AWS. */
+    name?: string;
   }>;
 }
 

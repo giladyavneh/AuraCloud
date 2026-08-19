@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { CustomerModel, UserResourceWatchlistModel } from "../db.js";
+import { AwsResourceModel, CustomerModel, UserResourceWatchlistModel } from "../db.js";
 import { resolveMemberPresetResources } from "../presets.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 import { validateObjectIdParam } from "../middleware/objectId.middleware.js";
@@ -31,7 +31,30 @@ router.get("/api/user-resource-watchlist", requireAuth, async (req, res) => {
     })
       .lean()
       .exec();
-    res.json(watchlists);
+
+    // The watchlist stores only ARNs; the display name lives in the discovered
+    // resource catalogue, and is absent once a resource leaves AWS.
+    const watchedArns = watchlists.flatMap(({ resources }) =>
+      resources.map(({ arn }) => arn),
+    );
+    const catalogue = await AwsResourceModel.find(
+      { arn: { $in: watchedArns } },
+      { arn: true, name: true },
+    )
+      .lean()
+      .exec();
+    const nameByArn = new Map(catalogue.map(({ arn, name }) => [arn, name]));
+
+    res.json(
+      watchlists.map((watchlist) => ({
+        ...watchlist,
+        resources: watchlist.resources.map((resource) => ({
+          arn: resource.arn,
+          actions: resource.actions,
+          name: nameByArn.get(resource.arn),
+        })),
+      })),
+    );
   } catch (err) {
     console.error("GET /api/user-resource-watchlist failed:", err);
     res.status(500).json({ message: "Server Error" });

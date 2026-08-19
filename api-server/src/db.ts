@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import {
+  AwsResourceModel,
   connectMongo,
   UserResourceWatchlistModel,
   UserPermissionModel,
@@ -16,6 +17,7 @@ dotenv.config();
 
 // Re-export models so other modules can import from this file
 export {
+  AwsResourceModel,
   UserResourceWatchlistModel,
   UserPermissionModel,
   CustomerModel,

@@ -41,3 +41,15 @@ export const extractResourceName = (arn: string): string => {
   const parts = arn.split(':');
   return parts.slice(5).join(':') || arn;
 };
+
+/** The catalogue name when the crawler has one, else the ARN tail. */
+export const resolveResourceLabel = (arn: string, name?: string): string =>
+  name || extractResourceName(arn);
+
+/** Splits an ARN so the identifying tail can be pinned while the prefix ellipsises. */
+export const splitArnForDisplay = (arn: string): { head: string; tail: string } => {
+  const lastSeparator = arn.lastIndexOf(':');
+  if (lastSeparator === -1) return { head: '', tail: arn };
+
+  return { head: arn.slice(0, lastSeparator), tail: arn.slice(lastSeparator) };
+};

@@ -29,7 +29,10 @@ const givenStoredPermissions = (permissionsData: Record<string, unknown> | null)
 beforeEach(() => {
   vi.clearAllMocks();
   getWatchlist.mockResolvedValue({
-    resources: [{ arn: WATCHED, actions: [] }, { arn: NEVER_REPORTED, actions: [] }],
+    resources: [
+      { arn: WATCHED, actions: [], name: "prod-db-server" },
+      { arn: NEVER_REPORTED, actions: [] },
+    ],
   });
 });
 
@@ -93,5 +96,20 @@ describe("getPermissionStatus", () => {
 
     expect(result.exists).toBe(false);
     expect(result.message).toContain("watchlist is empty");
+  });
+
+  it("carries the dashboard display name, and omits it when the catalogue has none", async () => {
+    givenStoredPermissions({
+      [WATCHED]: { "s3:GetObject": { status: "valid", timestamp: fresh() } },
+    });
+
+    const result = await getPermissionStatus(ctx, {});
+
+    expect(result.resources?.find((resource) => resource.arn === WATCHED)?.name).toBe(
+      "prod-db-server",
+    );
+    expect(result.resources?.find((resource) => resource.arn === NEVER_REPORTED)).not.toHaveProperty(
+      "name",
+    );
   });
 });

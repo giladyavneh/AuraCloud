@@ -31,6 +31,8 @@ export interface ActionStatusView {
 
 export interface ResourceStatusView {
   arn: string;
+  /** The name shown on the dashboard, absent once a resource leaves AWS. */
+  name?: string;
   /** Resolved the same way the dashboard resolves it. */
   status: ResourceStatus;
   actions: ActionStatusView[];
@@ -130,7 +132,7 @@ export const getPermissionStatus = async (
 
   // Driven by the watchlist, so a resource the logic service never evaluated is
   // reported as unscanned rather than omitted.
-  for (const { arn } of watchedResources) {
+  for (const { arn, name } of watchedResources) {
     const actionMap = permissionsData[arn];
     const resourceStatus = resolveResourceStatus(actionMap as ArnPermissionEntry | undefined);
     summary.resourceStatus[resourceStatus]++;
@@ -166,7 +168,7 @@ export const getPermissionStatus = async (
     // Keep a resource with zero matching actions only when nothing filtered it out
     // (a watched resource with no monitored actions is itself useful information).
     if (views.length > 0 || (!filters.action && !filters.status)) {
-      resources.push({ arn, status: resourceStatus, actions: views });
+      resources.push({ arn, ...(name ? { name } : {}), status: resourceStatus, actions: views });
     }
   }
 

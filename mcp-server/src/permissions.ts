@@ -1,11 +1,5 @@
-import {
-  UserPermissionModel,
-  resolveResourceStatus,
-  type ArnPermissionEntry,
-  type ResourceStatus,
-} from "utils";
+import { getWatchedResources, type ResourceStatus } from "utils";
 import type { UserContext } from "./identity.js";
-import { getWatchlist } from "./watchlist.js";
 
 interface StoredActionResult {
   status?: string;
@@ -97,12 +91,9 @@ export const getPermissionStatus = async (
   ctx: UserContext,
   filters: PermissionStatusFilters,
 ): Promise<PermissionStatusResult> => {
-  const [doc, watchlist] = await Promise.all([
-    UserPermissionModel.findOne({ userId: ctx.linkedAwsUserId }).lean().exec(),
-    getWatchlist(ctx),
-  ]);
-
-  const watchedResources = watchlist?.resources ?? [];
+  const { permission, resources: watchedResources, permissionsData } = await getWatchedResources(
+    ctx.linkedAwsUserId,
+  );
 
   if (watchedResources.length === 0) {
     return {
@@ -113,10 +104,7 @@ export const getPermissionStatus = async (
     };
   }
 
-  const permissionsData = (doc?.permissionsData ?? {}) as Record<
-    string,
-    Record<string, StoredActionResult>
-  >;
+  const actionsByArn = permissionsData as Record<string, Record<string, StoredActionResult>>;
 
   const summary = {
     resources: watchedResources.length,
@@ -132,9 +120,8 @@ export const getPermissionStatus = async (
 
   // Driven by the watchlist, so a resource the logic service never evaluated is
   // reported as unscanned rather than omitted.
-  for (const { arn, name } of watchedResources) {
-    const actionMap = permissionsData[arn];
-    const resourceStatus = resolveResourceStatus(actionMap as ArnPermissionEntry | undefined);
+  for (const { arn, name, status: resourceStatus } of watchedResources) {
+    const actionMap = actionsByArn[arn];
     summary.resourceStatus[resourceStatus]++;
 
     // ARNs are case-sensitive — exact match only (get_watchlist returns exact ARNs).
@@ -178,8 +165,8 @@ export const getPermissionStatus = async (
   return {
     exists: true,
     userId: ctx.linkedAwsUserId,
-    ...(doc?.name ? { name: doc.name } : {}),
-    lastEvaluatedAt: (doc as { updatedAt?: Date } | null)?.updatedAt?.toISOString(),
+    ...(permission?.name ? { name: permission.name } : {}),
+    lastEvaluatedAt: permission?.updatedAt?.toISOString(),
     summary,
     resources,
     ...(nothingScanned ? { message: unscannedMessage(watchedResources.length) } : {}),

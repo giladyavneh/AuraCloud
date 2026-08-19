@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { AwsResourceModel, INTERNAL_AWS_USER_ARNS, ResourceActionModel } from "utils";
+import { AwsResourceModel, ResourceActionModel, excludingInternalArns } from "utils";
 import { requireAuth } from "../middleware/auth.middleware.js";
 
 const router = Router();
@@ -20,7 +20,7 @@ function toServiceKey(resourceType: string | undefined, arn: string): string {
 
 router.get("/api/resources", requireAuth, async (_req, res) => {
   try {
-    const resources = await AwsResourceModel.find({ arn: { $nin: INTERNAL_AWS_USER_ARNS } })
+    const resources = await AwsResourceModel.find(excludingInternalArns())
       .lean()
       .exec();
     res.json(resources);

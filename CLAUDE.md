@@ -73,12 +73,21 @@ red blocker from a dead pipeline sends people chasing an already-fixed problem.
 `unscanned` and `stale` are distinct. The first means no scan yet — wait, or check the
 watchlist. The second means the pipeline stopped.
 
+**Reads go through `utils/src/watchedResources.ts`, not through each service.** Both
+api-server and mcp-server read the same collections for the same purpose, so the query
+lives with the models rather than being written twice. `getWatchedResources(awsUserId)`
+returns every watched resource with its actions, catalogue name and resolved status, plus
+the raw docs for consumers that need more. Services shape the response; they do not
+re-implement the read. `resourceStatus.ts` stays dependency-free so the rules remain
+importable anywhere, and `watchedResources.ts` is the module allowed to touch mongoose.
+
 Consumers:
-- **api-server** joins watchlist × permissions, resolves, and returns `resourceStatuses`
-  on `GET /api/user-permissions`. Freshness is judged against the **server** clock; a
-  skewed client clock must never decide staleness. That route 404s only when the user has
-  no watched resources at all — otherwise they come back as `unscanned`.
-- **mcp-server** imports the resolver directly — it reads Mongo itself and never calls
+- **api-server** returns `resourceStatuses` on `GET /api/user-permissions` and the named
+  resources on `GET /api/user-resource-watchlist`. Freshness is judged against the
+  **server** clock; a skewed client clock must never decide staleness. The permissions
+  route 404s only when the user has no watched resources at all — otherwise they come
+  back as `unscanned`.
+- **mcp-server** calls the same function — it reads Mongo itself and never calls
   api-server for data.
 - **frontend** renders what the API returns and derives nothing locally.
 
@@ -119,7 +128,8 @@ and supplies the `JWT_SECRET` that `config.ts` requires.
 - `api-server/src/oauth.provider.test.ts` — OAuth code/token lifecycle; mocks the models, so no live Mongo
 - `api-server/src/lastManagerRace.manual.ts` — manual integration check; needs a running server and live Mongo
 - `utils/src/resourceStatus.test.ts` — status resolution rules and precedence
-- `mcp-server/src/permissions.test.ts` — the watchlist × permissions join; mocks the model and the watchlist
+- `utils/src/watchedResources.test.ts` — the watchlist × permissions × catalogue join
+- `mcp-server/src/permissions.test.ts` — what MCP adds over the shared read: filters, summary, action views
 - `frontend/src/pages/dashboard/helpers/dashboard.helpers.test.ts` — heading, counts, and that every i18n key resolves
 
 ## Immediate Next Steps

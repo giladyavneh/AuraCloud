@@ -3,6 +3,8 @@ import {
   INTERNAL_AWS_USER_ARNS,
   ResourceActionModel,
   UserResourceWatchlistModel,
+  excludingInternalArns,
+  resourceNamesFor,
 } from "utils";
 import type { UserContext } from "./identity.js";
 
@@ -32,17 +34,6 @@ interface WatchlistDocLike {
   userId: string;
   resources: { arn: string; actions: string[] }[];
 }
-
-const resourceNamesFor = async (arns: string[]): Promise<Map<string, string>> => {
-  const catalogue = await AwsResourceModel.find(
-    { arn: { $in: arns } },
-    { arn: true, name: true },
-  )
-    .lean()
-    .exec();
-
-  return new Map(catalogue.map(({ arn, name }) => [arn, name]));
-};
 
 // The watchlist stores only ARNs, but the dashboard shows catalogue names — the AI
 // has to be able to talk about a resource by the name the user sees on screen.
@@ -92,8 +83,8 @@ const editDistance = (a: string, b: string): number => {
 /** Closest discovered ARN of the same service, or null when nothing is close. */
 const suggestSimilarArn = async (arn: string): Promise<string | null> => {
   const service = arn.split(":")[2] ?? "";
-  // Internal Aura identities are excluded — never suggest an ARN we refuse to watch.
-  const docs = await AwsResourceModel.find({ arn: { $nin: INTERNAL_AWS_USER_ARNS } })
+  // Never suggest an ARN we refuse to watch.
+  const docs = await AwsResourceModel.find(excludingInternalArns())
     .select("arn")
     .limit(500)
     .lean()

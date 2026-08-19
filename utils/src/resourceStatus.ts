@@ -38,18 +38,3 @@ export const resolveResourceStatus = (
 
   return "healthy";
 };
-
-/** The watchlist is the set of resources, so an ARN the Brain never reported still appears. */
-export const resolveWatchlistStatuses = (
-  watchedArns: string[],
-  permissionsData: Record<string, ArnPermissionEntry> | undefined | null,
-  now: number = Date.now(),
-): Record<string, ResourceStatus> => {
-  const statuses: Record<string, ResourceStatus> = {};
-
-  for (const arn of watchedArns) {
-    statuses[arn] = resolveResourceStatus(permissionsData?.[arn], now);
-  }
-
-  return statuses;
-};

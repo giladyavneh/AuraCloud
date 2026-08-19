@@ -29,25 +29,34 @@
   },
   "dashboard": {
     "globalStatus": "Global Infrastructure Status",
-    "healthHeadingPrefix": "Healthy with",
+    "healthHeading": {
+      "awaitingScan": "Awaiting first scan",
+      "nothingMonitored": "Nothing monitored yet",
+      "healthy": "Healthy — no active blockers",
+      "degraded_one": "Degraded — <blocked>{{count}} active blocker</blocked>",
+      "degraded_other": "Degraded — <blocked>{{count}} active blockers</blocked>",
+      "stale_one": "Stale — <stale>{{count}} resource</stale> needs a refresh",
+      "stale_other": "Stale — <stale>{{count}} resources</stale> need a refresh",
+      "mixed": "Degraded — <blocked>{{blockers}} blocked</blocked>, <stale>{{stale}} stale</stale>"
+    },
+    "statusAdvice": {
+      "loading": "Checking your monitored resources…",
+      "nothingMonitored": "Add AWS resources to your watchlist to start monitoring them.",
+      "awaitingScan": "Waiting for Aura to analyse your resources — they stay stale until the first scan.",
+      "healthy": "All monitored resources are healthy.",
+      "degraded": "Check IAM permissions on the blocked resources.",
+      "stale": "Hit Refresh to pull fresh data.",
+      "mixed": "Check IAM permissions on the blocked resources, then hit Refresh."
+    },
     "refresh": "Refresh",
-    "activeBlockersSuffix_one": "active blocker",
-    "activeBlockersSuffix_other": "active blockers",
-    "focusCueBadge": "Focus Cue",
-    "focusCueAllHealthy": "All monitored resources are healthy.",
-    "focusCueBlockers_one": "{{count}} resource is blocked — check IAM permissions.",
-    "focusCueBlockers_other": "{{count}} resources are blocked — check IAM permissions.",
-    "focueCueStaleOnly_one": "{{count}} resource is stale. Hit Refresh to update.",
-    "focueCueStaleOnly_other": "{{count}} resources are stale. Hit Refresh to update.",
-    "focusCueMixed": "{{blockers}} blocked, {{stale}} stale — immediate attention needed.",
-    "focusCueNoData": "Waiting for Brain to analyse resources — they will show as stale until the first scan.",
+    "refreshed": "Refreshed",
     "resourceStatus": "Resource Status",
     "resourceStatusDescription": "Single source of truth for live infrastructure checks and blockers.",
     "filterTabs": {
       "all": "All",
-      "iam": "IAM",
-      "resource": "Resource",
-      "network": "Network",
+      "blocked": "Blocked",
+      "stale": "Stale",
+      "unscanned": "Unscanned",
       "healthy": "Healthy"
     },
     "permissionsLoadError": "Could not load user permissions.",
@@ -65,7 +74,6 @@
     },
     "systemStatus": {
       "checking": "Checking system…",
-      "awaitingData": "Awaiting first scan",
       "degraded": "Data unavailable"
     }
   },
@@ -74,7 +82,11 @@
     "noActions": "No actions configured",
     "moreActions": "{{count}} more >",
     "allActions": "All actions",
-    "errorPrefix": "Error:"
+    "moreErrors": "+{{count}} more",
+    "allErrors": "{{count}} blocked actions",
+    "unknownReason": "No reason reported",
+    "staleSummary": "Last verdict is out of date",
+    "unscannedSummary": "Not scanned yet"
   },
   "resourceWatchlist": {
     "title": "Resource Watchlist",
@@ -85,6 +97,7 @@
     "addResource": "Add Resource",
     "selectResource": "Select a resource",
     "selectActions": "Select actions",
+    "allActionsWatched": "All actions already added",
     "add": "Add",
     "noResources": "No resources added yet",
     "emptyState": {
@@ -313,8 +326,10 @@
     "healthy": "Healthy",
     "blocked": "Blocked",
     "stale": "Stale",
-    "warning": "Warning",
-    "online": "System Online"
+    "unscanned": "Unscanned",
+    "external": "External",
+    "online": "System Online",
+    "blockedCount": "Blocked ({{blocked}}/{{total}})"
   },
   "team": {
     "title": "Teams",

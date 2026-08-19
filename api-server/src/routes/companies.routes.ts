@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { CompanyModel, CustomerModel } from "../db.js";
 import { UserModel } from "utils";
-import { INTERNAL_AWS_USER_ARNS } from "../config.js";
+import { excludingInternalArns } from "utils";
 import { requireAuth, requireManager } from "../middleware/auth.middleware.js";
 
 const router = Router();
@@ -38,10 +38,12 @@ router.get("/api/companies/:slug/aws-users", requireAuth, async (req, res) => {
       return;
     }
 
-    const users = await UserModel.find(
-      { arn: { $nin: INTERNAL_AWS_USER_ARNS } },
-      { name: true, source: true, externalId: true, arn: true },
-    ).lean();
+    const users = await UserModel.find(excludingInternalArns(), {
+      name: true,
+      source: true,
+      externalId: true,
+      arn: true,
+    }).lean();
     res.json(users);
   } catch (err) {
     console.error("GET /api/companies/:slug/aws-users failed:", err);

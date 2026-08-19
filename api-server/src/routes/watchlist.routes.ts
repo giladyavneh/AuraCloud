@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { CustomerModel, UserResourceWatchlistModel } from "../db.js";
+import { getWatchedResources } from "utils";
 import { resolveMemberPresetResources } from "../presets.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 import { validateObjectIdParam } from "../middleware/objectId.middleware.js";
@@ -26,12 +27,15 @@ router.get("/api/user-resource-watchlist", requireAuth, async (req, res) => {
       return;
     }
 
-    const watchlists = await UserResourceWatchlistModel.find({
-      userId: customer.linkedAwsUserId,
-    })
-      .lean()
-      .exec();
-    res.json(watchlists);
+    const { watchlist, resources } = await getWatchedResources(customer.linkedAwsUserId);
+    if (!watchlist) {
+      res.json([]);
+      return;
+    }
+
+    // Still an array: a user has at most one watchlist, but the shape is what
+    // the frontend reads today.
+    res.json([{ ...watchlist, resources }]);
   } catch (err) {
     console.error("GET /api/user-resource-watchlist failed:", err);
     res.status(500).json({ message: "Server Error" });

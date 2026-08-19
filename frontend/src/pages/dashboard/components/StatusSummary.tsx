@@ -1,21 +1,23 @@
 import React from "react";
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
-import { useTranslation } from "react-i18next";
-import { ArrowsClockwiseIcon } from "@phosphor-icons/react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useUserPermissions } from "@/hooks/resources.hooks";
-import { QUERY_KEYS } from "@/constants/queryKeys";
+import { Trans, useTranslation } from "react-i18next";
+import { ArrowsClockwiseIcon, CheckCircleIcon } from "@phosphor-icons/react";
+import { useUserPermissions, useUserResourceWatchlist } from "@/hooks/resources.hooks";
+import { DASHBOARD_IDS, REFRESH_BUTTON_MIN_WIDTH } from "@/pages/dashboard/constants";
+import { useDashboardRefresh } from "@/pages/dashboard/hooks/dashboard.hooks";
 import {
-  deriveStatusFromArnData,
+  countResourceStatuses,
+  deriveStatusMessage,
   deriveSystemStatus,
 } from "@/pages/dashboard/helpers/dashboard.helpers";
-import type { ArnPermissionData } from "@/services/types/resources.types";
+import AuroraBackdrop from "@/components/aurora/AuroraBackdrop";
 import StatusTag from "@/components/statusTag/StatusTag";
 import { useSpotlight } from "@/components/spotlightCard/hooks/spotlightCard.hooks";
 import {
+  HeadingCount,
   StatusSummaryLeft,
   StatusSummaryRight,
   StatusSummaryRoot,
@@ -24,51 +26,68 @@ import {
 const StatusSummary: React.FC = () => {
   const { t } = useTranslation();
   const theme = useTheme();
-  const queryClient = useQueryClient();
+  const { phase: refreshPhase, refresh } = useDashboardRefresh();
+  const { data: watchlistItems = [], isLoading: isWatchlistLoading } = useUserResourceWatchlist();
   const {
     data: permission,
     isLoading: isPermissionLoading,
     isError: isPermissionError,
-    error: permissionError,
   } = useUserPermissions();
 
   // Cursor-following spotlight, same wiring the dashboard resource cards use.
   const { ref, onMouseMove } = useSpotlight<HTMLDivElement>();
 
-  const handleRefresh = () => {
-    void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.userPermissions });
-    void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.userResourceWatchlist });
-  };
+  const monitoredResources = watchlistItems[0]?.resources ?? [];
+  const resourceStatuses = permission?.resourceStatuses ?? {};
 
-  const activeBlockers = Object.values(
-    (permission?.permissionsData as Record<string, ArnPermissionData>) ?? {},
-  )
-    .map(deriveStatusFromArnData)
-    .filter((status) => status === "blocked").length;
+  const watchedArns = monitoredResources.map((resource) => resource.arn);
+  const statusCounts = countResourceStatuses(watchedArns, resourceStatuses);
 
-  const blockerColor =
-    activeBlockers > 0 ? theme.palette.error.main : theme.palette.success.main;
+  const statusMessage = deriveStatusMessage({
+    isLoading: isWatchlistLoading || isPermissionLoading,
+    monitoredCount: watchedArns.length,
+    blockedCount: statusCounts.blocked,
+    staleCount: statusCounts.stale,
+    unscannedCount: statusCounts.unscanned,
+  });
+
+  const refreshIcon = {
+    idle: <ArrowsClockwiseIcon size={theme.iconSize.xs} />,
+    refreshing: <CircularProgress size={theme.iconSize.xs} color="inherit" />,
+    refreshed: <CheckCircleIcon size={theme.iconSize.xs} weight="fill" />,
+  }[refreshPhase];
 
   const systemStatus = deriveSystemStatus(
     isPermissionLoading,
     isPermissionError,
-    permissionError?.message,
+    watchedArns.length,
+    statusCounts.stale,
   );
 
   return (
-    <StatusSummaryRoot ref={ref} onMouseMove={onMouseMove}>
+    <StatusSummaryRoot id={DASHBOARD_IDS.statusSummary} ref={ref} onMouseMove={onMouseMove}>
+      <AuroraBackdrop />
+
       <StatusSummaryLeft>
         <Typography variant="caption" color="textDisabled">
           {t("dashboard.globalStatus")}
         </Typography>
 
         <Typography variant="h4" color="textPrimary">
-          {t("dashboard.healthHeadingPrefix")}{" "}
-          <Box component="span" sx={{ color: blockerColor }}>
-            {activeBlockers}{" "}
-            {t("dashboard.activeBlockersSuffix", { count: activeBlockers })}
-          </Box>
+          <Trans
+            i18nKey={statusMessage.headingKey}
+            values={statusMessage.headingValues}
+            components={{
+              blocked: <HeadingCount statusVariant="blocked" />,
+              stale: <HeadingCount statusVariant="stale" />,
+            }}
+          />
         </Typography>
+
+        <Typography variant="body2" color="textSecondary">
+          {t(statusMessage.adviceKey)}
+        </Typography>
+
       </StatusSummaryLeft>
 
       <StatusSummaryRight>
@@ -79,11 +98,13 @@ const StatusSummary: React.FC = () => {
 
         <Button
           variant="outlined"
-          color="primary"
-          startIcon={<ArrowsClockwiseIcon size={theme.iconSize.xs} />}
-          onClick={handleRefresh}
+          color={refreshPhase === "refreshed" ? "success" : "primary"}
+          startIcon={refreshIcon}
+          disabled={refreshPhase === "refreshing"}
+          onClick={() => void refresh()}
+          sx={{ minWidth: REFRESH_BUTTON_MIN_WIDTH }}
         >
-          {t("dashboard.refresh")}
+          {t(refreshPhase === "refreshed" ? "dashboard.refreshed" : "dashboard.refresh")}
         </Button>
       </StatusSummaryRight>
     </StatusSummaryRoot>

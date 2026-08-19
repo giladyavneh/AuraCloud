@@ -1,1 +1,1 @@
-export type FilterTabValue = "all" | "iam" | "resource" | "network" | "healthy";
+export type FilterTabValue = "all" | "blocked" | "stale" | "unscanned" | "healthy";

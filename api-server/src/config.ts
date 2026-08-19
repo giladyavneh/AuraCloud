@@ -26,4 +26,3 @@ export const MCP_SERVER_URL = process.env.MCP_SERVER_URL ?? "http://localhost:30
 // Internal Aura infrastructure identities — single source of truth lives in
 // utils/src/consts.ts (shared with mcp-server); re-exported here so routes can
 // keep importing from config.
-export { INTERNAL_AWS_USER_ARNS } from "utils";

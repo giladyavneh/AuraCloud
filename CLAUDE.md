@@ -10,7 +10,7 @@ Aura Cloud ("NoOps for Developers") is an automated AWS infrastructure monitorin
 - **No cryptic names.** Never `r`, `e`, `p`, `a`. Write `resource`, `employee`, `preset`, `action`. Conventional loop indices (`i`) and `_unused` args are the only exceptions.
 - **One component per file, always.** The file name matches the component name (`TeamCard.tsx` exports `TeamCard`). This includes small presentational helpers — if it returns JSX and is rendered as `<Foo />`, it gets its own file. Styled components are the exception: all of a component's `styled` definitions live together in its `*.styled.ts`.
 - **Split large components.** Sub-components go in the `components/` sub-folder, pure logic in `helpers/`, React logic in `hooks/`. If a component file needs scrolling to understand, split it.
-- **Comments explain _why_, never _what_.** Comment a non-obvious constraint, a bug being prevented, or a deliberate trade-off. Never narrate what the code does, never leave progress notes, and never cite documents the reader does not have (spec sections, tickets, chat history).
+- **Comments explain _why_, never _what_ — and almost never.** The default is no comment: a clear name beats a sentence explaining an unclear one. Comment only a non-obvious constraint, a bug being prevented, or a deliberate trade-off, and keep it to **one line**. If it needs a paragraph or a multi-line JSDoc block, the code is too unclear — fix the code instead. The cap governs what you write; do not retroactively compress an existing long comment that documents a real trade-off. Never narrate what the code does, never leave progress notes, and never cite documents the reader does not have (spec sections, tickets, chat history).
 - **Explicit over clever.** Prefer named intermediate values over dense one-liners, and explicit object keys over spreads when a consumer depends on the shape.
 - **DB projections use `true`/`false`**, not `1`/`0`.
 - Formatting is defined in `.prettierrc.json` (2-space, double quotes, semicolons, trailing commas, 100 cols). Prettier is not installed as a dependency yet.
@@ -51,6 +51,48 @@ Models are defined **once** in the shared `utils` workspace, not in `api-server`
 
 **Critical identity distinction:** `Customer` is the login account; `User` is a discovered AWS identity. `Customer.linkedAwsUserId` → `User.externalId` links them. `UserResourceWatchlist.userId` is the **AWS externalId**, not a Customer id.
 
+## Resource Status — one vocabulary, one resolver
+
+`logic` writes only `valid` / `error` per action. Every other status is **derived**, in
+exactly one place: `utils/src/resourceStatus.ts`, kept dependency-free (no mongoose, no
+dotenv) so any workspace can import it.
+
+Resolution order, per **watched** ARN — the watchlist is the set of resources, not
+`permissionsData`:
+
+| condition | status |
+|---|---|
+| ARN absent from `permissionsData` | `unscanned` |
+| oldest action `timestamp` older than `STALE_AFTER_MS` (60_000) | `stale` |
+| any action `status === "error"` | `blocked` |
+| otherwise | `healthy` |
+
+`stale` outranks `blocked`: a verdict older than the threshold cannot be trusted, and a
+red blocker from a dead pipeline sends people chasing an already-fixed problem.
+
+`unscanned` and `stale` are distinct. The first means no scan yet — wait, or check the
+watchlist. The second means the pipeline stopped.
+
+**Reads go through `utils/src/watchedResources.ts`, not through each service.** Both
+api-server and mcp-server read the same collections for the same purpose, so the query
+lives with the models rather than being written twice. `getWatchedResources(awsUserId)`
+returns every watched resource with its actions, catalogue name and resolved status, plus
+the raw docs for consumers that need more. Services shape the response; they do not
+re-implement the read. `resourceStatus.ts` stays dependency-free so the rules remain
+importable anywhere, and `watchedResources.ts` is the module allowed to touch mongoose.
+
+Consumers:
+- **api-server** returns `resourceStatuses` on `GET /api/user-permissions` and the named
+  resources on `GET /api/user-resource-watchlist`. Freshness is judged against the
+  **server** clock; a skewed client clock must never decide staleness. The permissions
+  route 404s only when the user has no watched resources at all — otherwise they come
+  back as `unscanned`.
+- **mcp-server** calls the same function — it reads Mongo itself and never calls
+  api-server for data.
+- **frontend** renders what the API returns and derives nothing locally.
+
+`warning` is not a status. Nothing emits it.
+
 ## `api-server/` layout
 Routes are split by domain — `index.ts` only wires things together.
 
@@ -85,6 +127,10 @@ and supplies the `JWT_SECRET` that `config.ts` requires.
 - `api-server/src/presets.test.ts` — preset merge semantics
 - `api-server/src/oauth.provider.test.ts` — OAuth code/token lifecycle; mocks the models, so no live Mongo
 - `api-server/src/lastManagerRace.manual.ts` — manual integration check; needs a running server and live Mongo
+- `utils/src/resourceStatus.test.ts` — status resolution rules and precedence
+- `utils/src/watchedResources.test.ts` — the watchlist × permissions × catalogue join
+- `mcp-server/src/permissions.test.ts` — what MCP adds over the shared read: filters, summary, action views
+- `frontend/src/pages/dashboard/helpers/dashboard.helpers.test.ts` — heading, counts, and that every i18n key resolves
 
 ## Immediate Next Steps
 1. **Brain** — replace mock/absent status data with real analysis output

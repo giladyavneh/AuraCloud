@@ -36,7 +36,7 @@ const PresetResourcePicker: React.FC<PresetResourcePickerProps> = ({
               {t("resourceWatchlist.addResource")}
             </Typography>
 
-            <AddResourceForm onAdd={onAddResource} />
+            <AddResourceForm onAdd={onAddResource} draftResources={draftResources} />
           </PanelCard>
 
           <PanelCard sx={{ flex: 1, overflow: "auto" }}>

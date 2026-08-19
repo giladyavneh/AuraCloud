@@ -13,7 +13,7 @@ import { useTranslation } from "react-i18next";
 
 // Read-only expanded view under a team card: the team's preset (if any) plus each
 // member's name, role, and AWS-link status. All data is derived client-side from
-// already-fetched queries — this component never fetches (see SPEC §2).
+// already-fetched queries — this component never fetches.
 const TeamMembersPanel: React.FC<TeamMembersPanelProps> = ({ members, preset, presetsLoading }) => {
   const { t } = useTranslation();
   const theme = useTheme();

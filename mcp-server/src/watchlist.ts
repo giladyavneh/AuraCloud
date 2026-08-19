@@ -3,6 +3,8 @@ import {
   INTERNAL_AWS_USER_ARNS,
   ResourceActionModel,
   UserResourceWatchlistModel,
+  excludingInternalArns,
+  resourceNamesFor,
 } from "utils";
 import type { UserContext } from "./identity.js";
 
@@ -12,6 +14,8 @@ export class DomainError extends Error {}
 export interface WatchlistResource {
   arn: string;
   actions: string[];
+  /** Catalogue display name, absent once a resource leaves AWS. */
+  name?: string;
 }
 
 export interface WatchlistView {
@@ -31,14 +35,25 @@ interface WatchlistDocLike {
   resources: { arn: string; actions: string[] }[];
 }
 
-const toView = (doc: WatchlistDocLike): WatchlistView => ({
-  name: doc.name,
-  userId: doc.userId,
-  resources: doc.resources.map((resource) => ({
-    arn: resource.arn,
-    actions: [...resource.actions],
-  })),
-});
+// The watchlist stores only ARNs, but the dashboard shows catalogue names — the AI
+// has to be able to talk about a resource by the name the user sees on screen.
+const toView = async (doc: WatchlistDocLike): Promise<WatchlistView> => {
+  const nameByArn = await resourceNamesFor(doc.resources.map(({ arn }) => arn));
+
+  return {
+    name: doc.name,
+    userId: doc.userId,
+    resources: doc.resources.map((resource) => {
+      const catalogueName = nameByArn.get(resource.arn);
+
+      return {
+        arn: resource.arn,
+        actions: [...resource.actions],
+        ...(catalogueName ? { name: catalogueName } : {}),
+      };
+    }),
+  };
+};
 
 // ── Write validation ───────────────────────────────────────────────────────────
 
@@ -68,8 +83,8 @@ const editDistance = (a: string, b: string): number => {
 /** Closest discovered ARN of the same service, or null when nothing is close. */
 const suggestSimilarArn = async (arn: string): Promise<string | null> => {
   const service = arn.split(":")[2] ?? "";
-  // Internal Aura identities are excluded — never suggest an ARN we refuse to watch.
-  const docs = await AwsResourceModel.find({ arn: { $nin: INTERNAL_AWS_USER_ARNS } })
+  // Never suggest an ARN we refuse to watch.
+  const docs = await AwsResourceModel.find(excludingInternalArns())
     .select("arn")
     .limit(500)
     .lean()
@@ -146,7 +161,7 @@ export const getWatchlist = async (ctx: UserContext): Promise<WatchlistView | nu
   const doc = await UserResourceWatchlistModel.findOne({ userId: ctx.linkedAwsUserId })
     .lean()
     .exec();
-  return doc ? toView(doc) : null;
+  return doc ? await toView(doc) : null;
 };
 
 export const addResource = async (
@@ -166,7 +181,7 @@ export const addResource = async (
       name: `${ctx.firstName} ${ctx.lastName}'s Watchlist`,
       resources: [{ arn, actions }],
     });
-    return withWarnings(toView(created.toObject()), warnings);
+    return withWarnings(await toView(created.toObject()), warnings);
   }
 
   if (existing.resources.some((resource) => resource.arn === arn)) {
@@ -183,7 +198,7 @@ export const addResource = async (
     .lean()
     .exec();
   if (!updated) throw new DomainError(`${arn} could not be added — watchlist not found`);
-  return withWarnings(toView(updated), warnings);
+  return withWarnings(await toView(updated), warnings);
 };
 
 export const removeResource = async (ctx: UserContext, arn: string): Promise<WatchlistView> => {
@@ -195,7 +210,7 @@ export const removeResource = async (ctx: UserContext, arn: string): Promise<Wat
     .lean()
     .exec();
   if (!updated) throw new DomainError(`${arn} is not on the watchlist`);
-  return toView(updated);
+  return await toView(updated);
 };
 
 export const updateResourceActions = async (
@@ -212,5 +227,5 @@ export const updateResourceActions = async (
     .lean()
     .exec();
   if (!updated) throw new DomainError(`${arn} is not on the watchlist`);
-  return withWarnings(toView(updated), warnings);
+  return withWarnings(await toView(updated), warnings);
 };

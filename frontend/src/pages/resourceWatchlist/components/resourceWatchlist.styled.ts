@@ -66,7 +66,6 @@ export const EmptyStateBanner = styled(Box)(({ theme }) => ({
   borderRadius: theme.shape.borderRadius,
 }));
 
-/** Empty state shown inside the table panel card when no resources are added yet */
 export const PanelEmptyState = styled(Box)(({ theme }) => ({
   flex: 1,
   display: "flex",

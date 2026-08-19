@@ -39,7 +39,6 @@ const AwsCredentialsSection: React.FC = () => {
   const onSubmit = (values: AwsCredentialsFormValues) => {
     updateCredentials(values, {
       onSuccess: () => {
-        // Clear the form inputs after a successful update
         resetField("accessKeyId");
         resetField("secretAccessKey");
         reset();

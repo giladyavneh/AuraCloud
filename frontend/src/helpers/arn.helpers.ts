@@ -23,7 +23,6 @@ export const inferServiceFromArn = (arn: string): AwsService => {
   return match?.service ?? FALLBACK_SERVICE;
 };
 
-/** Derives a human-readable service title from a resource ARN. */
 export const inferTitleFromArn = (arn: string): string => {
   const match = SERVICE_ARN_MAP.find((entry) => arn.includes(entry.segment));
   return match?.title ?? FALLBACK_SERVICE.toUpperCase();
@@ -41,4 +40,16 @@ export const inferTitleFromArn = (arn: string): string => {
 export const extractResourceName = (arn: string): string => {
   const parts = arn.split(':');
   return parts.slice(5).join(':') || arn;
+};
+
+/** The catalogue name when the crawler has one, else the ARN tail. */
+export const resolveResourceLabel = (arn: string, name?: string): string =>
+  name || extractResourceName(arn);
+
+/** Splits an ARN so the identifying tail can be pinned while the prefix ellipsises. */
+export const splitArnForDisplay = (arn: string): { head: string; tail: string } => {
+  const lastSeparator = arn.lastIndexOf(':');
+  if (lastSeparator === -1) return { head: '', tail: arn };
+
+  return { head: arn.slice(0, lastSeparator), tail: arn.slice(lastSeparator) };
 };

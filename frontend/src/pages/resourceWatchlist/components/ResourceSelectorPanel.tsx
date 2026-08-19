@@ -58,7 +58,7 @@ const ResourceSelectorPanel: React.FC<ResourceSelectorPanelProps> = ({
           {t("resourceWatchlist.addResource")}
         </Typography>
 
-        <AddResourceForm onAdd={handleAdd} />
+        <AddResourceForm onAdd={handleAdd} draftResources={draftResources} />
       </PanelCard>
 
       <PanelCard sx={{ flex: 1, overflow: "auto" }}>

@@ -26,7 +26,6 @@ interface AiAccessColumnActions {
   isRowPending: (grantId: string) => boolean;
 }
 
-/** Column definitions for the company AI-access table. */
 export const useAiAccessColumns = ({
   currentCustomerId,
   onDisconnect,
@@ -96,7 +95,7 @@ export const useAiAccessColumns = ({
 
               {/* Only the exception is tagged — a badge on every row is a badge nobody reads. */}
               {isExternalConnection(grant) && (
-                <StatusTag variant="warning" label={t("team.aiAccess.externalTag")} />
+                <StatusTag variant="external" label={t("team.aiAccess.externalTag")} />
               )}
 
               {extraAddresses > 0 && (

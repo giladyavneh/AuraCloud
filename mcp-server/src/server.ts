@@ -66,7 +66,7 @@ export const buildServer = (ctx: UserContext): McpServer => {
     {
       title: "Get watchlist",
       description:
-        "Get the current AWS resource watchlist for the configured AuraCloud user (the resources and IAM actions being monitored). Use this first to see what is already monitored before adding, removing, or updating resources.",
+        "Get the current AWS resource watchlist for the configured AuraCloud user (the resources and IAM actions being monitored). Each resource carries the display name the user sees on their dashboard, so refer to it by that name rather than its ARN. Use this first to see what is already monitored before adding, removing, or updating resources.",
       inputSchema: z.object({}),
       annotations: { readOnlyHint: true },
     },
@@ -93,7 +93,7 @@ export const buildServer = (ctx: UserContext): McpServer => {
     {
       title: "Get permission status",
       description:
-        "Get Aura's evaluated permission status for the user's watched AWS resources: allowed ('valid') or blocked ('error') per IAM action, with the exact deny reason. This is the primary diagnostic tool — when the user reports an AWS operation failing (access denied, timeouts, silent failures), call this to determine whether cloud configuration is the cause. The summary always reflects the full watchlist even when filters are applied. Set includeDetails to true for the full policy evaluation trace (identity/resource/SCP steps and context keys).",
+        "Get Aura's evaluated permission status for the user's watched AWS resources: allowed ('valid') or blocked ('error') per IAM action, with the exact deny reason. Each resource carries the display name the user sees on their dashboard — refer to it by that name rather than its ARN — and a resolved status — 'healthy', 'blocked', 'stale' (last evaluation is too old to trust) or 'unscanned' (never evaluated). Treat 'stale' and 'unscanned' as 'unknown, do not rely on the action verdicts'. This is the primary diagnostic tool — when the user reports an AWS operation failing (access denied, timeouts, silent failures), call this to determine whether cloud configuration is the cause. Every watched resource is listed and the summary always reflects the full watchlist, even when filters are applied. Set includeDetails to true for the full policy evaluation trace (identity/resource/SCP steps and context keys).",
       inputSchema: z.object({
         arn: z
           .string()

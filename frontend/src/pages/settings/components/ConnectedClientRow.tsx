@@ -75,7 +75,7 @@ const ConnectedClientRow: React.FC<ConnectedClientRowProps> = ({ client, onDisco
 
       {/* Only the exception is tagged — a badge on every row is a badge nobody reads. */}
       {!isLocal && (
-        <StatusTag variant="warning" label={t("settings.connectAi.clients.externalTag")} />
+        <StatusTag variant="external" label={t("settings.connectAi.clients.externalTag")} />
       )}
 
       <Button

@@ -37,7 +37,6 @@ const Login: React.FC = () => {
 
   const nextPath = resolveNextPath(searchParams.get("next"));
 
-  // Redirect already-authenticated users
   useEffect(() => {
     if (customer) {
       navigate(nextPath ?? (customer.hasAwsConnected ? "/dashboard" : "/onboard"), {

@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { CustomerModel, UserPermissionModel } from "../db.js";
-import { UserModel } from "utils";
+import { CustomerModel } from "../db.js";
+import { UserModel, getWatchedResources } from "utils";
 import { applyPresetsToMember } from "../presets.js";
 import { toCustomerResponse } from "../helpers/response.helpers.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
@@ -15,12 +15,19 @@ router.get("/api/user-permissions", requireAuth, async (req, res) => {
       return;
     }
 
-    const permission = await UserPermissionModel.findOne({ userId: customer.linkedAwsUserId });
-    if (!permission) {
+    const { permission, resources } = await getWatchedResources(customer.linkedAwsUserId);
+
+    // A 404 would throw the statuses away, so watched resources answer as unscanned.
+    if (!permission && resources.length === 0) {
       res.status(404).json({ message: "No permissions data yet" });
       return;
     }
-    res.json(permission);
+
+    const resourceStatuses = Object.fromEntries(
+      resources.map(({ arn, status }) => [arn, status]),
+    );
+
+    res.json({ ...permission, resourceStatuses });
   } catch {
     res.status(500).json({ message: "Server Error" });
   }

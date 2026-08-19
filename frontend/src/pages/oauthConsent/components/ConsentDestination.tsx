@@ -27,7 +27,7 @@ import { useTranslation } from 'react-i18next';
 
 const TAG_VARIANTS: Record<RenderedRedirectClass, StatusTagVariant> = {
   local: 'healthy',
-  remote: 'warning',
+  remote: 'external',
 };
 
 const HEADLINE_COLORS: Record<RenderedRedirectClass, 'success.main' | 'warning.main'> = {

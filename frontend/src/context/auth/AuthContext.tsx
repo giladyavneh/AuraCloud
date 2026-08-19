@@ -29,7 +29,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [customer, setCustomer] = useState<AuthCustomer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // On mount, validate the stored token and hydrate the customer
   useEffect(() => {
     const token = getStoredToken();
     if (!token) {

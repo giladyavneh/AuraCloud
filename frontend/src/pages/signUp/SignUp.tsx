@@ -42,14 +42,12 @@ const SignUp: React.FC = () => {
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<ManagerSignUpFormValues>();
 
-  // Redirect already-authenticated users
   useEffect(() => {
     if (customer) {
       navigate('/dashboard', { replace: true });
     }
   }, [customer, navigate]);
 
-  // Auto-suggest slug from company name
   const companyNameValue = watch('companyName');
   const companySlugValue = watch('companySlug');
   useEffect(() => {
@@ -58,7 +56,6 @@ const SignUp: React.FC = () => {
     }
   }, [companyNameValue, setValue]);
 
-  // Debounce the slug value before firing the availability check
   const [debouncedSlug, setDebouncedSlug] = useState('');
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSlug(companySlugValue ?? ''), SLUG_DEBOUNCE_MS);

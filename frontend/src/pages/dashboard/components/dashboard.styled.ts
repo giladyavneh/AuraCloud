@@ -1,16 +1,39 @@
-import { MONO_LABEL_FONT_SIZE } from "@/constants";
+import { MAIN_CONTENT_PADDING, MONO_LABEL_FONT_SIZE } from "@/constants";
 import { spotlightOverlayStyles } from "@/components/spotlightCard/components/spotlightCard.styled";
+import { getTagStyles } from "@/components/statusTag/helpers/statusTag.helpers";
+import type { StatusTagVariant } from "@/components/statusTag/types/statusTag.types";
 import { styled } from "@mui/material/styles";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 
+// Fills the wrapper exactly so the page itself never scrolls — only the resource grid does.
 export const PageRoot = styled(Box)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
   gap: theme.spacing(6),
+  height: `calc(100dvh - ${theme.spacing(MAIN_CONTENT_PADDING * 2)})`,
+  overflow: "hidden",
 }));
 
+export const ResourceSectionRoot = styled(Box)(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  gap: theme.spacing(4),
+  flex: 1,
+  // Without this a flex child refuses to shrink below its content, and the grid never scrolls.
+  minHeight: 0,
+}));
+
+export const ResourceScrollArea = styled(Box)({
+  flex: 1,
+  minHeight: 0,
+  overflowY: "auto",
+  // Reserve the scrollbar track always, so content does not shift when it appears.
+  scrollbarGutter: "stable",
+});
+
 export const StatusSummaryRoot = styled(Box)(({ theme }) => ({
+  flexShrink: 0,
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
@@ -18,16 +41,22 @@ export const StatusSummaryRoot = styled(Box)(({ theme }) => ({
   backgroundColor: theme.palette.surface.base,
   border: `1px solid ${theme.palette.border.default}`,
   borderRadius: theme.shape.borderRadius,
+  overflow: "hidden",
   ...spotlightOverlayStyles(theme),
 }));
 
+// Above the aurora (0), scrim (1) and spotlight (2).
 export const StatusSummaryLeft = styled(Box)(({ theme }) => ({
+  position: "relative",
+  zIndex: 3,
   display: "flex",
   flexDirection: "column",
   gap: theme.spacing(1),
 }));
 
 export const StatusSummaryRight = styled(Box)(({ theme }) => ({
+  position: "relative",
+  zIndex: 3,
   display: "flex",
   flexDirection: "column",
   alignItems: "flex-end",
@@ -36,19 +65,19 @@ export const StatusSummaryRight = styled(Box)(({ theme }) => ({
 }));
 
 export const StatsRowContainer = styled(Box)(({ theme }) => ({
+  flexShrink: 0,
   display: "flex",
   gap: theme.spacing(4),
 }));
 
-/** Row containing the section title/description (left) and filter tabs (right) */
 export const ResourceSectionHeader = styled(Box)(({ theme }) => ({
+  flexShrink: 0,
   display: "flex",
   alignItems: "flex-start",
   justifyContent: "space-between",
   gap: theme.spacing(4),
 }));
 
-/** Pill container that wraps all filter tab buttons */
 export const FilterTabsRow = styled(Box)(({ theme }) => ({
   display: "flex",
   alignItems: "center",
@@ -59,7 +88,6 @@ export const FilterTabsRow = styled(Box)(({ theme }) => ({
   flexShrink: 0,
 }));
 
-/** Small count badge rendered inside a FilterTab */
 export const FilterTabCount = styled("span", {
   shouldForwardProp: (prop) => prop !== "isActive",
 })<{ isActive?: boolean }>(({ theme, isActive }) => ({
@@ -69,7 +97,6 @@ export const FilterTabCount = styled("span", {
   opacity: isActive ? 0.75 : 0.5,
 }));
 
-/** Full-width empty-state card shown when the watchlist has no resources */
 export const EmptyStateCard = styled(Card)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
@@ -83,7 +110,6 @@ export const EmptyStateCard = styled(Card)(({ theme }) => ({
   boxShadow: "none",
 }));
 
-/** Individual filter tab — active state gets a solid primary fill */
 export const FilterTab = styled(Box, {
   shouldForwardProp: (prop) => prop !== "isActive",
 })<{ isActive?: boolean }>(({ theme, isActive }) => ({
@@ -113,4 +139,10 @@ export const FilterTab = styled(Box, {
     outline: `2px solid ${theme.palette.primary.main}`,
     outlineOffset: 2,
   },
+}));
+
+export const HeadingCount = styled("span", {
+  shouldForwardProp: (prop) => prop !== "statusVariant",
+})<{ statusVariant: StatusTagVariant }>(({ theme, statusVariant }) => ({
+  color: getTagStyles(theme.palette, statusVariant).color,
 }));

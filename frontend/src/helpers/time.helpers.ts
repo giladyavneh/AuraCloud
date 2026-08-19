@@ -2,7 +2,6 @@ import i18next from "i18next";
 
 const { t } = i18next;
 
-/** Formats an ISO timestamp as a human-readable relative time string. */
 export const formatTimestamp = (isoTimestamp: string): string => {
   if (!isoTimestamp) return t("common.timeAgo.unknown");
 

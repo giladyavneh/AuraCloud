@@ -25,10 +25,15 @@ export interface ResourceWatchlistItem {
     arn: string;
     actions: string[];
     _id: string;
+    /** From the discovered resource catalogue; absent once a resource leaves AWS. */
+    name?: string;
   }>;
 }
 
-export type PermissionStatus = 'valid' | 'error' | 'stale' | 'warning';
+/** What the Brain writes per action. Everything else is resolved server-side. */
+export type PermissionStatus = 'valid' | 'error';
+
+export type ResourceStatus = 'healthy' | 'blocked' | 'stale' | 'unscanned';
 
 export interface ActionData {
   status: PermissionStatus;
@@ -43,4 +48,6 @@ export interface UserPermission {
   name: string;
   userId: string;
   permissionsData: Record<string, ArnPermissionData>;
+  /** Resolved by api-server, keyed by watched ARN. */
+  resourceStatuses: Record<string, ResourceStatus>;
 }

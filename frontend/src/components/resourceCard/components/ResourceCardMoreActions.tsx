@@ -9,18 +9,21 @@ import Popper from "@mui/material/Popper";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
+import { getActionDotColor } from "@/components/resourceCard/helpers/resourceCard.helpers";
+import type { ResourceCardAction } from "@/components/resourceCard/types/resourceCard.types";
+import type { StatusTagVariant } from "@/components/statusTag/types/statusTag.types";
 import { useHover } from "@uidotdev/usehooks";
 import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface ResourceCardMoreActionsProps {
-  actions: string[];
-  dotColor: string;
+  actions: ResourceCardAction[];
+  resourceStatus: StatusTagVariant;
 }
 
 const ResourceCardMoreActions: React.FC<ResourceCardMoreActionsProps> = ({
   actions,
-  dotColor,
+  resourceStatus,
 }) => {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -66,11 +69,13 @@ const ResourceCardMoreActions: React.FC<ResourceCardMoreActionsProps> = ({
                   {t("resourceCard.allActions")}
                 </Typography>
 
-                {actions.map((action) => (
-                  <ResourceItem key={action}>
-                    <ResourceDot dotColor={dotColor} />
+                {actions.map(({ name, status }) => (
+                  <ResourceItem key={name}>
+                    <ResourceDot
+                      dotColor={getActionDotColor(theme.palette, resourceStatus, status)}
+                    />
                     <Typography variant="body2" color="textSecondary">
-                      {action}
+                      {name}
                     </Typography>
                   </ResourceItem>
                 ))}

@@ -1,11 +1,6 @@
 import { Router } from "express";
-import { CustomerModel, UserPermissionModel } from "../db.js";
-import {
-  UserModel,
-  UserResourceWatchlistModel,
-  resolveWatchlistStatuses,
-  type ArnPermissionEntry,
-} from "utils";
+import { CustomerModel } from "../db.js";
+import { UserModel, getWatchedResources } from "utils";
 import { applyPresetsToMember } from "../presets.js";
 import { toCustomerResponse } from "../helpers/response.helpers.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
@@ -20,23 +15,17 @@ router.get("/api/user-permissions", requireAuth, async (req, res) => {
       return;
     }
 
-    const [permission, watchlist] = await Promise.all([
-      UserPermissionModel.findOne({ userId: customer.linkedAwsUserId }).lean(),
-      UserResourceWatchlistModel.findOne({ userId: customer.linkedAwsUserId }).lean(),
-    ]);
-
-    // Keyed by the watchlist, so a resource the Brain never reported still appears.
-    const watchedArns = (watchlist?.resources ?? []).map((resource) => resource.arn);
-    const resourceStatuses = resolveWatchlistStatuses(
-      watchedArns,
-      permission?.permissionsData as Record<string, ArnPermissionEntry> | undefined,
-    );
+    const { permission, resources } = await getWatchedResources(customer.linkedAwsUserId);
 
     // A 404 would throw the statuses away, so watched resources answer as unscanned.
-    if (!permission && watchedArns.length === 0) {
+    if (!permission && resources.length === 0) {
       res.status(404).json({ message: "No permissions data yet" });
       return;
     }
+
+    const resourceStatuses = Object.fromEntries(
+      resources.map(({ arn, status }) => [arn, status]),
+    );
 
     res.json({ ...permission, resourceStatuses });
   } catch {

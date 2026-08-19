@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  resolveResourceStatus,
-  resolveWatchlistStatuses,
-  STALE_AFTER_MS,
-} from "./resourceStatus.js";
+import { resolveResourceStatus, STALE_AFTER_MS } from "./resourceStatus.js";
 
 const NOW = Date.parse("2026-08-18T12:00:00.000Z");
 const fresh = new Date(NOW - 1_000).toISOString();
@@ -57,30 +53,5 @@ describe("resolveResourceStatus", () => {
 
   it("accepts a single top-level verdict as well as a per-action map", () => {
     expect(resolveResourceStatus({ status: "error", timestamp: fresh }, NOW)).toBe("blocked");
-  });
-});
-
-describe("resolveWatchlistStatuses", () => {
-  it("covers every watched ARN, including ones absent from the Brain output", () => {
-    const statuses = resolveWatchlistStatuses(
-      ["arn:watched:reported", "arn:watched:never-reported"],
-      { "arn:watched:reported": { read: { status: "valid", timestamp: fresh } } },
-      NOW,
-    );
-
-    expect(statuses).toEqual({
-      "arn:watched:reported": "healthy",
-      "arn:watched:never-reported": "unscanned",
-    });
-  });
-
-  it("ignores Brain output for ARNs that are no longer watched", () => {
-    const statuses = resolveWatchlistStatuses(
-      [],
-      { "arn:unwatched": { read: { status: "error", timestamp: fresh } } },
-      NOW,
-    );
-
-    expect(statuses).toEqual({});
   });
 });

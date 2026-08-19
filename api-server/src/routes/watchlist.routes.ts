@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { AwsResourceModel, CustomerModel, UserResourceWatchlistModel } from "../db.js";
+import { CustomerModel, UserResourceWatchlistModel } from "../db.js";
+import { getWatchedResources } from "utils";
 import { resolveMemberPresetResources } from "../presets.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 import { validateObjectIdParam } from "../middleware/objectId.middleware.js";
@@ -26,35 +27,15 @@ router.get("/api/user-resource-watchlist", requireAuth, async (req, res) => {
       return;
     }
 
-    const watchlists = await UserResourceWatchlistModel.find({
-      userId: customer.linkedAwsUserId,
-    })
-      .lean()
-      .exec();
+    const { watchlist, resources } = await getWatchedResources(customer.linkedAwsUserId);
+    if (!watchlist) {
+      res.json([]);
+      return;
+    }
 
-    // The watchlist stores only ARNs; the display name lives in the discovered
-    // resource catalogue, and is absent once a resource leaves AWS.
-    const watchedArns = watchlists.flatMap(({ resources }) =>
-      resources.map(({ arn }) => arn),
-    );
-    const catalogue = await AwsResourceModel.find(
-      { arn: { $in: watchedArns } },
-      { arn: true, name: true },
-    )
-      .lean()
-      .exec();
-    const nameByArn = new Map(catalogue.map(({ arn, name }) => [arn, name]));
-
-    res.json(
-      watchlists.map((watchlist) => ({
-        ...watchlist,
-        resources: watchlist.resources.map((resource) => ({
-          arn: resource.arn,
-          actions: resource.actions,
-          name: nameByArn.get(resource.arn),
-        })),
-      })),
-    );
+    // Still an array: a user has at most one watchlist, but the shape is what
+    // the frontend reads today.
+    res.json([{ ...watchlist, resources }]);
   } catch (err) {
     console.error("GET /api/user-resource-watchlist failed:", err);
     res.status(500).json({ message: "Server Error" });

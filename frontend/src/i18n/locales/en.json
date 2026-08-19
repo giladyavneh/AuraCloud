@@ -83,7 +83,8 @@
     "moreActions": "{{count}} more >",
     "allActions": "All actions",
     "moreErrors": "+{{count}} more",
-    "allErrors": "Other blocked actions",
+    "allErrors": "{{count}} blocked actions",
+    "unknownReason": "No reason reported",
     "staleSummary": "Last verdict is out of date",
     "unscannedSummary": "Not scanned yet"
   },

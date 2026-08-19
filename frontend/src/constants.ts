@@ -12,6 +12,10 @@ export const WATCHLIST_RESOURCE_SELECT_WIDTH = 280;
 export const WATCHLIST_ACTIONS_SELECT_WIDTH = 320;
 /** Selected action chips shown before collapsing to "+N" (while unfocused) */
 export const WATCHLIST_ACTIONS_VISIBLE_TAGS = 2;
+/** Fill and border opacity of the mono action chips in the blocked-actions popover */
+export const ERROR_CHIP_FILL_ALPHA = 0.12;
+export const ERROR_CHIP_BORDER_ALPHA = 0.4;
+
 /** Opacity of the cursor-following spotlight tint on cards */
 export const SPOTLIGHT_TINT_ALPHA = 0.15;
 export const USER_LIST_MAX_HEIGHT = 280;

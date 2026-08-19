@@ -1,21 +1,22 @@
 import {
-  ErrorDivider,
-  MoreActionsPopoverContent,
+  ErrorActionChip,
+  ErrorCause,
+  ErrorCauseActions,
+  ErrorPopoverContent,
   StatusFooter,
   StatusFooterMessage,
 } from "@/components/resourceCard/components/resourceCard.styled";
+import { groupBlockedActionsByCause } from "@/components/resourceCard/helpers/resourceCard.helpers";
 import type { ResourceCardAction } from "@/components/resourceCard/types/resourceCard.types";
 import type { StatusTagVariant } from "@/components/statusTag/types/statusTag.types";
 import Button from "@mui/material/Button";
 import Grow from "@mui/material/Grow";
-import Paper from "@mui/material/Paper";
 import Popper from "@mui/material/Popper";
-import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 import { useHover } from "@uidotdev/usehooks";
-import React, { useCallback, useState } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface ResourceCardStatusFooterProps {
@@ -30,17 +31,9 @@ const ResourceCardStatusFooter: React.FC<ResourceCardStatusFooterProps> = ({
   const { t } = useTranslation();
   const theme = useTheme();
   const [hoverRef, hovering] = useHover<HTMLButtonElement>();
-  const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
+  // Anchored to the alert rather than the button, so both share an edge and a width.
+  const [alertEl, setAlertEl] = useState<HTMLDivElement | null>(null);
   const [clickOpen, setClickOpen] = useState(false);
-
-  // Popper needs a stable non-null element, which ref.current is not at render time.
-  const setRefs = useCallback(
-    (element: HTMLButtonElement | null) => {
-      hoverRef(element);
-      setAnchorEl(element);
-    },
-    [hoverRef],
-  );
 
   const blockedActions = actions.filter(({ status: actionStatus }) => actionStatus === "error");
   const [firstBlocked, ...remainingBlocked] = blockedActions;
@@ -65,7 +58,7 @@ const ResourceCardStatusFooter: React.FC<ResourceCardStatusFooterProps> = ({
   const blockedMessage = `${firstBlocked.name} — ${firstBlocked.reason}`;
 
   return (
-    <StatusFooter footerVariant={status}>
+    <StatusFooter footerVariant={status} ref={setAlertEl}>
       <Tooltip title={blockedMessage} placement="bottom-start">
         <StatusFooterMessage>{blockedMessage}</StatusFooterMessage>
       </Tooltip>
@@ -73,11 +66,19 @@ const ResourceCardStatusFooter: React.FC<ResourceCardStatusFooterProps> = ({
       {remainingBlocked.length > 0 && (
         <>
           <Button
-            ref={setRefs}
+            ref={hoverRef}
             variant="text"
             color="error"
             size="small"
-            sx={{ flexShrink: 0, minWidth: "auto" }}
+            // Typography inherited from the row so the button cannot make one
+            // footer taller than another.
+            sx={{
+              flexShrink: 0,
+              minWidth: "auto",
+              padding: 0,
+              fontSize: "inherit",
+              lineHeight: "inherit",
+            }}
             onClick={() => setClickOpen((isOpen) => !isOpen)}
           >
             {t("resourceCard.moreErrors", { count: remainingBlocked.length })}
@@ -85,33 +86,39 @@ const ResourceCardStatusFooter: React.FC<ResourceCardStatusFooterProps> = ({
 
           <Popper
             open={hovering || clickOpen}
-            anchorEl={anchorEl}
-            placement="bottom-end"
+            anchorEl={alertEl}
+            placement="bottom-start"
             transition
             sx={{
               zIndex: (popperTheme) => popperTheme.zIndex.tooltip,
               pointerEvents: clickOpen ? "auto" : "none",
+              width: alertEl?.offsetWidth,
             }}
           >
             {({ TransitionProps }) => (
               <Grow {...TransitionProps} timeout={theme.transitions.duration.shorter}>
-                <Paper elevation={4}>
-                  <MoreActionsPopoverContent>
-                    <Typography variant="subtitle2" color="textSecondary">
-                      {t("resourceCard.allErrors")}
-                    </Typography>
+                <ErrorPopoverContent>
+                  <Typography variant="subtitle2" color="textSecondary">
+                    {t("resourceCard.allErrors", { count: blockedActions.length })}
+                  </Typography>
 
-                    <Stack divider={<ErrorDivider flexItem />} spacing={2}>
-                      {remainingBlocked.map(({ name, reason }) => (
-                        <Typography key={name} variant="body2" color="textSecondary">
-                          {name} — {reason}
-                        </Typography>
-                      ))}
+                  {groupBlockedActionsByCause(blockedActions).map(({ reason, actionNames }) => (
+                    <ErrorCause key={reason}>
+                      <Typography variant="body2" color="textPrimary">
+                        {reason || t("resourceCard.unknownReason")}
+                      </Typography>
 
-                    </Stack>
+                      <ErrorCauseActions>
+                        {actionNames.map((actionName) => (
+                          <ErrorActionChip key={actionName}>{actionName}</ErrorActionChip>
+                        ))}
 
-                  </MoreActionsPopoverContent>
-                </Paper>
+                      </ErrorCauseActions>
+
+                    </ErrorCause>
+                  ))}
+
+                </ErrorPopoverContent>
               </Grow>
             )}
           </Popper>

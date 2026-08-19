@@ -36,3 +36,22 @@ export const getActionDotColor = (
 
 export const countBlockedActions = (actions: ResourceCardAction[]): number =>
   actions.filter(({ status }) => status === "error").length;
+
+export interface BlockedCause {
+  reason: string;
+  actionNames: string[];
+}
+
+/** One entry per denial reason — several actions usually fail for the same policy. */
+export const groupBlockedActionsByCause = (actions: ResourceCardAction[]): BlockedCause[] => {
+  const actionNamesByReason = new Map<string, string[]>();
+
+  for (const { name, status, reason } of actions) {
+    if (status !== "error") continue;
+
+    const cause = reason ?? "";
+    actionNamesByReason.set(cause, [...(actionNamesByReason.get(cause) ?? []), name]);
+  }
+
+  return [...actionNamesByReason].map(([reason, actionNames]) => ({ reason, actionNames }));
+};

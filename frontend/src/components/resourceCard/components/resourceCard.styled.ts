@@ -1,10 +1,13 @@
-import { MONO_LABEL_FONT_SIZE } from "@/constants";
+import {
+  ERROR_CHIP_BORDER_ALPHA,
+  ERROR_CHIP_FILL_ALPHA,
+  MONO_LABEL_FONT_SIZE,
+} from "@/constants";
 import { spotlightOverlayStyles } from "@/components/spotlightCard/components/spotlightCard.styled";
 import { getTagStyles } from "@/components/statusTag/helpers/statusTag.helpers";
 import type { StatusTagVariant } from "@/components/statusTag/types/statusTag.types";
-import { styled } from "@mui/material/styles";
+import { alpha, styled } from "@mui/material/styles";
 import Box from "@mui/material/Box";
-import Divider from "@mui/material/Divider";
 
 export const CardRoot = styled(Box)(({ theme }) => ({
   display: "flex",
@@ -81,10 +84,6 @@ export const MoreActionsPopoverContent = styled(Box)(({ theme }) => ({
   maxWidth: 320,
 }));
 
-export const ErrorDivider = styled(Divider)(({ theme }) => ({
-  borderColor: theme.palette.text.secondary,
-}));
-
 export const ResourceArnRow = styled("span")(({ theme }) => ({
   display: "flex",
   fontFamily: theme.typography.fontFamilyMono,
@@ -130,10 +129,54 @@ export const StatusFooter = styled(Box, {
   };
 });
 
-export const StatusFooterMessage = styled("span")({
+export const StatusFooterMessage = styled("span")(({ theme }) => ({
   flex: 1,
   minWidth: 0,
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
+  // Matches the popover body: red on red reads poorly, and the border already
+  // carries the status.
+  color: theme.palette.text.primary,
+}));
+
+// Tinted from the same palette as the alert that opens it, so the popover reads
+// as part of that alert rather than a generic menu.
+export const ErrorPopoverContent = styled(Box)(({ theme }) => {
+  const styles = getTagStyles(theme.palette, "blocked");
+
+  return {
+    display: "flex",
+    flexDirection: "column",
+    gap: theme.spacing(4),
+    padding: theme.spacing(4),
+    // Width comes from the alert it expands, so the two edges line up.
+    width: "100%",
+    backgroundColor: styles.bg,
+    border: `1px solid ${styles.border}`,
+    borderRadius: theme.shape.borderRadius,
+    boxShadow: theme.shadows[4],
+  };
 });
+
+export const ErrorCause = styled(Box)(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  gap: theme.spacing(2),
+}));
+
+export const ErrorCauseActions = styled(Box)(({ theme }) => ({
+  display: "flex",
+  flexWrap: "wrap",
+  gap: theme.spacing(1),
+}));
+
+export const ErrorActionChip = styled("span")(({ theme }) => ({
+  fontFamily: theme.typography.fontFamilyMono,
+  fontSize: MONO_LABEL_FONT_SIZE,
+  color: theme.palette.error.main,
+  backgroundColor: alpha(theme.palette.error.main, ERROR_CHIP_FILL_ALPHA),
+  border: `1px solid ${alpha(theme.palette.error.main, ERROR_CHIP_BORDER_ALPHA)}`,
+  borderRadius: theme.shape.borderRadius,
+  padding: theme.spacing(1, 2.5),
+}));

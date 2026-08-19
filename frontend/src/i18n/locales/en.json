@@ -49,6 +49,7 @@
       "mixed": "Check IAM permissions on the blocked resources, then hit Refresh."
     },
     "refresh": "Refresh",
+    "refreshed": "Refreshed",
     "resourceStatus": "Resource Status",
     "resourceStatusDescription": "Single source of truth for live infrastructure checks and blockers.",
     "filterTabs": {

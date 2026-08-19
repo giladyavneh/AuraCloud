@@ -2,6 +2,12 @@ import type { FilterTabValue } from "@/pages/dashboard/types/dashboard.types";
 
 export const EMPTY_STATE_ICON_SIZE = 48;
 
+/** Held so a sub-100ms refetch cannot flash the spinner. */
+export const REFRESH_SPINNER_MIN_MS = 400;
+export const REFRESHED_LABEL_MS = 3_000;
+/** Keeps the button from resizing between "Refresh" and "Refreshed". */
+export const REFRESH_BUTTON_MIN_WIDTH = 132;
+
 /** Health score percentage at or above which the score reads good, then fair. */
 export const HEALTH_SCORE_GOOD = 90;
 export const HEALTH_SCORE_FAIR = 60;

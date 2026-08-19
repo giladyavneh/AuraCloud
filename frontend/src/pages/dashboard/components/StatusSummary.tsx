@@ -1,13 +1,13 @@
 import React from "react";
 import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 import { Trans, useTranslation } from "react-i18next";
-import { ArrowsClockwiseIcon } from "@phosphor-icons/react";
-import { useQueryClient } from "@tanstack/react-query";
+import { ArrowsClockwiseIcon, CheckCircleIcon } from "@phosphor-icons/react";
 import { useUserPermissions, useUserResourceWatchlist } from "@/hooks/resources.hooks";
-import { QUERY_KEYS } from "@/constants/queryKeys";
-import { DASHBOARD_IDS } from "@/pages/dashboard/constants";
+import { DASHBOARD_IDS, REFRESH_BUTTON_MIN_WIDTH } from "@/pages/dashboard/constants";
+import { useDashboardRefresh } from "@/pages/dashboard/hooks/dashboard.hooks";
 import {
   countResourceStatuses,
   deriveStatusMessage,
@@ -26,7 +26,7 @@ import {
 const StatusSummary: React.FC = () => {
   const { t } = useTranslation();
   const theme = useTheme();
-  const queryClient = useQueryClient();
+  const { phase: refreshPhase, refresh } = useDashboardRefresh();
   const { data: watchlistItems = [], isLoading: isWatchlistLoading } = useUserResourceWatchlist();
   const {
     data: permission,
@@ -36,11 +36,6 @@ const StatusSummary: React.FC = () => {
 
   // Cursor-following spotlight, same wiring the dashboard resource cards use.
   const { ref, onMouseMove } = useSpotlight<HTMLDivElement>();
-
-  const handleRefresh = () => {
-    void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.userPermissions });
-    void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.userResourceWatchlist });
-  };
 
   const monitoredResources = watchlistItems[0]?.resources ?? [];
   const resourceStatuses = permission?.resourceStatuses ?? {};
@@ -55,6 +50,12 @@ const StatusSummary: React.FC = () => {
     staleCount: statusCounts.stale,
     unscannedCount: statusCounts.unscanned,
   });
+
+  const refreshIcon = {
+    idle: <ArrowsClockwiseIcon size={theme.iconSize.xs} />,
+    refreshing: <CircularProgress size={theme.iconSize.xs} color="inherit" />,
+    refreshed: <CheckCircleIcon size={theme.iconSize.xs} weight="fill" />,
+  }[refreshPhase];
 
   const systemStatus = deriveSystemStatus(
     isPermissionLoading,
@@ -97,11 +98,13 @@ const StatusSummary: React.FC = () => {
 
         <Button
           variant="outlined"
-          color="primary"
-          startIcon={<ArrowsClockwiseIcon size={theme.iconSize.xs} />}
-          onClick={handleRefresh}
+          color={refreshPhase === "refreshed" ? "success" : "primary"}
+          startIcon={refreshIcon}
+          disabled={refreshPhase === "refreshing"}
+          onClick={() => void refresh()}
+          sx={{ minWidth: REFRESH_BUTTON_MIN_WIDTH }}
         >
-          {t("dashboard.refresh")}
+          {t(refreshPhase === "refreshed" ? "dashboard.refreshed" : "dashboard.refresh")}
         </Button>
       </StatusSummaryRight>
     </StatusSummaryRoot>

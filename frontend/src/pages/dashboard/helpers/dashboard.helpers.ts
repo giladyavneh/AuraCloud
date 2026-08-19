@@ -1,4 +1,3 @@
-import { inferServiceFromArn } from "@/helpers/arn.helpers";
 import { HEALTH_SCORE_FAIR, HEALTH_SCORE_GOOD } from "@/pages/dashboard/constants";
 import type { StatusTagVariant } from "@/components/statusTag/types/statusTag.types";
 import type { FilterTabValue } from "@/pages/dashboard/types/dashboard.types";
@@ -6,26 +5,12 @@ import type { ResourceCardAction } from "@/components/resourceCard/types/resourc
 import type {
   ActionData,
   ArnPermissionData,
+  PermissionStatus,
   ResourceStatus,
 } from "@/services/types/resources.types";
-import type { AwsService } from "@/components/awsServiceIcon/types/awsServiceIcon.types";
 
 export { inferServiceFromArn, inferTitleFromArn } from "@/helpers/arn.helpers";
 export { formatTimestamp } from "@/helpers/time.helpers";
-
-export type ResourceCategory = "iam" | "network" | "resource";
-
-/**
- * Maps an AWS service to a high-level category used by the dashboard filter tabs.
- * - iam:      permission / identity services
- * - network:  network / connectivity services
- * - resource: storage / compute / messaging services
- */
-export const getServiceCategory = (service: AwsService): ResourceCategory => {
-  if (["iam", "sso"].includes(service)) return "iam";
-  if (["ec2", "rds", "ecr"].includes(service)) return "network";
-  return "resource";
-};
 
 interface HasStatus {
   status: unknown;
@@ -49,15 +34,14 @@ export const countFilterTabs = (
 ): Record<FilterTabValue, number> => {
   const counts: Record<FilterTabValue, number> = {
     all: watchedResources.length,
-    iam: 0,
-    resource: 0,
-    network: 0,
+    blocked: 0,
+    stale: 0,
+    unscanned: 0,
     healthy: 0,
   };
 
   for (const { arn } of watchedResources) {
-    counts[getServiceCategory(inferServiceFromArn(arn))]++;
-    if (resourceStatuses[arn] === "healthy") counts.healthy++;
+    counts[resourceStatuses[arn] ?? "unscanned"]++;
   }
 
   return counts;
@@ -70,11 +54,30 @@ export const filterResourcesByTab = <ResourceWithArn extends { arn: string }>(
 ): ResourceWithArn[] => {
   if (activeFilter === "all") return watchedResources;
 
-  return watchedResources.filter(({ arn }) => {
-    if (activeFilter === "healthy") return resourceStatuses[arn] === "healthy";
+  return watchedResources.filter(
+    ({ arn }) => (resourceStatuses[arn] ?? "unscanned") === activeFilter,
+  );
+};
 
-    return getServiceCategory(inferServiceFromArn(arn)) === activeFilter;
-  });
+const STATUS_SEVERITY: ResourceStatus[] = ["blocked", "stale", "unscanned", "healthy"];
+
+/** Sort is stable, so resources keep their watchlist order within a status. */
+export const sortResourcesByStatus = <ResourceWithArn extends { arn: string }>(
+  watchedResources: ResourceWithArn[],
+  resourceStatuses: Record<string, ResourceStatus>,
+): ResourceWithArn[] =>
+  [...watchedResources].sort(
+    (first, second) =>
+      STATUS_SEVERITY.indexOf(resourceStatuses[first.arn] ?? "unscanned") -
+      STATUS_SEVERITY.indexOf(resourceStatuses[second.arn] ?? "unscanned"),
+  );
+
+/** Mirrors the resource order: denied first, then unreported, then allowed. */
+const actionSeverity = (status?: PermissionStatus): number => {
+  if (status === "error") return 0;
+  if (status === undefined) return 1;
+
+  return 2;
 };
 
 /** Keyed by the watched action names, so the Brain's camelCase aliases never double up. */
@@ -82,24 +85,23 @@ export const resolveWatchedActions = (
   actionNames: string[],
   data: ArnPermissionData | undefined,
 ): ResourceCardAction[] => {
-  if (!data) return actionNames.map((name) => ({ name }));
+  const resolved: ResourceCardAction[] = actionNames.map((name) => {
+    if (!data) return { name };
 
-  if (isTopLevelArnData(data)) {
-    return actionNames.map((name) => ({
-      name,
-      status: data.status,
-      ...(data.reason ? { reason: data.reason } : {}),
-    }));
-  }
+    if (isTopLevelArnData(data)) {
+      return { name, status: data.status, ...(data.reason ? { reason: data.reason } : {}) };
+    }
 
-  const perAction = data as Record<string, ActionData>;
-
-  return actionNames.map((name) => {
-    const result = perAction[name];
+    const result = (data as Record<string, ActionData>)[name];
     if (!result) return { name };
 
     return { name, status: result.status, ...(result.reason ? { reason: result.reason } : {}) };
   });
+
+  // Sorted so the blocked actions are the ones shown before "+N more".
+  return resolved.sort(
+    (first, second) => actionSeverity(first.status) - actionSeverity(second.status),
+  );
 };
 
 export type HealthScoreBand = "good" | "fair" | "poor";

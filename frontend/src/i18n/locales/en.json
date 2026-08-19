@@ -54,9 +54,9 @@
     "resourceStatusDescription": "Single source of truth for live infrastructure checks and blockers.",
     "filterTabs": {
       "all": "All",
-      "iam": "IAM",
-      "resource": "Resource",
-      "network": "Network",
+      "blocked": "Blocked",
+      "stale": "Stale",
+      "unscanned": "Unscanned",
       "healthy": "Healthy"
     },
     "permissionsLoadError": "Could not load user permissions.",

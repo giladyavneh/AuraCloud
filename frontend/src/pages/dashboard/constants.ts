@@ -12,7 +12,8 @@ export const REFRESH_BUTTON_MIN_WIDTH = 132;
 export const HEALTH_SCORE_GOOD = 90;
 export const HEALTH_SCORE_FAIR = 60;
 
-export const FILTER_TABS: FilterTabValue[] = ["all", "iam", "resource", "network", "healthy"];
+/** Severity order — the most urgent filter sits next to the default. */
+export const FILTER_TABS: FilterTabValue[] = ["all", "blocked", "stale", "unscanned", "healthy"];
 
 /** Stable hooks for debugging and tests. */
 export const DASHBOARD_IDS = {

@@ -3,8 +3,11 @@ import {
   countResourceStatuses,
   deriveStatusMessage,
   deriveSystemStatus,
+  countFilterTabs,
+  filterResourcesByTab,
   getHealthScoreBand,
   resolveWatchedActions,
+  sortResourcesByStatus,
 } from "@/pages/dashboard/helpers/dashboard.helpers";
 import englishTranslations from "@/i18n/locales/en.json";
 
@@ -168,10 +171,23 @@ describe("resolveWatchedActions", () => {
     },
   };
 
-  it("gives each action its own verdict rather than the resource's", () => {
+  it("gives each action its own verdict, denied ones first", () => {
     expect(resolveWatchedActions(["s3:GetObject", "s3:PutObject"], mixedVerdicts)).toEqual([
-      { name: "s3:GetObject", status: "valid" },
       { name: "s3:PutObject", status: "error", reason: "Explicit Deny in identity policy" },
+      { name: "s3:GetObject", status: "valid" },
+    ]);
+  });
+
+  it("orders unreported actions between the denied and the allowed", () => {
+    const resolved = resolveWatchedActions(
+      ["s3:GetObject", "s3:DeleteObject", "s3:PutObject"],
+      mixedVerdicts,
+    );
+
+    expect(resolved.map(({ name }) => name)).toEqual([
+      "s3:PutObject",
+      "s3:DeleteObject",
+      "s3:GetObject",
     ]);
   });
 
@@ -195,6 +211,49 @@ describe("resolveWatchedActions", () => {
     expect(resolveWatchedActions(["a", "b"], topLevel)).toEqual([
       { name: "a", status: "error", reason: "denied" },
       { name: "b", status: "error", reason: "denied" },
+    ]);
+  });
+});
+
+describe("status filter tabs", () => {
+  const watched = [
+    { arn: "arn:healthy" },
+    { arn: "arn:blocked" },
+    { arn: "arn:stale" },
+    { arn: "arn:never-resolved" },
+  ];
+  const statuses = {
+    "arn:healthy": "healthy",
+    "arn:blocked": "blocked",
+    "arn:stale": "stale",
+  } as const;
+
+  it("counts every status, treating an unresolved ARN as unscanned", () => {
+    expect(countFilterTabs(watched, statuses)).toEqual({
+      all: 4,
+      blocked: 1,
+      stale: 1,
+      unscanned: 1,
+      healthy: 1,
+    });
+  });
+
+  it("filters to the selected status, and returns everything for all", () => {
+    expect(filterResourcesByTab(watched, statuses, "blocked")).toEqual([{ arn: "arn:blocked" }]);
+    expect(filterResourcesByTab(watched, statuses, "unscanned")).toEqual([
+      { arn: "arn:never-resolved" },
+    ]);
+    expect(filterResourcesByTab(watched, statuses, "all")).toEqual(watched);
+  });
+
+  it("sorts by severity, keeping watchlist order within a status", () => {
+    const sorted = sortResourcesByStatus(watched, statuses);
+
+    expect(sorted.map(({ arn }) => arn)).toEqual([
+      "arn:blocked",
+      "arn:stale",
+      "arn:never-resolved",
+      "arn:healthy",
     ]);
   });
 });

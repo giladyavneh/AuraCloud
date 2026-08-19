@@ -11,6 +11,7 @@ import { DASHBOARD_IDS } from "@/pages/dashboard/constants";
 import {
   countFilterTabs,
   filterResourcesByTab,
+  sortResourcesByStatus,
 } from "@/pages/dashboard/helpers/dashboard.helpers";
 import type { FilterTabValue } from "@/pages/dashboard/types/dashboard.types";
 import Box from "@mui/material/Box";
@@ -50,7 +51,10 @@ const ResourceSection: React.FC = () => {
     () => countFilterTabs(watchedResources, resourceStatuses),
     [watchedResources, resourceStatuses],
   );
-  const filteredResources = filterResourcesByTab(watchedResources, resourceStatuses, activeFilter);
+  const filteredResources = sortResourcesByStatus(
+    filterResourcesByTab(watchedResources, resourceStatuses, activeFilter),
+    resourceStatuses,
+  );
 
   const hasResources = watchedResources.length > 0;
 

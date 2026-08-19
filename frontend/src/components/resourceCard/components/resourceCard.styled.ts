@@ -1,6 +1,7 @@
 import { spotlightOverlayStyles } from "@/components/spotlightCard/components/spotlightCard.styled";
 import { styled } from "@mui/material/styles";
 import Box from "@mui/material/Box";
+import Divider from "@mui/material/Divider";
 
 export const CardRoot = styled(Box)(({ theme }) => ({
   display: "flex",
@@ -72,4 +73,8 @@ export const MoreActionsPopoverContent = styled(Box)(({ theme }) => ({
   padding: theme.spacing(4),
   minWidth: 200,
   maxWidth: 320,
+}));
+
+export const ErrorDivider = styled(Divider)(({ theme }) => ({
+  borderColor: theme.palette.text.secondary,
 }));

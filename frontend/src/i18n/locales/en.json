@@ -81,7 +81,8 @@
     "noActions": "No actions configured",
     "moreActions": "{{count}} more >",
     "allActions": "All actions",
-    "errorPrefix": "Error:"
+    "moreErrors": "{{count}} more >",
+    "allErrors": "Other blocked actions"
   },
   "resourceWatchlist": {
     "title": "Resource Watchlist",
@@ -322,7 +323,8 @@
     "stale": "Stale",
     "unscanned": "Unscanned",
     "external": "External",
-    "online": "System Online"
+    "online": "System Online",
+    "blockedCount": "Blocked ({{blocked}}/{{total}})"
   },
   "team": {
     "title": "Teams",

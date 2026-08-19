@@ -3,9 +3,9 @@ import { extractResourceName } from "@/helpers/arn.helpers";
 import { DASHBOARD_IDS } from "@/pages/dashboard/constants";
 import {
   formatTimestamp,
-  getErrorReasonFromArnData,
   getTimestampFromArnData,
   inferServiceFromArn,
+  resolveWatchedActions,
 } from "@/pages/dashboard/helpers/dashboard.helpers";
 import type { WatchlistResource } from "@/services/resources.service";
 import type {
@@ -38,10 +38,7 @@ const ResourceGrid: React.FC<ResourceGridProps> = ({
             title={extractResourceName(arn)}
             lastUpdated={formatTimestamp(arnData ? getTimestampFromArnData(arnData) : "")}
             status={status}
-            actions={actions}
-            errorMessage={
-              status === "blocked" && arnData ? getErrorReasonFromArnData(arnData) : undefined
-            }
+            actions={resolveWatchedActions(actions, arnData)}
           />
         </Grid>
       );

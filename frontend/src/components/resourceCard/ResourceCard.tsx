@@ -9,14 +9,15 @@ import {
   ServiceMeta,
 } from "@/components/resourceCard/components/resourceCard.styled";
 import ResourceCardActionList from "@/components/resourceCard/components/ResourceCardActionList";
+import ResourceCardErrorAlert from "@/components/resourceCard/components/ResourceCardErrorAlert";
 import {
+  countBlockedActions,
   getResourceDotColor,
   MAX_VISIBLE_ACTIONS,
 } from "@/components/resourceCard/helpers/resourceCard.helpers";
 import type { ResourceCardProps } from "@/components/resourceCard/types/resourceCard.types";
 import { useSpotlight } from "@/components/spotlightCard/hooks/spotlightCard.hooks";
 import StatusTag from "@/components/statusTag/StatusTag";
-import { Alert } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import React from "react";
@@ -28,7 +29,6 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
   lastUpdated,
   status,
   actions,
-  errorMessage,
   maxVisibleActions = MAX_VISIBLE_ACTIONS,
 }) => {
   const { t } = useTranslation();
@@ -37,6 +37,15 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
   const visibleActions = actions.slice(0, maxVisibleActions);
   const remainingActions = actions.slice(maxVisibleActions);
   const dotColor = getResourceDotColor(theme.palette, status);
+
+  const blockedActions = actions.filter(({ status: actionStatus }) => actionStatus === "error");
+  const tagLabel =
+    status === "blocked"
+      ? t("status.blockedCount", {
+          blocked: countBlockedActions(actions),
+          total: actions.length,
+        })
+      : undefined;
 
   // Tint the spotlight with the card's own status colour, so hovering a blocked
   // resource glows red and a healthy one green.
@@ -56,7 +65,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
                 {lastUpdated}
               </Typography>
 
-              <StatusTag variant={status} />
+              <StatusTag variant={status} label={tagLabel} />
             </MetaTopRow>
 
             <Typography
@@ -77,17 +86,11 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
           <ResourceCardActionList
             visibleActions={visibleActions}
             remainingActions={remainingActions}
-            dotColor={dotColor}
+            resourceStatus={status}
           />
         </ResourceList>
 
-        {errorMessage && (
-          <Alert severity="error">
-            <Typography variant="body2">
-              {t("resourceCard.errorPrefix")} {errorMessage}
-            </Typography>
-          </Alert>
-        )}
+        {status === "blocked" && <ResourceCardErrorAlert blockedActions={blockedActions} />}
       </CardBody>
     </CardRoot>
   );

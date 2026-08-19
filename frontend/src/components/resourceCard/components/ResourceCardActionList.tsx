@@ -4,6 +4,7 @@ import {
   ResourceDot,
   ResourceItem,
 } from "@/components/resourceCard/components/resourceCard.styled";
+import { getActionDotColor } from "@/components/resourceCard/helpers/resourceCard.helpers";
 import type { ResourceCardActionListProps } from "@/components/resourceCard/types/resourceCard.types";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
@@ -13,7 +14,7 @@ import { useTranslation } from "react-i18next";
 const ResourceCardActionList: React.FC<ResourceCardActionListProps> = ({
   visibleActions,
   remainingActions,
-  dotColor,
+  resourceStatus,
 }) => {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -28,9 +29,9 @@ const ResourceCardActionList: React.FC<ResourceCardActionListProps> = ({
 
   return (
     <>
-      {visibleActions.map((action) => (
-        <ResourceItem key={action}>
-          <ResourceDot dotColor={dotColor} />
+      {visibleActions.map(({ name, status }) => (
+        <ResourceItem key={name}>
+          <ResourceDot dotColor={getActionDotColor(theme.palette, resourceStatus, status)} />
 
           <Typography
             variant="body2"
@@ -40,13 +41,13 @@ const ResourceCardActionList: React.FC<ResourceCardActionListProps> = ({
               fontSize: MONO_LABEL_FONT_SIZE,
             }}
           >
-            {action}
+            {name}
           </Typography>
         </ResourceItem>
       ))}
 
       {remainingActions.length > 0 && (
-        <ResourceCardMoreActions actions={remainingActions} dotColor={dotColor} />
+        <ResourceCardMoreActions actions={remainingActions} resourceStatus={resourceStatus} />
       )}
     </>
   );

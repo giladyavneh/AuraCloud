@@ -1,18 +1,25 @@
 import type { StatusTagVariant } from '@/components/statusTag/types/statusTag.types';
 import type { AwsService } from '@/components/awsServiceIcon/types/awsServiceIcon.types';
+import type { PermissionStatus } from '@/services/types/resources.types';
+
+export interface ResourceCardAction {
+  name: string;
+  /** Absent when the Brain reported nothing for this action. */
+  status?: PermissionStatus;
+  reason?: string;
+}
 
 export interface ResourceCardProps {
   service: AwsService;
   title: string;
   lastUpdated: string;
   status: StatusTagVariant;
-  actions: string[];
-  errorMessage?: string;
+  actions: ResourceCardAction[];
   maxVisibleActions?: number;
 }
 
 export interface ResourceCardActionListProps {
-  visibleActions: string[];
-  remainingActions: string[];
-  dotColor: string;
+  visibleActions: ResourceCardAction[];
+  remainingActions: ResourceCardAction[];
+  resourceStatus: StatusTagVariant;
 }

@@ -4,6 +4,7 @@ import {
   deriveStatusMessage,
   deriveSystemStatus,
   getHealthScoreBand,
+  resolveWatchedActions,
 } from "@/pages/dashboard/helpers/dashboard.helpers";
 import englishTranslations from "@/i18n/locales/en.json";
 
@@ -147,5 +148,53 @@ describe("getHealthScoreBand", () => {
     expect(getHealthScoreBand(60)).toBe("fair");
     expect(getHealthScoreBand(59)).toBe("poor");
     expect(getHealthScoreBand(0)).toBe("poor");
+  });
+});
+
+describe("resolveWatchedActions", () => {
+  // The Brain stores every action under its canonical name AND a camelCase alias.
+  const mixedVerdicts = {
+    "s3:GetObject": { status: "valid" as const, reason: null, timestamp: "2026-08-19T07:51:25Z" },
+    getObject: { status: "valid" as const, reason: null, timestamp: "2026-08-19T07:51:25Z" },
+    "s3:PutObject": {
+      status: "error" as const,
+      reason: "Explicit Deny in identity policy",
+      timestamp: "2026-08-19T07:51:25Z",
+    },
+    putObject: {
+      status: "error" as const,
+      reason: "Explicit Deny in identity policy",
+      timestamp: "2026-08-19T07:51:25Z",
+    },
+  };
+
+  it("gives each action its own verdict rather than the resource's", () => {
+    expect(resolveWatchedActions(["s3:GetObject", "s3:PutObject"], mixedVerdicts)).toEqual([
+      { name: "s3:GetObject", status: "valid" },
+      { name: "s3:PutObject", status: "error", reason: "Explicit Deny in identity policy" },
+    ]);
+  });
+
+  it("returns one entry per watched action, never the camelCase aliases", () => {
+    const resolved = resolveWatchedActions(["s3:GetObject", "s3:PutObject"], mixedVerdicts);
+
+    expect(resolved).toHaveLength(2);
+    expect(resolved.map(({ name }) => name)).not.toContain("getObject");
+  });
+
+  it("leaves an action the Brain did not report without a status", () => {
+    expect(resolveWatchedActions(["s3:DeleteObject"], mixedVerdicts)).toEqual([
+      { name: "s3:DeleteObject" },
+    ]);
+    expect(resolveWatchedActions(["s3:GetObject"], undefined)).toEqual([{ name: "s3:GetObject" }]);
+  });
+
+  it("applies a single top-level verdict to every watched action", () => {
+    const topLevel = { status: "error" as const, reason: "denied", timestamp: "2026-08-19T07:51:25Z" };
+
+    expect(resolveWatchedActions(["a", "b"], topLevel)).toEqual([
+      { name: "a", status: "error", reason: "denied" },
+      { name: "b", status: "error", reason: "denied" },
+    ]);
   });
 });

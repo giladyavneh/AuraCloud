@@ -2,6 +2,7 @@ import { inferServiceFromArn } from "@/helpers/arn.helpers";
 import { HEALTH_SCORE_FAIR, HEALTH_SCORE_GOOD } from "@/pages/dashboard/constants";
 import type { StatusTagVariant } from "@/components/statusTag/types/statusTag.types";
 import type { FilterTabValue } from "@/pages/dashboard/types/dashboard.types";
+import type { ResourceCardAction } from "@/components/resourceCard/types/resourceCard.types";
 import type {
   ActionData,
   ArnPermissionData,
@@ -33,19 +34,6 @@ interface HasStatus {
 export const isTopLevelArnData = (
   data: ArnPermissionData,
 ): data is ActionData => typeof (data as HasStatus).status === "string";
-
-/** Returns an error reason string when an action or the ARN itself is in error state. */
-export const getErrorReasonFromArnData = (
-  data: ArnPermissionData,
-): string | undefined => {
-  if (isTopLevelArnData(data)) return data.reason ?? undefined;
-
-  const perAction = data as Record<string, ActionData>;
-  return (
-    Object.values(perAction).find((action) => action.status === "error")?.reason ??
-    undefined
-  );
-};
 
 /** Returns the ISO timestamp from the first available entry in the ARN data. */
 export const getTimestampFromArnData = (data: ArnPermissionData): string => {
@@ -86,6 +74,31 @@ export const filterResourcesByTab = <ResourceWithArn extends { arn: string }>(
     if (activeFilter === "healthy") return resourceStatuses[arn] === "healthy";
 
     return getServiceCategory(inferServiceFromArn(arn)) === activeFilter;
+  });
+};
+
+/** Keyed by the watched action names, so the Brain's camelCase aliases never double up. */
+export const resolveWatchedActions = (
+  actionNames: string[],
+  data: ArnPermissionData | undefined,
+): ResourceCardAction[] => {
+  if (!data) return actionNames.map((name) => ({ name }));
+
+  if (isTopLevelArnData(data)) {
+    return actionNames.map((name) => ({
+      name,
+      status: data.status,
+      ...(data.reason ? { reason: data.reason } : {}),
+    }));
+  }
+
+  const perAction = data as Record<string, ActionData>;
+
+  return actionNames.map((name) => {
+    const result = perAction[name];
+    if (!result) return { name };
+
+    return { name, status: result.status, ...(result.reason ? { reason: result.reason } : {}) };
   });
 };
 

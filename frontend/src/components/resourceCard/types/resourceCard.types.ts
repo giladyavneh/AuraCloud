@@ -12,6 +12,8 @@ export interface ResourceCardAction {
 export interface ResourceCardProps {
   service: AwsService;
   title: string;
+  /** Shown under the title — the name is not unique, the ARN is. */
+  arn: string;
   lastUpdated: string;
   status: StatusTagVariant;
   actions: ResourceCardAction[];

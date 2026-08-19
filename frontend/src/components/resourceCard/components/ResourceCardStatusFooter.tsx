@@ -1,25 +1,32 @@
 import {
   ErrorDivider,
   MoreActionsPopoverContent,
+  StatusFooter,
+  StatusFooterMessage,
 } from "@/components/resourceCard/components/resourceCard.styled";
 import type { ResourceCardAction } from "@/components/resourceCard/types/resourceCard.types";
-import Alert from "@mui/material/Alert";
+import type { StatusTagVariant } from "@/components/statusTag/types/statusTag.types";
 import Button from "@mui/material/Button";
 import Grow from "@mui/material/Grow";
 import Paper from "@mui/material/Paper";
 import Popper from "@mui/material/Popper";
 import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 import { useHover } from "@uidotdev/usehooks";
 import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-interface ResourceCardErrorAlertProps {
-  blockedActions: ResourceCardAction[];
+interface ResourceCardStatusFooterProps {
+  status: StatusTagVariant;
+  actions: ResourceCardAction[];
 }
 
-const ResourceCardErrorAlert: React.FC<ResourceCardErrorAlertProps> = ({ blockedActions }) => {
+const ResourceCardStatusFooter: React.FC<ResourceCardStatusFooterProps> = ({
+  status,
+  actions,
+}) => {
   const { t } = useTranslation();
   const theme = useTheme();
   const [hoverRef, hovering] = useHover<HTMLButtonElement>();
@@ -35,14 +42,33 @@ const ResourceCardErrorAlert: React.FC<ResourceCardErrorAlertProps> = ({ blocked
     [hoverRef],
   );
 
+  const blockedActions = actions.filter(({ status: actionStatus }) => actionStatus === "error");
   const [firstBlocked, ...remainingBlocked] = blockedActions;
-  if (!firstBlocked) return null;
+
+  // Healthy needs no footer: the tag and the green dots already say it.
+  if (status !== "blocked" || !firstBlocked) {
+    const summaryKey = {
+      stale: "resourceCard.staleSummary",
+      unscanned: "resourceCard.unscannedSummary",
+    }[status as "stale" | "unscanned"];
+
+    if (!summaryKey) return null;
+
+    return (
+      <StatusFooter footerVariant={status}>
+        <StatusFooterMessage>{t(summaryKey)}</StatusFooterMessage>
+
+      </StatusFooter>
+    );
+  }
+
+  const blockedMessage = `${firstBlocked.name} — ${firstBlocked.reason}`;
 
   return (
-    <Alert severity="error">
-      <Typography variant="body2">
-        {firstBlocked.name} — {firstBlocked.reason}
-      </Typography>
+    <StatusFooter footerVariant={status}>
+      <Tooltip title={blockedMessage} placement="bottom-start">
+        <StatusFooterMessage>{blockedMessage}</StatusFooterMessage>
+      </Tooltip>
 
       {remainingBlocked.length > 0 && (
         <>
@@ -51,7 +77,7 @@ const ResourceCardErrorAlert: React.FC<ResourceCardErrorAlertProps> = ({ blocked
             variant="text"
             color="error"
             size="small"
-            sx={{ width: "fit-content", marginTop: 1 }}
+            sx={{ flexShrink: 0, minWidth: "auto" }}
             onClick={() => setClickOpen((isOpen) => !isOpen)}
           >
             {t("resourceCard.moreErrors", { count: remainingBlocked.length })}
@@ -60,7 +86,7 @@ const ResourceCardErrorAlert: React.FC<ResourceCardErrorAlertProps> = ({ blocked
           <Popper
             open={hovering || clickOpen}
             anchorEl={anchorEl}
-            placement="bottom-start"
+            placement="bottom-end"
             transition
             sx={{
               zIndex: (popperTheme) => popperTheme.zIndex.tooltip,
@@ -81,16 +107,20 @@ const ResourceCardErrorAlert: React.FC<ResourceCardErrorAlertProps> = ({ blocked
                           {name} — {reason}
                         </Typography>
                       ))}
+
                     </Stack>
+
                   </MoreActionsPopoverContent>
                 </Paper>
               </Grow>
             )}
           </Popper>
+
         </>
       )}
-    </Alert>
+
+    </StatusFooter>
   );
 };
 
-export default ResourceCardErrorAlert;
+export default ResourceCardStatusFooter;

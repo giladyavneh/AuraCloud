@@ -1,5 +1,5 @@
 import ResourceCard from "@/components/resourceCard/ResourceCard";
-import { extractResourceName } from "@/helpers/arn.helpers";
+import { resolveResourceLabel } from "@/helpers/arn.helpers";
 import { DASHBOARD_IDS } from "@/pages/dashboard/constants";
 import {
   formatTimestamp,
@@ -27,7 +27,7 @@ const ResourceGrid: React.FC<ResourceGridProps> = ({
   resourceStatuses,
 }) => (
   <Grid container spacing={2} id={DASHBOARD_IDS.resourceGrid}>
-    {resources.map(({ arn, actions }) => {
+    {resources.map(({ arn, actions, name }) => {
       const arnData = permissionsMap[arn];
       const status = resourceStatuses[arn] ?? "unscanned";
 
@@ -35,7 +35,8 @@ const ResourceGrid: React.FC<ResourceGridProps> = ({
         <Grid key={arn} size={{ xs: 12, md: 6, lg: 4 }}>
           <ResourceCard
             service={inferServiceFromArn(arn)}
-            title={extractResourceName(arn)}
+            title={resolveResourceLabel(arn, name)}
+            arn={arn}
             lastUpdated={formatTimestamp(arnData ? getTimestampFromArnData(arnData) : "")}
             status={status}
             actions={resolveWatchedActions(actions, arnData)}

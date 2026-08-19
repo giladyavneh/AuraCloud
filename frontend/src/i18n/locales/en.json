@@ -81,8 +81,10 @@
     "noActions": "No actions configured",
     "moreActions": "{{count}} more >",
     "allActions": "All actions",
-    "moreErrors": "{{count}} more >",
-    "allErrors": "Other blocked actions"
+    "moreErrors": "+{{count}} more",
+    "allErrors": "Other blocked actions",
+    "staleSummary": "Last verdict is out of date",
+    "unscannedSummary": "Not scanned yet"
   },
   "resourceWatchlist": {
     "title": "Resource Watchlist",

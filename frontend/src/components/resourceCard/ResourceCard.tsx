@@ -9,7 +9,8 @@ import {
   ServiceMeta,
 } from "@/components/resourceCard/components/resourceCard.styled";
 import ResourceCardActionList from "@/components/resourceCard/components/ResourceCardActionList";
-import ResourceCardErrorAlert from "@/components/resourceCard/components/ResourceCardErrorAlert";
+import ResourceCardArn from "@/components/resourceCard/components/ResourceCardArn";
+import ResourceCardStatusFooter from "@/components/resourceCard/components/ResourceCardStatusFooter";
 import {
   countBlockedActions,
   getResourceDotColor,
@@ -26,6 +27,7 @@ import { useTranslation } from "react-i18next";
 const ResourceCard: React.FC<ResourceCardProps> = ({
   service,
   title,
+  arn,
   lastUpdated,
   status,
   actions,
@@ -38,7 +40,6 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
   const remainingActions = actions.slice(maxVisibleActions);
   const dotColor = getResourceDotColor(theme.palette, status);
 
-  const blockedActions = actions.filter(({ status: actionStatus }) => actionStatus === "error");
   const tagLabel =
     status === "blocked"
       ? t("status.blockedCount", {
@@ -75,6 +76,9 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
             >
               {title}
             </Typography>
+
+            <ResourceCardArn arn={arn} />
+
           </ServiceMeta>
         </CardHeader>
 
@@ -90,7 +94,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
           />
         </ResourceList>
 
-        {status === "blocked" && <ResourceCardErrorAlert blockedActions={blockedActions} />}
+        <ResourceCardStatusFooter status={status} actions={actions} />
       </CardBody>
     </CardRoot>
   );
